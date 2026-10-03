@@ -1,6 +1,13 @@
+---
+sidebar_position: 4
+sidebar_label: 横向对比与建议
+description: coze-loop 与 Langfuse 提示词管理的横向对比矩阵，以及自建提示词库的建议。
+tags: [LLM, 提示词管理, coze-loop, Langfuse]
+---
+
 # coze-loop 与 Langfuse 提示词管理：横向对比与建议
 
-> 返回 [索引](README.md) · 详细报告：[coze-loop](coze-loop.md) · [Langfuse](langfuse.md) · [交互页面](index.html)
+> 返回 [概览](index.md) · 详细报告：[coze-loop](coze-loop.md) · [Langfuse](langfuse.md) · [交互页面](interactive.mdx)
 
 - coze-loop 提交：`3a6a2bf0`。Langfuse 提交：`f75c661d`。
 - 每个单元格都带源码永久链接。"建议"一节是基于证据的推断，已单独标注。

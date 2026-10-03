@@ -1,0 +1,142 @@
+:root {
+  --ifm-color-primary: #4f46e5;
+  --ifm-color-primary-dark: #4338ca;
+  --ifm-color-primary-darker: #3f37c0;
+  --ifm-color-primary-darkest: #3730a3;
+  --ifm-color-primary-light: #6366f1;
+  --ifm-color-primary-lighter: #818cf8;
+  --ifm-color-primary-lightest: #a5b4fc;
+  --ifm-code-font-size: 90%;
+  --ifm-font-family-base:
+    system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
+    'Noto Sans CJK SC', 'Helvetica Neue', Arial, sans-serif;
+  --ifm-heading-font-weight: 700;
+  --ifm-navbar-shadow: none;
+  --ifm-global-radius: 8px;
+  --docusaurus-highlighted-code-line-bg: rgb(79 70 229 / 10%);
+
+  --sv-learning: #0d9488;
+  --sv-html: #c2410c;
+  --sv-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #0ea5e9 100%);
+  --sv-gradient-text: linear-gradient(120deg, #1e1b4b 10%, #4f46e5 55%, #0ea5e9 100%);
+  --sv-hero-bg: linear-gradient(180deg, #f5f3ff 0%, #ffffff 100%);
+  --sv-grid-dot: rgb(79 70 229 / 12%);
+  --sv-glass: rgb(255 255 255 / 70%);
+  --sv-shadow-sm: 0 1px 2px rgb(15 23 42 / 4%), 0 2px 8px rgb(15 23 42 / 4%);
+  --sv-shadow-md: 0 4px 10px rgb(15 23 42 / 6%), 0 12px 28px rgb(15 23 42 / 8%);
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #818cf8;
+  --ifm-color-primary-dark: #6c79f6;
+  --ifm-color-primary-darker: #6170f5;
+  --ifm-color-primary-darkest: #3f51f2;
+  --ifm-color-primary-light: #96a0fa;
+  --ifm-color-primary-lighter: #a1aafb;
+  --ifm-color-primary-lightest: #c2c8fc;
+  --ifm-background-color: #0b1020;
+  --ifm-background-surface-color: #111830;
+  --ifm-navbar-background-color: rgb(11 16 32 / 85%);
+  --docusaurus-highlighted-code-line-bg: rgb(129 140 248 / 18%);
+
+  --sv-learning: #2dd4bf;
+  --sv-html: #fb923c;
+  --sv-gradient-text: linear-gradient(120deg, #e0e7ff 10%, #a5b4fc 50%, #67e8f9 100%);
+  --sv-hero-bg: linear-gradient(180deg, #141a3a 0%, #0b1020 100%);
+  --sv-grid-dot: rgb(165 180 252 / 10%);
+  --sv-glass: rgb(17 24 48 / 70%);
+  --sv-shadow-sm: 0 1px 2px rgb(0 0 0 / 30%);
+  --sv-shadow-md: 0 8px 24px rgb(0 0 0 / 40%);
+}
+
+.navbar {
+  backdrop-filter: saturate(180%) blur(10px);
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+}
+
+[data-theme='light'] .navbar {
+  background-color: rgb(255 255 255 / 85%);
+}
+
+.navbar__title {
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.header-github-link::before {
+  content: '';
+  display: flex;
+  width: 24px;
+  height: 24px;
+  background: var(--ifm-navbar-link-color);
+  mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12'/%3E%3C/svg%3E")
+    no-repeat center / contain;
+}
+
+.header-github-link:hover::before {
+  background: var(--ifm-color-primary);
+}
+
+/* Docs content */
+.markdown h1:first-child {
+  font-size: 2.1rem;
+  font-weight: 800;
+}
+
+.markdown h2 {
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+}
+
+.markdown blockquote {
+  border-left-color: var(--ifm-color-primary);
+  background: var(--ifm-color-emphasis-100);
+  border-radius: 0 8px 8px 0;
+  padding: 0.6rem 1rem;
+}
+
+.markdown table {
+  font-size: 0.92rem;
+}
+
+.markdown table thead tr {
+  background: var(--ifm-color-emphasis-100);
+}
+
+.markdown table td,
+.markdown table th {
+  vertical-align: top;
+}
+
+/* Wide tables scroll inside their own box instead of stretching the page. */
+.markdown table {
+  display: block;
+  overflow-x: auto;
+}
+
+.markdown img {
+  border-radius: 10px;
+  border: 1px solid var(--ifm-color-emphasis-200);
+}
+
+.docusaurus-mermaid-container {
+  overflow-x: auto;
+  padding: 1rem;
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 12px;
+  background: var(--ifm-background-surface-color);
+  text-align: center;
+}
+
+.menu__link--sublist-caret::after,
+.menu__caret::before {
+  opacity: 0.6;
+}
+
+.theme-doc-sidebar-menu .menu__link--active:not(.menu__link--sublist) {
+  font-weight: 600;
+}
+
+.footer--dark {
+  --ifm-footer-background-color: #0b1020;
+}
