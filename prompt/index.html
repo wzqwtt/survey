@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>提示词管理调研：coze-loop vs Langfuse</title>
+<style>
+  :root {
+    --bg: #f7f8fa; --card: #fff; --text: #1f2328; --muted: #656d76; --border: #d0d7de;
+    --cz: #2f6fde; --cz-soft: #e8f0fe; --lf: #c2410c; --lf-soft: #fff1e6; --accent: #0f766e;
+    --risk: #b42318; --risk-soft: #fef3f2;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--text); }
+  header { background: #111827; color: #fff; padding: 20px 28px 0; }
+  header h1 { margin: 0 0 4px; font-size: 22px; }
+  header .meta { color: #cbd5e1; font-size: 13px; }
+  header .meta a { color: #93c5fd; }
+  nav { display: flex; gap: 4px; margin-top: 14px; flex-wrap: wrap; }
+  nav button { border: 0; background: transparent; color: #cbd5e1; padding: 10px 16px; font-size: 15px; cursor: pointer; border-radius: 8px 8px 0 0; }
+  nav button.active { background: var(--bg); color: var(--text); font-weight: 600; }
+  main { max-width: 1240px; margin: 0 auto; padding: 24px 28px 60px; }
+  section.tab { display: none; }
+  section.tab.active { display: block; }
+  h2 { font-size: 19px; margin: 28px 0 12px; }
+  h2:first-child { margin-top: 0; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 16px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+  .tag { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 10px; font-weight: 600; }
+  .tag.cz { background: var(--cz-soft); color: var(--cz); }
+  .tag.lf { background: var(--lf-soft); color: var(--lf); }
+  .tag.inf { background: #f3e8ff; color: #7e22ce; }
+  ul { margin: 6px 0; padding-left: 20px; }
+  li { margin: 3px 0; }
+  a.src { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--accent); text-decoration: none; background: #ecfdf5; padding: 0 5px; border-radius: 4px; white-space: nowrap; }
+  a.src:hover { text-decoration: underline; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; background: #eff1f3; padding: 0 4px; border-radius: 4px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { border: 1px solid var(--border); padding: 8px 10px; vertical-align: top; text-align: left; }
+  th { background: #f1f3f5; }
+  td.dim { font-weight: 600; white-space: nowrap; width: 120px; }
+  th.cz { color: var(--cz); } th.lf { color: var(--lf); }
+  .stepper { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 14px; }
+  .step { border: 1px solid var(--border); background: #fff; border-radius: 20px; padding: 6px 14px; cursor: pointer; font-size: 14px; }
+  .step .n { display: inline-block; width: 20px; height: 20px; line-height: 20px; text-align: center; border-radius: 50%; background: #e5e7eb; font-size: 12px; margin-right: 6px; }
+  .step.active.cz { background: var(--cz); color: #fff; border-color: var(--cz); }
+  .step.active.lf { background: var(--lf); color: #fff; border-color: var(--lf); }
+  .step.active .n { background: rgba(255,255,255,.3); }
+  .arrow { color: var(--muted); }
+  .detail h3 { margin: 0 0 8px; font-size: 17px; }
+  .detail .summary { color: var(--muted); margin-bottom: 8px; }
+  .mermaid-box { overflow-x: auto; background: #fff; border: 1px dashed var(--border); border-radius: 8px; padding: 10px; margin-top: 10px; text-align: center; min-height: 40px; }
+  .mermaid-box svg { max-width: 100%; height: auto; }
+  .mermaid-box .err { color: var(--risk); font-family: monospace; white-space: pre-wrap; text-align: left; }
+  .risk { border-left: 4px solid var(--risk); background: var(--risk-soft); padding: 8px 12px; border-radius: 0 8px 8px 0; margin: 8px 0; }
+  .risk b { color: var(--risk); }
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  .toolbar button { border: 1px solid var(--border); background: #fff; border-radius: 16px; padding: 4px 12px; cursor: pointer; }
+  .toolbar button.on { background: #111827; color: #fff; border-color: #111827; }
+  .toolbar input { border: 1px solid var(--border); border-radius: 16px; padding: 5px 12px; min-width: 220px; }
+  tr.group td { background: #f8fafc; font-weight: 700; color: var(--muted); }
+  .note { font-size: 13px; color: var(--muted); }
+  footer { text-align: center; color: var(--muted); font-size: 12px; padding: 20px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>提示词管理调研：coze-loop vs Langfuse</h1>
+  <div class="meta">
+    coze-loop @ <a href="https://github.com/wzqwtt/coze-loop/tree/3a6a2bf07b057fec0c702e514e8345fb5684e83a"><code style="background:none;color:inherit">3a6a2bf0</code></a> ·
+    Langfuse @ <a href="https://github.com/wzqwtt/langfuse/tree/f75c661dbe8c6b85523c81486b39e8403ac2c141"><code style="background:none;color:inherit">f75c661d</code></a> ·
+    每条事实带源码永久链接 · Markdown 版：<a href="README.md">README</a> / <a href="coze-loop.md">coze-loop</a> / <a href="langfuse.md">Langfuse</a> / <a href="comparison.md">对比</a>
+  </div>
+  <nav id="nav">
+    <button data-tab="overview" class="active">概览</button>
+    <button data-tab="cz">coze-loop</button>
+    <button data-tab="lf">Langfuse</button>
+    <button data-tab="matrix">对比矩阵</button>
+    <button data-tab="advice">自建建议</button>
+  </nav>
+</header>
+
+<main>
+  <section class="tab active" id="tab-overview">
+    <h2>一张图看差异</h2>
+    <div class="card"><div class="mermaid-box" data-diagram="overview"></div></div>
+    <h2>结论速览</h2>
+    <div class="card"><table id="summary-table"></table></div>
+    <p class="note">提示：点击上方页签查看每个系统的流程。点击流程步骤可展开细节和源码链接。</p>
+  </section>
+
+  <section class="tab" id="tab-cz"></section>
+  <section class="tab" id="tab-lf"></section>
+
+  <section class="tab" id="tab-matrix">
+    <h2>对比矩阵</h2>
+    <div class="toolbar" id="matrix-toolbar"></div>
+    <div class="card" style="padding:0;overflow-x:auto"><table id="matrix-table"></table></div>
+  </section>
+
+  <section class="tab" id="tab-advice"></section>
+</main>
+<footer>单文件页面，无构建步骤。Mermaid 由 jsDelivr CDN 加载。</footer>
+
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+mermaid.initialize({ startOnLoad: false, theme: "default", securityLevel: "strict", flowchart: { htmlLabels: true } });
+
+const BASE = {
+  C: "https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/",
+  L: "https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/",
+};
+// link spec: "C:path#Lx-Ly" or "L:path#Lx-Ly"; label defaults to file name + anchor
+function src(spec, label) {
+  const [repo, path] = [spec.slice(0, 1), spec.slice(2)];
+  const text = label || path.split("/").pop();
+  return `<a class="src" target="_blank" rel="noopener" href="${BASE[repo]}${path}">${text}</a>`;
+}
+// text with inline [[spec]] or [[spec|label]] markers
+function rich(s) {
+  return s.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_, spec, label) => src(spec, label));
+}
+
+/* ---------------- Diagrams ---------------- */
+const D = {
+overview: `flowchart TB
+  subgraph CZ["coze-loop：服务端执行型"]
+    direction LR
+    C1["用户草稿<br/>自动保存"] --> C2["提交<br/>semver 版本"] --> C3["标签指针<br/>production beta test"]
+    C3 --> C4["mget 获取<br/>版本 标签 latest"]
+    C4 --> C5["服务端渲染<br/>normal jinja2 go_template"]
+    C5 --> C6["服务端调用 LLM<br/>eino 多协议 工具循环"]
+  end
+  subgraph LF["Langfuse：注册中心型"]
+    direction LR
+    L1["创建新版本<br/>无草稿"] --> L2["整数版本<br/>自动加 latest"] --> L3["标签指针<br/>默认 production"]
+    L3 --> L4["GET 获取<br/>返回已解析依赖 未渲染"]
+    L4 --> L5["客户端渲染<br/>SDK 正则 双花括号"]
+    L5 --> L6["用户应用调用 LLM<br/>摄取时关联版本"]
+  end
+  CZ ~~~ LF`,
+czArch: `flowchart LR
+  FE["前端 SPA"] -->|"/api/prompt/v1/* 会话"| GW["Hertz + SessionMW"]
+  SDK["SDK / OpenAPI"] -->|"/v1/loop/prompts/* PAT"| GW2["Hertz + PatTokenVerifyMW"]
+  GW --> H["apis handlers"]
+  GW2 --> H
+  H -->|"本地 RPC"| APP["prompt/application"]
+  APP --> SVC["PromptServiceImpl"]
+  APP --> AUTH["AuthRPCAdapter"] --> FND["foundation"]
+  SVC --> REPO["ManageRepoImpl / LabelRepoImpl"]
+  REPO --> MySQL[("MySQL")]
+  REPO --> Redis[("Redis")]
+  SVC --> LLMP["LLMRPCAdapter"] -->|"本地 RPC"| RT["llm runtimeApp"] --> EINO["eino ChatModel"]
+  SVC -. "span" .-> TR["looptracer"]`,
+czCreate: `sequenceDiagram
+  autonumber
+  participant FE as 前端 usePrompt
+  participant App as 应用层
+  participant Repo as ManageRepoImpl
+  participant DB as MySQL
+  FE->>App: 创建
+  App->>App: 鉴权 审计 校验片段
+  App->>Repo: CreatePrompt
+  Repo->>DB: 事务 写 basic draft relation
+  loop 自动保存 800ms
+    FE->>App: drafts/save
+    App->>Repo: SaveDraft
+    Repo->>DB: FOR UPDATE basic 然后 upsert 草稿
+  end
+  FE->>App: drafts/commit 版本 标签
+  App->>App: semver 校验 鉴权 审计
+  App->>Repo: CommitDraft
+  Repo->>DB: 事务 插入 commit 删草稿 更新 latest 写标签映射`,
+czER: `erDiagram
+  prompt_basic ||--o{ prompt_user_draft : "每用户草稿"
+  prompt_basic ||--o{ prompt_commit : "版本"
+  prompt_basic ||--o{ prompt_commit_label_mapping : "标签到版本"
+  prompt_label ||--o{ prompt_commit_label_mapping : "label_key"
+  prompt_basic ||--o{ prompt_relation : "片段引用"
+  prompt_basic {
+    bigint id PK
+    bigint space_id
+    varchar prompt_key
+    varchar latest_version
+    varchar prompt_type
+  }
+  prompt_user_draft {
+    bigint prompt_id
+    varchar user_id
+    longtext messages
+    varchar base_version
+  }
+  prompt_commit {
+    bigint prompt_id
+    varchar version
+    longtext messages
+    varchar committed_by
+  }
+  prompt_commit_label_mapping {
+    bigint prompt_id
+    varchar label_key
+    varchar prompt_version
+  }`,
+czGet: `sequenceDiagram
+  autonumber
+  participant SDK
+  participant App as OpenAPI 应用层
+  participant LR as LabelRepo
+  participant R as Redis
+  participant DB as MySQL
+  SDK->>App: POST /v1/loop/prompts/mget PAT
+  App->>App: 限流 500 QPS 并 key 转 ID 并 鉴权
+  alt 指定版本
+    App->>App: 直接使用
+  else 指定标签
+    App->>LR: 查标签版本
+    LR->>R: MGET 未命中则查库 SET TTL 60s
+  else 都没有
+    App->>App: latest_version
+  end
+  App->>DB: 批量读 commit
+  App->>App: 展开片段 最多 2 层
+  App-->>SDK: items`,
+czExec: `sequenceDiagram
+  autonumber
+  participant App as 应用层
+  participant Svc as PromptServiceImpl
+  participant L as LLMRPCAdapter
+  participant RT as llm runtime
+  participant M as eino ChatModel
+  App->>Svc: ExecuteStreaming
+  loop 直到无工具调用 或 50 步 或 30 分钟
+    Svc->>Svc: FormatPrompt 渲染
+    Svc->>L: StreamingCall
+    L->>RT: ChatStream
+    RT->>RT: 查模型 限流 图片转 base64
+    RT->>M: Stream
+    M-->>Svc: 分片
+    Svc->>Svc: mock 工具结果 追加消息
+  end`,
+lfArch: `flowchart LR
+  UI["Web UI"] --> TRPC["tRPC promptRouter"] --> ACT["写操作"]
+  SDK["SDK 不在仓库"] --> REST["/api/public/v2/prompts"] --> ACT
+  REST --> PS["PromptService"]
+  ACT --> PGDB[("Postgres")]
+  ACT --> PS
+  PS <--> R[("Redis")]
+  PS --> PGDB
+  ACT --> Q[["BullMQ"]] --> ECW["worker 自动化"]
+  EXP["worker 实验"] --> PS
+  ING["worker 摄取"] --> PS
+  ING --> CH[("ClickHouse")]`,
+lfCreate: `sequenceDiagram
+  autonumber
+  participant C as UI 或 API
+  participant A as createPrompt
+  participant PS as PromptService
+  participant DB as Postgres
+  participant Q as EntityChangeQueue
+  C->>A: name type prompt labels
+  A->>DB: 读最新版本
+  A->>A: 类型检查 labels 加 latest
+  A->>PS: 依赖图试运行
+  A->>DB: 事务 新版本 依赖 移走旧标签 同步标记
+  alt 唯一键冲突
+    DB-->>A: P2002 请重试
+  end
+  A->>PS: invalidateCache 轮换 epoch
+  A->>Q: 变更事件`,
+lfER: `erDiagram
+  PROJECT ||--o{ PROMPT : has
+  PROMPT ||--o{ PROMPT_DEPENDENCY : "parent"
+  PROJECT ||--o{ PROMPT_PROTECTED_LABELS : has
+  PROMPT {
+    string id PK
+    string project_id
+    string name
+    int version
+    string type
+    json prompt
+    json config
+    string_array labels
+    string_array tags
+  }
+  PROMPT_DEPENDENCY {
+    string parent_id FK
+    string child_name
+    string child_label
+    int child_version
+  }
+  PROMPT_PROTECTED_LABELS {
+    string project_id
+    string label
+  }`,
+lfGet: `sequenceDiagram
+  autonumber
+  participant S as SDK
+  participant MW as 鉴权 限流
+  participant PS as PromptService
+  participant R as Redis
+  participant DB as Postgres
+  S->>MW: GET /api/public/v2/prompts/name Basic
+  MW->>MW: prompts:read 且不限流
+  MW->>PS: getPrompt 默认 production
+  PS->>R: GET epoch 和缓存键
+  alt 命中
+    R-->>PS: 已解析 JSON
+  else 未命中
+    PS->>DB: 查询并解析依赖
+    PS->>R: SET EX 3600
+  end
+  PS-->>S: 原始模板 加 resolutionGraph
+  Note over S: SDK 在客户端渲染`,
+lfCache: `flowchart TD
+  G["getPrompt"] -->|"resolve=false"| RAW["直接查库 不走缓存"]
+  G --> K["读 epoch"]
+  K --> KEY["prompt:pid:epoch:name:label"]
+  KEY --> HIT{"命中?"}
+  HIT -- "是" --> RET["返回"]
+  HIT -- "否" --> DB["查库 并解析依赖"] --> SET["SET EX 3600"] --> RET
+  W["任何写"] --> INV["epoch 换新令牌"]
+  INV -. "旧键成孤儿" .-> KEY`,
+lfLLM: `flowchart LR
+  APP["用户应用 + SDK"] -- "promptName promptVersion" --> ING["worker 摄取"]
+  ING -- "按名字加版本查" --> PS["PromptService"]
+  ING -- "prompt_id" --> CH[("ClickHouse")]
+  EXP["worker 实验"] -- "按 id 查 不走缓存" --> PS
+  EXP -- "trace.prompt" --> LLM["generateLLMText"]
+  CH --> MET["每版本指标"]`,
+};
+
+/* ---------------- System flows ---------------- */
+const SYS = {
+cz: {
+  name: "coze-loop", cls: "cz", arch: "czArch", md: "coze-loop.md",
+  intro: "服务端执行型。存储、渲染、调用 LLM、追踪都在服务端完成。",
+  steps: [
+    { t: "创建与编辑", sum: "先建提示词，再在私有草稿中编辑。", diagram: "czCreate", items: [
+      "创建时默认类型 <code>normal</code>，默认安全级别 L3。[[C:backend/modules/prompt/application/manage.go#L127-L189]]",
+      "仓储在 1 个事务中写 basic、草稿、引用关系。[[C:backend/modules/prompt/infra/repo/manage.go#L76-L155]]",
+      "前端每 800 ms 防抖自动保存草稿。[[C:frontend/packages/loop-components/prompt-components-v2/src/hooks/use-prompt.ts#L238-L285]]",
+      "保存草稿先对 <code>prompt_basic</code> 行 <code>FOR UPDATE</code>。内容未变时不写。[[C:backend/modules/prompt/infra/repo/manage.go#L531-L641]]",
+      "保存草稿不调用审计。创建、更新、提交调用审计。",
+    ]},
+    { t: "存储", sum: "MySQL。详情序列化为多个 JSON 文本列。", diagram: "czER", items: [
+      "<code>PromptDetail</code> 每个子对象存为独立 JSON 列。[[C:backend/modules/prompt/infra/repo/mysql/convertor/manage.go#L158-L200]]",
+      "<code>prompt_user_draft</code>：每用户每提示词 1 份。[[C:release/deployment/docker-compose/bootstrap/mysql-init/init-sql/prompt_user_draft.sql#L1-L28]]",
+      "<code>prompt_commit</code>：<code>UNIQUE(prompt_id,version)</code>，无软删除。[[C:release/deployment/docker-compose/bootstrap/mysql-init/init-sql/prompt_commit.sql#L1-L29]]",
+      "ID 来自类 snowflake 生成器，计数器用 Redis。[[C:backend/infra/idgen/redis_gen/redis_gen.go#L26-L136]]",
+      "加密钩子是扩展点，开源版为空实现。[[C:backend/modules/prompt/infra/repo/mysql/hooks/prompt_commit_hook.go#L12-L29]]",
+    ]},
+    { t: "版本与标签", sum: "提交生成 semver 版本。标签指向版本。", items: [
+      "提交只校验严格 semver 格式。[[C:backend/modules/prompt/application/manage.go#L578-L639]]",
+      "提交事务：锁 basic → 插入 commit → 删草稿 → 更新 latest → 写标签映射。[[C:backend/modules/prompt/infra/repo/manage.go#L760-L953]]",
+      "不校验版本递增。低版本可成为 latest。[[C:backend/modules/prompt/infra/repo/manage.go#L816-L826]]",
+      "标签映射表唯一键保证 1 标签 1 版本。[[C:release/deployment/docker-compose/bootstrap/mysql-init/init-sql/prompt_commit_label_mapping.sql#L1-L19]]",
+      "预置标签 <code>production</code>、<code>beta</code>、<code>test</code>。[[C:release/deployment/docker-compose/conf/prompt.yaml#L18-L22]]",
+      "移动标签在事务中进行，事务后删除标签缓存。[[C:backend/modules/prompt/infra/repo/label.go#L121-L243]]",
+    ]},
+    { t: "获取", sum: "POST /v1/loop/prompts/mget。显式版本 > 标签 > 最新版本。", diagram: "czGet", items: [
+      "PAT Bearer 鉴权。[[C:backend/api/router/coze/loop/apis/middleware/pat_verify.go#L20-L69]]",
+      "每空间限流 500 QPS，出错时放行。[[C:backend/modules/prompt/application/openapi.go#L579-L599]]",
+      "版本解析逻辑。[[C:backend/modules/prompt/domain/service/manage.go#L221-L307]]",
+      "版本 <code>$Draft</code> 读取调用者自己的草稿。[[C:backend/modules/prompt/application/openapi.go#L473-L485]]",
+      "只有标签→版本缓存是真 Redis（TTL 60 s）。[[C:backend/modules/prompt/infra/repo/redis/prompt_label_version.go#L54-L161]]",
+      "提示词缓存为空实现。[[C:backend/modules/prompt/infra/repo/redis/prompt.go#L26-L38]]",
+    ]},
+    { t: "渲染", sum: "服务端渲染。3 种引擎，沙箱限制。", items: [
+      "按角色渲染：placeholder 替换为消息列表，tool 不渲染。[[C:backend/modules/prompt/domain/entity/prompt_detail.go#L257-L398]]",
+      "引擎：<code>normal</code>（fasttemplate）、<code>jinja2</code>（gonja）、<code>go_template</code>。[[C:backend/modules/prompt/domain/entity/prompt_detail.go#L400-L533]]",
+      "沙箱：禁 include，range ≤ 10,000，10 s 超时，1 MB 输出。[[C:backend/modules/prompt/pkg/template/jinja_template.go#L21-L104]]",
+      "超时后渲染 goroutine 不会被取消。",
+      "片段在渲染前展开，取片段第一条消息内容，最多 2 层。[[C:backend/modules/prompt/domain/service/manage.go#L471-L597]]",
+    ]},
+    { t: "调用 LLM", sum: "进程内调用 llm 模块。多步工具循环。", diagram: "czExec", items: [
+      "停止条件：单步、50 步、30 分钟、无工具调用。[[C:backend/modules/prompt/domain/service/execute.go#L61-L227]]",
+      "工具结果只来自 mock。[[C:backend/modules/prompt/domain/service/tool_results_collector.go#L38-L75]]",
+      "<code>ToolChoice</code>、<code>Thinking</code>、<code>Extra</code> 未传给运行时。[[C:backend/modules/prompt/infra/rpc/convertor/chat.go#L23-L70]]",
+      "运行时：查模型 → QPM/TPM 限流 → 图片转 base64 → 调用。[[C:backend/modules/llm/application/runtime.go#L55-L212]]",
+      "eino 支持 9 种协议。[[C:backend/modules/llm/domain/service/llmimpl/eino/init.go#L35-L69]]",
+      "调试模式下客户端发送完整提示词，服务端不重新加载。[[C:backend/modules/prompt/application/debug.go#L225-L233]]",
+      "PTaaS：<code>/v1/loop/prompts/execute</code>，覆盖参数前深拷贝。[[C:backend/modules/prompt/application/openapi.go#L601-L917]]",
+    ]},
+    { t: "追踪", sum: "每层发 span。baggage 带提示词 key 和版本。", items: [
+      "span 名称常量。[[C:backend/modules/prompt/pkg/consts/trace.go#L6-L38]]",
+      "<code>Sequence</code> span 带 <code>prompt_key</code> 和 <code>prompt_version</code>。[[C:backend/modules/prompt/domain/service/execute.go#L359-L399]]",
+      "<code>PromptTemplate</code> span 只在已有父 span 时创建。[[C:backend/modules/prompt/domain/service/formatter.go#L37-L60]]",
+      "模型 span 在 llm 运行时。[[C:backend/modules/llm/application/runtime.go#L81-L83]]",
+    ]},
+  ],
+  risks: [
+    ["跨空间改标签", "<code>UpdateCommitLabels</code> 用请求中的 workspace_id 鉴权，不先加载提示词。[[C:backend/modules/prompt/application/manage.go#L963-L993]]"],
+    ["跨空间片段", "片段按原始 ID 读取，不校验空间。[[C:backend/modules/prompt/domain/service/manage.go#L368-L448]]"],
+    ["鉴权忽略动作", "开源 foundation 只查空间成员。[[C:backend/modules/foundation/application/auth.go#L30-L70]]"],
+    ["标签缓存漏失效", "带标签提交后不删标签缓存，最多 60 s 陈旧。[[C:backend/modules/prompt/infra/repo/manage.go#L881-L951]]"],
+    ["密钥落库", "模型 API Key 写入 <code>model_request_record.model_ak</code>。[[C:backend/modules/llm/application/runtime.go#L263-L288]]"],
+    ["审计 fail open", "审计出错时放行，只审 Content。[[C:backend/modules/prompt/infra/rpc/audit.go#L32-L75]]"],
+    ["分页重复", "游标是秒级时间戳，比较含等号。[[C:backend/modules/prompt/infra/repo/mysql/prompt_commit.go#L140-L160]]"],
+  ],
+},
+lf: {
+  name: "Langfuse", cls: "lf", arch: "lfArch", md: "langfuse.md",
+  intro: "注册中心型。服务端存储并分发提示词，变量由客户端渲染。",
+  steps: [
+    { t: "创建", sum: "每次保存创建新的不可变版本。无草稿。", diagram: "lfCreate", items: [
+      "tRPC 入口：<code>prompts:CUD</code>，受保护标签另需权限。[[L:web/src/features/prompts/server/routers/promptRouter.ts#L312-L364]]",
+      "REST 入口：<code>POST /api/public/v2/prompts</code>。[[L:web/src/features/prompts/server/handlers/promptsHandler.ts#L29-L45]]",
+      "新版本类型必须与旧版本相同。[[L:web/src/features/prompts/server/actions/createPrompt.ts#L106-L116]]",
+      "新版本总是加 <code>latest</code> 标签。[[L:web/src/features/prompts/server/actions/createPrompt.ts#L129]]",
+      "依赖图先试运行校验。[[L:web/src/features/prompts/server/actions/createPrompt.ts#L136-L158]]",
+      "不加锁。并发创建由唯一索引拒绝，返回请重试。[[L:web/src/features/prompts/server/actions/createPrompt.ts#L222-L236]]",
+    ]},
+    { t: "存储", sum: "Postgres。一行一个版本，无父表。", diagram: "lfER", items: [
+      "<code>prompts</code> 表，<code>@@unique([projectId, name, version])</code>。[[L:packages/shared/prisma/schema.prisma#L786-L813]]",
+      "<code>labels</code> 无索引；<code>tags</code> 有 GIN 索引。",
+      "依赖按名字 + 标签或版本引用，无外键，延迟绑定。[[L:packages/shared/prisma/schema.prisma#L815-L833]]",
+      "受保护标签表。[[L:packages/shared/prisma/schema.prisma#L835-L845]]",
+      "ClickHouse 观测有 <code>prompt_id/name/version</code> 列。[[L:packages/shared/clickhouse/migrations/canonical/0002_observations.up.sql#L25-L27]]",
+    ]},
+    { t: "版本与标签", sum: "整数自增版本。标签是可移动指针。", items: [
+      "<code>version = latest + 1</code>。[[L:web/src/features/prompts/server/actions/createPrompt.ts#L160-L175]]",
+      "同一事务中从其他版本移除标签。[[L:web/src/features/prompts/server/utils/updatePromptLabels.ts#L3-L43]]",
+      "PATCH 改标签：<code>FOR UPDATE</code> 锁目标行，新标签取并集。[[L:web/src/features/prompts/server/actions/updatePrompts.ts#L15-L165]]",
+      "阻止移走被依赖的标签。[[L:web/src/features/prompts/server/actions/updatePrompts.ts#L63-L98]]",
+      "受保护标签授权；普通 API Key 可推动（用于 CI）。[[L:web/src/features/prompts/server/utils/authorizeProtectedLabelMutation.ts#L70-L152]]",
+      "每次写发变更事件，驱动 webhook / Slack。[[L:worker/src/features/entityChange/promptVersionProcessor.ts#L26-L115]]",
+    ]},
+    { t: "获取", sum: "GET /api/public/v2/prompts/{name}。默认 production。", diagram: "lfGet", items: [
+      "项目 API Key，动作 <code>prompts:read</code>。[[L:web/src/features/public-api/server/createAuthedProjectAPIRoute.ts#L229-L254]]",
+      "<code>prompts</code> 资源不限流。[[L:web/src/features/public-api/server/RateLimitService.ts#L280-L285]]",
+      "版本和标签同时给出返回 400；默认 <code>production</code>。[[L:web/src/features/prompts/server/actions/getPromptByName.ts#L21-L56]]",
+      "返回已解析依赖的提示词 + <code>resolutionGraph</code>，不渲染变量。[[L:web/src/features/prompts/server/handlers/promptNameHandler.ts#L40-L53]]",
+      "SDK 代码不在本仓库；契约在 Fern。[[L:fern/apis/server/definition/prompts.yml|prompts.yml]]",
+    ]},
+    { t: "缓存", sum: "缓存已解析提示词。项目级 epoch 失效。", diagram: "lfCache", items: [
+      "默认启用，TTL 3600 s。[[L:packages/shared/src/env.ts#L147-L148]]",
+      "键 <code>prompt:{pid}:{epoch}:{name}:version|label</code>。[[L:packages/shared/src/server/services/PromptService/index.ts#L195-L215]]",
+      "写操作轮换 epoch；epoch 项目级，因为有传递依赖。[[L:packages/shared/src/server/services/PromptService/index.ts#L217-L241]]",
+      "缓存出错回退到数据库。[[L:packages/shared/src/server/services/PromptService/index.ts#L153-L177]]",
+      "<code>resolve=false</code> 绕过缓存。[[L:packages/shared/src/server/services/PromptService/index.ts#L50-L101]]",
+    ]},
+    { t: "渲染", sum: "正则 {{var}}，客户端或 worker 执行。", items: [
+      "<code>compileTemplateString</code>：未知键保留，null 变空串。[[L:packages/shared/src/utils/prompts.ts#L14-L31]]",
+      "变量名须字母开头（Unicode）。[[L:packages/shared/src/utils/stringChecks.ts#L7-L47]]",
+      "placeholder 展开为消息数组，缺值抛错。[[L:packages/shared/src/server/llm/compileChatMessages.ts#L21-L91]]",
+      "依赖：<code>@@@langfusePrompt:name=X|label=L@@@</code>，最多 5 层，只能引用 text。[[L:packages/shared/src/server/services/PromptService/index.ts#L243-L404]]",
+    ]},
+    { t: "调用 LLM 与追踪", sum: "用户应用调用；实验在 worker 中调用。摄取时关联版本。", diagram: "lfLLM", items: [
+      "实验：按 id 加载，不走缓存。[[L:worker/src/features/experiments/utils.ts#L63-L71]]",
+      "实验：text 提示词变成 1 条 system 消息。[[L:worker/src/features/experiments/utils.ts#L73-L158]]",
+      "实验：<code>generateLLMText</code> 带 <code>trace.prompt</code>。[[L:worker/src/features/experiments/experimentServiceClickhouse.ts#L159-L246]]",
+      "OTel 属性 <code>langfuse.observation.prompt.name</code>。[[L:packages/shared/src/server/llm/ai-sdk/telemetry.ts#L197-L205]]",
+      "摄取：按名字 + 版本查（走缓存），写 <code>prompt_id</code>。[[L:worker/src/services/IngestionService/index.ts#L1294-L1326]]",
+      "Playground 不关联提示词。[[L:web/src/features/playground/server/chatCompletionHandler.ts#L29-L170]]",
+      "LLM-as-judge 用独立 <code>EvalTemplate</code>。[[L:packages/shared/src/server/evals/llmEvaluatorExecution.ts#L40-L87]]",
+    ]},
+  ],
+  risks: [
+    ["缓存冷启动", "项目内任一写操作让整个项目的提示词缓存失效。[[L:packages/shared/src/server/services/PromptService/index.ts#L217-L241]]"],
+    ["删除非原子", "<code>latest</code> 重挂与 <code>deleteMany</code> 分开执行。[[L:web/src/features/prompts/server/actions/deletePrompt.ts#L96-L123]]"],
+    ["获取不限流", "<code>prompts</code> 资源 points 为 null。[[L:web/src/features/public-api/server/RateLimitService.ts#L280-L285]]"],
+    ["标签唯一靠代码", "数组列，无 DB 约束。[[L:web/src/features/prompts/server/utils/updatePromptLabels.ts#L3-L43]]"],
+    ["模板能力弱", "无条件和循环；变量名拼正则不转义。[[L:packages/shared/src/server/llm/compileChatMessages.ts#L21-L91]]"],
+    ["部分调用不可追溯", "Playground 和 LLM-as-judge 不关联提示词版本。[[L:worker/src/features/evaluation/evalExecutionDeps.ts#L270-L322]]"],
+  ],
+},
+};
+
+/* ---------------- Matrix ---------------- */
+const M = [
+  ["数据模型", [
+    ["数据库", "MySQL，JSON 文本列。[[C:backend/modules/prompt/infra/repo/mysql/convertor/manage.go#L158-L200]]", "Postgres（Prisma），Json 列。[[L:packages/shared/prisma/schema.prisma#L786-L813]]"],
+    ["提示词实体", "头表 + 草稿表 + 提交表。[[C:backend/modules/prompt/domain/entity/prompt.go#L12-L45]]", "无父表；同名版本行集合。[[L:packages/shared/prisma/schema.prisma#L786-L813]]"],
+    ["内容类型", "统一消息列表，支持多模态。[[C:backend/modules/prompt/domain/entity/prompt_detail.go#L56-L111]]", "text 或 chat。[[L:packages/shared/src/features/prompts/types.ts#L25-L29]]"],
+    ["模型配置", "强类型 ModelConfig + ModelID。[[C:backend/modules/prompt/domain/entity/prompt_detail.go#L193-L242]]", "自由 JSON config。[[L:packages/shared/src/server/llm/promptToolConfig.ts#L59]]"],
+    ["删除", "软删 basic，提交保留。[[C:backend/modules/prompt/infra/repo/manage.go#L157-L181]]", "硬删版本；latest 重挂。[[L:web/src/features/prompts/server/actions/deletePrompt.ts#L96-L123]]"],
+  ]],
+  ["版本与标签", [
+    ["编辑模型", "每用户私有草稿。[[C:frontend/packages/loop-components/prompt-components-v2/src/hooks/use-prompt.ts#L238-L285]]", "无草稿，保存即新版本。[[L:web/src/features/prompts/server/actions/createPrompt.ts#L93-L290]]"],
+    ["版本号", "用户指定 semver，不校验递增。[[C:backend/modules/prompt/application/manage.go#L578-L639]]", "系统自增整数。[[L:web/src/features/prompts/server/actions/createPrompt.ts#L160-L175]]"],
+    ["标签存储", "映射表 + DB 唯一键。[[C:release/deployment/docker-compose/bootstrap/mysql-init/init-sql/prompt_commit_label_mapping.sql#L1-L19]]", "数组列 + 应用代码。[[L:web/src/features/prompts/server/utils/updatePromptLabels.ts#L3-L43]]"],
+    ["标签权限", "无角色模型。[[C:backend/modules/foundation/application/auth.go#L30-L70]]", "受保护标签 + RBAC。[[L:web/src/features/prompts/server/utils/authorizeProtectedLabelMutation.ts#L70-L152]]"],
+    ["并发控制", "所有写 FOR UPDATE basic 行。[[C:backend/modules/prompt/infra/repo/manage.go#L536-L546]]", "创建靠唯一索引重试。[[L:web/src/features/prompts/server/actions/createPrompt.ts#L222-L236]]"],
+    ["变更通知", "事件收集器空实现。[[C:backend/modules/prompt/infra/collector/event_collector.go#L51-L62]]", "webhook / Slack。[[L:worker/src/features/entityChange/promptVersionProcessor.ts#L26-L115]]"],
+  ]],
+  ["模板与组合", [
+    ["引擎", "normal / jinja2 / go_template。[[C:backend/modules/prompt/domain/entity/prompt_detail.go#L400-L422]]", "正则 {{var}}。[[L:packages/shared/src/utils/prompts.ts#L14-L31]]"],
+    ["变量类型", "标量、对象、数组、placeholder、multi_part。[[C:backend/modules/prompt/domain/entity/prompt_detail.go#L113-L142]]", "文本 + placeholder。[[L:packages/shared/src/server/llm/compileChatMessages.ts#L21-L91]]"],
+    ["沙箱", "10 s / 1 MB / 禁 include。[[C:backend/modules/prompt/pkg/template/jinja_template.go#L21-L104]]", "无表达式能力。"],
+    ["组合引用", "ID + 固定版本，2 层。[[C:backend/modules/prompt/domain/service/manage.go#L471-L597]]", "名字 + 版本或标签，5 层，检测环。[[L:packages/shared/src/server/services/PromptService/index.ts#L243-L404]]"],
+  ]],
+  ["获取与缓存", [
+    ["接口", "POST mget，批量。[[C:idl/thrift/coze/loop/prompt/coze.loop.prompt.openapi.thrift#L7-L17]]", "GET 单个。[[L:web/src/features/prompts/server/handlers/promptNameHandler.ts#L17-L54]]"],
+    ["默认版本", "latest_version。[[C:backend/modules/prompt/domain/service/manage.go#L221-L307]]", "production 标签。[[L:web/src/features/prompts/server/actions/getPromptByName.ts#L21-L56]]"],
+    ["限流", "500 QPS，fail open。[[C:backend/modules/prompt/application/openapi.go#L579-L599]]", "不限流。[[L:web/src/features/public-api/server/RateLimitService.ts#L280-L285]]"],
+    ["服务端缓存", "仅标签→版本 60 s。[[C:backend/modules/prompt/infra/repo/redis/prompt_label_version.go#L54-L161]]", "已解析提示词 1 h。[[L:packages/shared/src/server/services/PromptService/index.ts#L167-L178]]"],
+    ["失效", "按键删除；有漏删。[[C:backend/modules/prompt/infra/repo/manage.go#L881-L951]]", "项目级 epoch。[[L:packages/shared/src/server/services/PromptService/index.ts#L217-L241]]"],
+  ]],
+  ["LLM 与追踪", [
+    ["渲染位置", "服务端。[[C:backend/modules/prompt/domain/service/formatter.go#L37-L60]]", "客户端 / worker。[[L:web/src/features/prompts/server/handlers/promptNameHandler.ts#L40-L53]]"],
+    ["服务端执行", "调试、PTaaS、内部执行。[[C:backend/modules/prompt/application/openapi.go#L601-L917]]", "实验、Playground 代理。[[L:worker/src/features/experiments/experimentServiceClickhouse.ts#L159-L246]]"],
+    ["模型接入", "eino 9 协议。[[C:backend/modules/llm/domain/service/llmimpl/eino/init.go#L35-L69]]", "AI SDK 封装。[[L:packages/shared/src/server/llm/llmText.ts#L175-L260]]"],
+    ["版本关联", "span baggage。[[C:backend/modules/prompt/domain/service/execute.go#L359-L399]]", "摄取时回查。[[L:worker/src/services/IngestionService/index.ts#L1294-L1326]]"],
+  ]],
+];
+
+const SUMMARY = [
+  ["定位", "服务端执行型：存储、渲染、调用 LLM 一体", "注册中心型：存储与分发，客户端渲染"],
+  ["编辑", "每用户私有草稿 → 提交", "每次保存即新版本"],
+  ["版本号", "用户指定 semver", "系统自增整数"],
+  ["默认读取", "最新版本", "production 标签"],
+  ["模板", "normal / jinja2 / go_template", "正则 {{var}} + placeholder"],
+  ["组合", "片段，ID + 版本，2 层", "依赖，名字 + 版本或标签，5 层"],
+  ["服务端缓存", "仅标签→版本（60 s）", "已解析提示词（1 h），epoch 失效"],
+  ["主要风险", "跨空间改标签、标签缓存漏失效、密钥落库", "项目级缓存冷启动、删除非原子、获取不限流"],
+];
+
+const ADVICE = {
+  adopt: [
+    "版本不可变，标签做发布指针。两者都这样做。[[C:release/deployment/docker-compose/bootstrap/mysql-init/init-sql/prompt_commit_label_mapping.sql#L1-L19|coze-loop]] [[L:web/src/features/prompts/server/utils/updatePromptLabels.ts#L3-L43|Langfuse]]",
+    "用数据库唯一约束保证 1 标签 1 版本。[[C:release/deployment/docker-compose/bootstrap/mysql-init/init-sql/prompt_commit_label_mapping.sql#L1-L19]]",
+    "默认读取明确的发布标签（如 production），未发布内容不进生产。[[L:web/src/features/prompts/server/actions/getPromptByName.ts#L21-L56]]",
+    "系统分配单调版本号；semver 只做显示名。反例：[[C:backend/modules/prompt/infra/repo/manage.go#L816-L826]]",
+    "受保护标签 + 独立权限动作。[[L:web/src/features/prompts/server/utils/authorizeProtectedLabelMutation.ts#L70-L152]]",
+    "缓存解析后的结果，用代际号失效；按依赖闭包缩小范围。[[L:packages/shared/src/server/services/PromptService/index.ts#L217-L241]]",
+    "所有写路径走同一个写后钩子：失效 + 审计 + 事件。反例：[[C:backend/modules/prompt/infra/repo/manage.go#L881-L951]]",
+    "追踪记录提示词名 + 版本，支持按版本统计。[[L:worker/src/services/IngestionService/index.ts#L1294-L1326]]",
+  ],
+  choose: [
+    ["草稿", "每用户私有（coze-loop）：中间态不污染历史", "无草稿（Langfuse）：模型简单"],
+    ["渲染", "服务端（coze-loop）：行为统一，支持 PTaaS", "客户端（Langfuse）：获取轻，可离线缓存"],
+    ["模板", "多引擎（coze-loop）：条件、循环、类型化", "极简正则（Langfuse）：无需沙箱，跨语言一致"],
+    ["引用", "固定版本（coze-loop）：可复现", "标签延迟绑定（Langfuse）：自动传播"],
+  ],
+  avoid: [
+    "只信任请求里的租户 ID 鉴权。先加载对象，再用真实租户鉴权。[[C:backend/modules/prompt/application/manage.go#L963-L993]]",
+    "跨租户解析片段。[[C:backend/modules/prompt/domain/service/manage.go#L368-L448]]",
+    "把模型密钥写入请求记录。[[C:backend/modules/llm/application/runtime.go#L263-L288]]",
+    "存了配置却不传给模型。[[C:backend/modules/prompt/infra/rpc/convertor/chat.go#L23-L70]]",
+    "多步删除不放在一个事务里。[[L:web/src/features/prompts/server/actions/deletePrompt.ts#L96-L123]]",
+    "用时间戳做分页游标；改用 (created_at, id)。[[C:backend/modules/prompt/infra/repo/mysql/prompt_commit.go#L140-L160]]",
+    "获取接口完全不限流。[[L:web/src/features/public-api/server/RateLimitService.ts#L280-L285]]",
+  ],
+};
+
+/* ---------------- Rendering ---------------- */
+let seq = 0;
+async function renderDiagrams(root) {
+  for (const box of root.querySelectorAll(".mermaid-box[data-diagram]:not([data-done])")) {
+    if (box.offsetParent === null) continue;
+    box.setAttribute("data-done", "1");
+    const key = box.dataset.diagram;
+    try {
+      const { svg } = await mermaid.render(`mmd-${key}-${seq++}`, D[key]);
+      box.innerHTML = svg;
+    } catch (e) {
+      box.innerHTML = `<div class="err">Mermaid 渲染失败（${key}）：${String(e.message || e)}</div>`;
+    }
+  }
+}
+
+function buildSystem(id) {
+  const s = SYS[id];
+  const el = document.getElementById(`tab-${id}`);
+  el.innerHTML = `
+    <h2>${s.name} <span class="tag ${s.cls}">${s.intro}</span></h2>
+    <p class="note">完整报告：<a href="${s.md}">${s.md}</a></p>
+    <h2>主流程（点击步骤查看细节）</h2>
+    <div class="stepper">${s.steps.map((st, i) =>
+      `${i ? '<span class="arrow">→</span>' : ""}<button class="step ${s.cls}" data-i="${i}"><span class="n">${i + 1}</span>${st.t}</button>`).join("")}</div>
+    <div class="card detail" id="detail-${id}"></div>
+    <div class="card"><h3 style="margin-top:0">架构</h3><div class="mermaid-box" data-diagram="${s.arch}"></div></div>
+    <div class="card"><h3 style="margin-top:0">风险与缺口</h3>${s.risks.map(([t, d]) => `<div class="risk"><b>${t}</b>：${rich(d)}</div>`).join("")}</div>`;
+  const show = (i) => {
+    el.querySelectorAll(".step").forEach((b) => b.classList.toggle("active", +b.dataset.i === i));
+    const st = s.steps[i];
+    el.querySelector(`#detail-${id}`).innerHTML = `
+      <h3>${i + 1}. ${st.t}</h3><div class="summary">${st.sum}</div>
+      <ul>${st.items.map((x) => `<li>${rich(x)}</li>`).join("")}</ul>
+      ${st.diagram ? `<div class="mermaid-box" data-diagram="${st.diagram}"></div>` : ""}`;
+    renderDiagrams(el);
+  };
+  el.querySelectorAll(".step").forEach((b) => b.addEventListener("click", () => show(+b.dataset.i)));
+  show(0);
+}
+
+function buildMatrix() {
+  const groups = M.map(([g]) => g);
+  let active = "全部", q = "";
+  const tb = document.getElementById("matrix-toolbar");
+  tb.innerHTML = ["全部", ...groups].map((g) => `<button data-g="${g}" class="${g === active ? "on" : ""}">${g}</button>`).join("") +
+    `<input id="mq" placeholder="搜索：如 缓存、标签、semver">`;
+  const table = document.getElementById("matrix-table");
+  const draw = () => {
+    let html = `<tr><th>维度</th><th class="cz">coze-loop</th><th class="lf">Langfuse</th></tr>`;
+    for (const [g, rows] of M) {
+      if (active !== "全部" && active !== g) continue;
+      const rs = rows.filter((r) => !q || r.join(" ").toLowerCase().includes(q));
+      if (!rs.length) continue;
+      html += `<tr class="group"><td colspan="3">${g}</td></tr>`;
+      html += rs.map(([d, c, l]) => `<tr><td class="dim">${d}</td><td>${rich(c)}</td><td>${rich(l)}</td></tr>`).join("");
+    }
+    table.innerHTML = html;
+  };
+  tb.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
+    active = b.dataset.g; tb.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); draw();
+  }));
+  tb.querySelector("#mq").addEventListener("input", (e) => { q = e.target.value.trim().toLowerCase(); draw(); });
+  draw();
+}
+
+function buildAdvice() {
+  document.getElementById("tab-advice").innerHTML = `
+    <h2>自建提示词库的建议 <span class="tag inf">推断，非源码事实</span></h2>
+    <div class="card"><h3 style="margin-top:0">应该采用</h3><ol>${ADVICE.adopt.map((x) => `<li>${rich(x)}</li>`).join("")}</ol></div>
+    <div class="card"><h3 style="margin-top:0">按需选择</h3><table>
+      <tr><th>选择</th><th class="cz">方案 A</th><th class="lf">方案 B</th></tr>
+      ${ADVICE.choose.map(([a, b, c]) => `<tr><td class="dim">${a}</td><td>${b}</td><td>${c}</td></tr>`).join("")}</table></div>
+    <div class="card"><h3 style="margin-top:0">应该避免</h3>${ADVICE.avoid.map((x) => `<div class="risk">${rich(x)}</div>`).join("")}</div>
+    <p class="note">建议的最小数据模型见 <a href="comparison.md#34-最小可行数据模型建议">comparison.md §3.4</a>。</p>`;
+}
+
+document.getElementById("summary-table").innerHTML =
+  `<tr><th>维度</th><th class="cz">coze-loop</th><th class="lf">Langfuse</th></tr>` +
+  SUMMARY.map(([d, c, l]) => `<tr><td class="dim">${d}</td><td>${c}</td><td>${l}</td></tr>`).join("");
+buildSystem("cz"); buildSystem("lf"); buildMatrix(); buildAdvice();
+
+function activate(tab) {
+  document.querySelectorAll("#nav button").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
+  document.querySelectorAll("section.tab").forEach((s) => s.classList.toggle("active", s.id === `tab-${tab}`));
+  history.replaceState(null, "", `#${tab}`);
+  renderDiagrams(document.getElementById(`tab-${tab}`));
+}
+document.querySelectorAll("#nav button").forEach((b) => b.addEventListener("click", () => activate(b.dataset.tab)));
+const initial = location.hash.slice(1);
+activate(SYS[initial] || ["matrix", "advice", "overview"].includes(initial) ? initial : "overview");
+
+// Expose for automated checks: renders every diagram off-screen and reports failures.
+window.__checkAllDiagrams = async () => {
+  const out = {};
+  for (const [k, code] of Object.entries(D)) {
+    try { await mermaid.parse(code); out[k] = "ok"; } catch (e) { out[k] = String(e.message || e); }
+  }
+  return out;
+};
+</script>
+</body>
+</html>
