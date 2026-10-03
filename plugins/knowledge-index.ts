@@ -105,7 +105,11 @@ export default function knowledgeIndexPlugin(
   const docsDir = path.join(siteDir, 'docs');
   const htmlDirName = options.htmlDir ?? 'html';
   const htmlDir = path.join(siteDir, 'static', htmlDirName);
-  const permalinkOf = (p: string) => normalizeUrl([baseUrl, p]).replace(/(.)\/$/, '$1');
+  const trailingSlash = context.siteConfig.trailingSlash;
+  const permalinkOf = (p: string) => {
+    const url = normalizeUrl([baseUrl, p]).replace(/(.)\/$/, '$1');
+    return trailingSlash && !url.endsWith('/') ? `${url}/` : url;
+  };
 
   return {
     name: 'knowledge-index',

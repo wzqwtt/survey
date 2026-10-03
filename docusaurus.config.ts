@@ -26,7 +26,7 @@ const config: Config = {
   baseUrl: `/${repo}/`,
   organizationName: githubUser,
   projectName: repo,
-  trailingSlash: false,
+  trailingSlash: true,
 
   onBrokenLinks: 'throw',
   onBrokenAnchors: 'throw',
@@ -50,7 +50,7 @@ const config: Config = {
     [
       '@easyops-cn/docusaurus-search-local',
       {
-        hashed: true,
+        hashed: 'filename',
         language: ['en', 'zh'],
         docsRouteBasePath: '/',
         indexBlog: false,
