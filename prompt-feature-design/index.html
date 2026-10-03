@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>提示词管理功能设计：coze-loop vs Langfuse</title>
+<style>
+  :root {
+    --bg: #f7f8fa; --card: #fff; --text: #1f2328; --muted: #656d76; --border: #d0d7de;
+    --cz: #2f6fde; --cz-soft: #e8f0fe; --lf: #c2410c; --lf-soft: #fff1e6; --accent: #0f766e;
+    --ok: #15803d; --ok-soft: #dcfce7; --part: #a16207; --part-soft: #fef9c3; --no: #b42318; --no-soft: #fee4e2;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--text); }
+  header { background: #111827; color: #fff; padding: 20px 28px 0; }
+  header h1 { margin: 0 0 4px; font-size: 22px; }
+  header .meta { color: #cbd5e1; font-size: 13px; }
+  header .meta a { color: #93c5fd; }
+  nav { display: flex; gap: 4px; margin-top: 14px; flex-wrap: wrap; }
+  nav button { border: 0; background: transparent; color: #cbd5e1; padding: 10px 16px; font-size: 15px; cursor: pointer; border-radius: 8px 8px 0 0; }
+  nav button.active { background: var(--bg); color: var(--text); font-weight: 600; }
+  main { max-width: 1280px; margin: 0 auto; padding: 24px 28px 60px; }
+  section.tab { display: none; }
+  section.tab.active { display: block; }
+  h2 { font-size: 19px; margin: 26px 0 12px; }
+  h2:first-child { margin-top: 0; }
+  h3 { margin: 0 0 8px; font-size: 16px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 16px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+  .tag { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 10px; font-weight: 600; }
+  .tag.cz { background: var(--cz-soft); color: var(--cz); }
+  .tag.lf { background: var(--lf-soft); color: var(--lf); }
+  .tag.inf { background: #f3e8ff; color: #7e22ce; }
+  ul, ol { margin: 6px 0; padding-left: 20px; }
+  li { margin: 3px 0; }
+  a.src { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--accent); text-decoration: none; background: #ecfdf5; padding: 0 5px; border-radius: 4px; white-space: nowrap; }
+  a.src:hover { text-decoration: underline; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; background: #eff1f3; padding: 0 4px; border-radius: 4px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { border: 1px solid var(--border); padding: 8px 10px; vertical-align: top; text-align: left; }
+  th { background: #f1f3f5; }
+  td.dim { font-weight: 600; white-space: nowrap; width: 140px; }
+  th.cz { color: var(--cz); } th.lf { color: var(--lf); }
+  tr.group td { background: #f8fafc; font-weight: 700; color: var(--muted); }
+  .st { display: inline-block; min-width: 22px; text-align: center; font-size: 12px; font-weight: 700; border-radius: 6px; padding: 0 5px; margin-right: 4px; }
+  .st.y { background: var(--ok-soft); color: var(--ok); } .st.p { background: var(--part-soft); color: var(--part); } .st.n { background: var(--no-soft); color: var(--no); } .st.x { background: #eef0f2; color: var(--muted); }
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  .toolbar button, .seg button { border: 1px solid var(--border); background: #fff; border-radius: 16px; padding: 4px 12px; cursor: pointer; font-size: 14px; }
+  .toolbar button.on, .seg button.on { background: #111827; color: #fff; border-color: #111827; }
+  .toolbar input { border: 1px solid var(--border); border-radius: 16px; padding: 5px 12px; min-width: 220px; }
+  .toolbar .sep { width: 1px; height: 22px; background: var(--border); margin: 0 4px; }
+  .seg { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+  /* feature map */
+  .fm-legend { font-size: 13px; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
+  .fm-legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 4px; }
+  .fm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+  .fm-group { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+  .fm-group h4 { margin: 0 0 8px; font-size: 14px; color: var(--muted); }
+  .chip { display: block; width: 100%; text-align: left; border: 1px solid var(--border); background: #fff; border-radius: 8px; padding: 5px 8px; margin: 5px 0; cursor: pointer; font-size: 13px; }
+  .chip .dots { float: right; }
+  .chip .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-left: 3px; }
+  .dot.y { background: var(--ok); } .dot.p { background: #eab308; } .dot.n { background: #e5e7eb; border: 1px solid #cbd5e1; } .dot.x { background: #e5e7eb; }
+  .chip.active { outline: 2px solid #111827; }
+  .chip.dim { opacity: .25; }
+  .fm-detail { position: sticky; top: 12px; }
+  .layout-fm { display: grid; grid-template-columns: 1fr 380px; gap: 16px; align-items: start; }
+  @media (max-width: 1000px) { .layout-fm { grid-template-columns: 1fr; } }
+  /* wireframes */
+  .wf { display: grid; gap: 6px; background: #f1f5f9; border: 1px solid var(--border); border-radius: 10px; padding: 8px; min-height: 300px; }
+  .wf .r { background: #fff; border: 1.5px dashed #94a3b8; border-radius: 6px; padding: 6px 8px; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; }
+  .wf .r:hover { border-color: #111827; }
+  .wf .r.active { border-style: solid; border-color: var(--accent); background: #ecfdf5; font-weight: 600; }
+  /* journey */
+  .stepper { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 10px 0 14px; }
+  .step { border: 1px solid var(--border); background: #fff; border-radius: 20px; padding: 6px 14px; cursor: pointer; font-size: 14px; }
+  .step .n { display: inline-block; width: 20px; height: 20px; line-height: 20px; text-align: center; border-radius: 50%; background: #e5e7eb; font-size: 12px; margin-right: 6px; }
+  .step.active.cz { background: var(--cz); color: #fff; border-color: var(--cz); }
+  .step.active.lf { background: var(--lf); color: #fff; border-color: var(--lf); }
+  .step.active .n { background: rgba(255,255,255,.3); }
+  .arrow { color: var(--muted); }
+  .mermaid-box { overflow-x: auto; background: #fff; border: 1px dashed var(--border); border-radius: 8px; padding: 10px; margin-top: 10px; text-align: center; min-height: 40px; }
+  .mermaid-box svg { max-width: 100%; height: auto; }
+  .mermaid-box .err { color: var(--no); font-family: monospace; white-space: pre-wrap; text-align: left; }
+  .risk { border-left: 4px solid var(--no); background: var(--no-soft); padding: 8px 12px; border-radius: 0 8px 8px 0; margin: 8px 0; }
+  .good { border-left: 4px solid var(--ok); background: var(--ok-soft); padding: 8px 12px; border-radius: 0 8px 8px 0; margin: 8px 0; }
+  .note { font-size: 13px; color: var(--muted); }
+  footer { text-align: center; color: var(--muted); font-size: 12px; padding: 20px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>提示词管理功能设计（产品视角）：coze-loop vs Langfuse</h1>
+  <div class="meta">
+    coze-loop @ <a href="https://github.com/wzqwtt/coze-loop/tree/3a6a2bf07b057fec0c702e514e8345fb5684e83a">3a6a2bf0</a> ·
+    Langfuse @ <a href="https://github.com/wzqwtt/langfuse/tree/f75c661dbe8c6b85523c81486b39e8403ac2c141">f75c661d</a> ·
+    每条事实带源码永久链接 · Markdown 版：<a href="README.md">README</a> / <a href="coze-loop.md">coze-loop</a> / <a href="langfuse.md">Langfuse</a> / <a href="comparison.md">对比</a>
+  </div>
+  <nav id="nav">
+    <button data-tab="overview" class="active">概览</button>
+    <button data-tab="fmap">功能地图</button>
+    <button data-tab="ia">信息架构</button>
+    <button data-tab="journey">用户旅程</button>
+    <button data-tab="matrix">对比矩阵</button>
+    <button data-tab="advice">产品建议</button>
+  </nav>
+</header>
+
+<main>
+  <section class="tab active" id="tab-overview">
+    <h2>产品定位</h2>
+    <div class="card"><div class="mermaid-box" data-diagram="comparison.md#0"></div></div>
+    <h2>结论速览</h2>
+    <div class="card"><table id="summary"></table></div>
+    <div class="card"><h3><span class="tag cz">coze-loop</span> 功能地图</h3><div class="mermaid-box" data-diagram="coze-loop.md#0"></div></div>
+    <div class="card"><h3><span class="tag lf">Langfuse</span> 功能地图</h3><div class="mermaid-box" data-diagram="langfuse.md#0"></div></div>
+  </section>
+
+  <section class="tab" id="tab-fmap">
+    <h2>可点击功能地图</h2>
+    <div class="toolbar" id="fm-toolbar"></div>
+    <div class="fm-legend">
+      <span>每个功能右侧两个圆点：左 = <b style="color:var(--cz)">coze-loop</b>，右 = <b style="color:var(--lf)">Langfuse</b></span>
+      <span><i style="background:var(--ok)"></i>有</span><span><i style="background:#eab308"></i>部分 / 有限制</span><span><i style="background:#e5e7eb;border:1px solid #cbd5e1"></i>无</span>
+    </div>
+    <div class="layout-fm">
+      <div class="fm-grid" id="fm-grid"></div>
+      <div class="card fm-detail" id="fm-detail"><p class="note">点击左侧任一功能，查看两边的实现与源码链接。</p></div>
+    </div>
+  </section>
+
+  <section class="tab" id="tab-ia">
+    <h2>信息架构</h2>
+    <div class="toolbar"><span class="seg" id="ia-sys"></span></div>
+    <div id="ia-body"></div>
+  </section>
+
+  <section class="tab" id="tab-journey">
+    <h2>关键用户旅程</h2>
+    <div class="toolbar"><span class="seg" id="jr-list"></span><span class="sep"></span><span class="seg" id="jr-sys"></span></div>
+    <div id="jr-body"></div>
+  </section>
+
+  <section class="tab" id="tab-matrix">
+    <h2>功能对比矩阵</h2>
+    <div class="toolbar" id="mx-toolbar"></div>
+    <div class="card" style="padding:0;overflow-x:auto"><table id="mx-table"></table></div>
+  </section>
+
+  <section class="tab" id="tab-advice"></section>
+</main>
+<footer>单文件页面，无构建步骤。Mermaid 由 jsDelivr CDN 加载。</footer>
+
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+mermaid.initialize({ startOnLoad: false, theme: "default", securityLevel: "strict" });
+
+const BASE = {
+  C: "https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/",
+  L: "https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/",
+};
+const FE = "frontend/packages/loop-components/prompt-components-v2/src/";
+const LF = "web/src/features/prompts/";
+// [[C:path#Lx-Ly]] or [[L:path|label]]; "FE/" and "LF/" expand to the common prefixes above
+function rich(s) {
+  return s.replace(/\[\[([CL]):([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_, repo, path, label) => {
+    const p = path.replace(/^FE\//, FE).replace(/^LF\//, LF);
+    const text = label || p.split("/").pop();
+    return `<a class="src" target="_blank" rel="noopener" href="${BASE[repo]}${p}">${text}</a>`;
+  });
+}
+const ST = { y: "✅", p: "⚠️", n: "❌", x: "—" };
+const D = {
+"coze-loop.md#0": "mindmap\n  root((提示词工程 PE))\n    Prompt 列表\n      按 key 或名称搜索\n      按创建人筛选\n      创建 编辑元数据 复制 删除\n      调用记录 跳转 Trace\n    Prompt 开发页\n      模板编辑器\n        消息 system user assistant placeholder\n        引擎 Normal Jinja2 GoTemplate\n        多模态片段与变量\n        与已提交版本做 Diff\n      通用配置\n        模型与参数\n        变量 自动识别或手动定义\n        函数 带 mock 返回\n        Gemini 的 Google Search\n      预览与调试\n        单次运行 或 多次运行 2 到 10 组\n        工具调用单步调试\n        上传图片和视频\n        重跑 编辑 删除消息\n        按 debug_id 打开 Trace\n      对比模式 最多 3 组\n      版本记录\n        只读查看任意版本\n        恢复到某版本\n        从某版本创建副本\n        编辑版本标签\n      提交新版本\n        Diff 确认\n        semver 版本号\n        标签 最多 20 个\n        描述 最多 200 字\n      调试历史 最近 7 天\n    Playground\n      匿名草稿 prompt\n      状态存于浏览器\n      快速创建为正式 prompt\n    集成\n      SDK 和 OpenAPI 按 key 版本 标签获取\n      PTaaS 执行\n      评测对象 CozeLoopPrompt\n      观测 按 prompt_key 和 debug_id\n    开源版隐藏或无界面\n      片段\n      MCP\n      安全级别\n",
+"coze-loop.md#1": "flowchart TD\n  R[\"/\"] --> C[\"/console\"]\n  C --> E[\"enterprise/:enterpriseID\"]\n  E --> S[\"space/:spaceID 默认进入 pe\"]\n  S --> PE[\"pe/*\"]\n  S --> EV[\"evaluation/* 数据集 评估器 实验\"]\n  S --> OB[\"observation/* Trace\"]\n  S --> TG[\"tag/*\"]\n  PE --> L[\"pe/prompts：Prompt 列表\"]\n  PE --> D[\"pe/prompts/:promptID：Prompt 开发页\"]\n  PE --> P[\"pe/playground：Playground\"]\n  D --> D1[\"页头：名称 key 浮层 状态 对比 版本记录 提交 更多\"]\n  D --> D2[\"左：模板编辑器\"]\n  D --> D3[\"中：通用配置 模型 变量 函数\"]\n  D --> D4[\"右：预览与调试\"]\n  D --> D5[\"侧栏：版本记录 360px\"]\n  D --> D6[\"抽屉：Trace 调试历史\"]\n  D --> D7[\"对比模式：主体替换为 N 组\"]\n",
+"coze-loop.md#2": "flowchart LR\n  A[\"Prompt 列表\"] -->|\"创建弹窗 key 名称 描述\"| B[\"开发页 空草稿\"]\n  PG[\"Playground\"] -->|\"快速创建\"| B\n  B --> C[\"编辑消息 引擎 变量\"]\n  C -->|\"自动保存 800ms\"| C\n  C --> D[\"选模型 设参数\"]\n  D --> E[\"加函数 和 mock 返回\"]\n  E --> F{\"运行\"}\n  F -->|\"单次\"| G[\"流式回复\"]\n  F -->|\"多次 2 到 10 组\"| G\n  F -->|\"单步调试\"| H[\"每次工具调用暂停 改 mock 后继续\"]\n  H --> G\n  G --> I[\"按 debug_id 打开 Trace\"]\n  G --> C\n  C --> J{\"可以提交?\"}\n  J -->|\"无草稿 placeholder 缺失 多模态不匹配 片段引擎不匹配\"| C\n  J -->|\"是\"| K[\"第 1 步 Diff 草稿 vs 最新版本\"]\n  K --> L[\"第 2 步 版本 标签 描述\"]\n  L -->|\"标签已在其他版本\"| M[\"确认移动\"]\n  M --> N[\"CommitDraft\"]\n  L --> N\n  N --> O[\"成功弹窗 去 Trace 或 去评测\"]\n",
+"coze-loop.md#3": "sequenceDiagram\n  actor U as 用户\n  participant H as 页头\n  participant C as 对比区\n  U->>H: 进入对比模式\n  H->>C: 把草稿克隆为第 1 组 基准组即草稿\n  U->>H: 添加对照组 总数最多 3 组\n  U->>C: 每组改模型 参数 消息\n  U->>C: 发送同一个问题\n  C-->>U: N 个流式回复并排显示\n  U->>C: 设为基准组 把该组复制进草稿\n  U->>H: 退出对比模式 回到普通编辑器\n",
+"coze-loop.md#4": "flowchart LR\n  V1[\"版本 1.0.1\"] -- \"标签 production\" --> P((\"production\"))\n  V2[\"版本 1.0.2\"] -- \"标签 beta\" --> B((\"beta\"))\n  U[\"用户在版本记录或提交时编辑标签\"] -->|\"把 production 移到 1.0.2\"| V2\n  SDK[\"SDK 或 OpenAPI<br/>POST /v1/loop/prompts/mget<br/>prompt_key + label=production\"] -->|\"标签解析为版本\"| V2\n  APP[\"应用运行时\"] --> SDK\n  APP -->|\"带 prompt_key 和 version 的 Trace\"| OBS[\"观测 调用记录\"]\n",
+"coze-loop.md#5": "flowchart LR\n  PV[\"已提交的 Prompt 版本\"] -->|\"评测对象 CozeLoopPrompt\"| EXP[\"评测实验\"]\n  DS[\"评测数据集\"] --> EXP\n  EXP -->|\"ExecuteInternal 覆盖模型参数\"| RUN[\"逐条执行\"]\n  DBG[\"开发页调试\"] -->|\"debug_id\"| TR[\"Trace 抽屉\"]\n  LIST[\"列表 调用记录\"] -->|\"prompt_key trace_platform=prompt\"| OBS[\"观测 Trace 列表\"]\n",
+"coze-loop.md#6": "stateDiagram-v2\n  [*] --> NewNoVersion: 创建 key 名称\n  NewNoVersion: 只有草稿 无版本 复制禁用\n  NewNoVersion --> Editing: 编辑\n  Editing: 草稿 未提交修改 自动保存\n  Editing --> Editing: 编辑 或 调试\n  Editing --> Submitted: 提交新版本 X.Y.Z 不低于最新\n  Submitted: 干净 已提交 显示版本号\n  Submitted --> Editing: 编辑 草稿基于最新版本\n  Submitted --> ViewingOld: 在版本记录中打开某版本\n  ViewingOld: 只读查看版本 V\n  ViewingOld --> Editing: 恢复到此版本 覆盖草稿\n  ViewingOld --> Submitted: 回到草稿\n  ViewingOld --> [*]: 创建副本 成为新 prompt\n  Submitted --> Deleted: 删除 界面仅创建人\n  Editing --> Deleted: 删除\n  Deleted --> [*]\n",
+"coze-loop.md#7": "stateDiagram-v2\n  [*] --> Defined: 预置 production beta test 或 创建自定义标签\n  Defined --> Attached: 提交时选择 或 在版本上编辑标签\n  Attached --> Attached: 附加到其他版本 自动移动 有提示\n  Attached --> Defined: 从版本移除\n  note right of Attached: 每个 prompt 1 个标签指向 1 个版本 SDK 解析结果缓存 60 秒\n",
+"langfuse.md#0": "mindmap\n  root((提示词管理))\n    概念\n      项目范围\n      Prompt 即名字 斜杠形成文件夹\n      版本 不可变 提交说明 作者\n      标签\n        production SDK 默认\n        latest 自动\n        自定义标签\n        受保护标签 需权益\n      标记 跨版本共享\n      类型 text 或 chat 创建后固定\n      变量 双花括号\n      chat placeholder\n      组合 langfusePrompt 标签\n      Config JSON 模型参数 工具\n    页面\n      文件夹与列表\n      详情 时间线与标签页\n      新建与编辑表单 审阅 Diff\n      版本 Diff 对话框\n      每版本指标\n      设置 受保护标签\n    操作\n      创建 新版本\n      设置标签 推到生产\n      打标记\n      复制 prompt 或文件夹\n      删除 版本 prompt 文件夹\n      导入导出 JSON\n      评论\n    集成\n      SDK 和 REST API\n      Playground 进出\n      数据集实验\n      Trace 关联生成\n      自动化 webhook Slack GitHub\n      应用内 agent MCP 工具\n    治理\n      RBAC 权限范围\n      套餐权益\n      审计日志\n",
+"langfuse.md#1": "flowchart TD\n  P[\"/project/:id/prompts\"] -->|\"?folder=a/b\"| F[\"文件夹 / 列表视图 PromptTable\"]\n  P --> N[\"/prompts/new<br/>?folder= 或 ?promptId= 或 ?loadPlaygroundCache=true\"]\n  P --> D[\"/prompts/:name...<br/>详情 Versions 标签<br/>?version=N&tab=prompt 或 config 或 linked-generations 或 use-prompt\"]\n  D --> M[\"/prompts/:name.../metrics<br/>Metrics 标签\"]\n  D -->|\"新版本\"| N\n  D -->|\"Playground\"| PG[\"/project/:id/playground\"]\n  PG -->|\"存为 prompt 或版本\"| N\n  D -->|\"实验对话框\"| EX[\"实验 数据集运行\"]\n  S[\"/project/:id/settings\"] --> PL[\"受保护标签卡片\"]\n  T[\"Trace / 观测视图\"] -->|\"PromptBadge\"| D\n  F -->|\"点击行\"| D\n  F --> AU[\"自动化按钮\"]\n",
+"langfuse.md#2": "flowchart LR\n  A[\"Prompt 列表\"] -->|\"新 prompt\"| B[\"表单 名称 类型 内容 config production 勾选 提交说明\"]\n  B -->|\"保存\"| C[\"详情 v1 latest + production\"]\n  C -->|\"新版本\"| D[\"表单预填 vN production 不勾选\"]\n  D -->|\"审阅变更 Diff\"| E[\"保存 vN+1 latest\"]\n  E -->|\"设置标签 staging\"| F[\"SDK 用 label=staging 测试\"]\n  F -->|\"设置标签 production\"| G[\"SDK 默认读取到新版本\"]\n  G -->|\"出现回归\"| H[\"把 production 移回 vN 即回滚\"]\n",
+"langfuse.md#3": "sequenceDiagram\n  actor U as 用户\n  participant D as Prompt 详情\n  participant PG as Playground 浏览器\n  participant F as 新 prompt 表单\n  U->>D: 点 Playground\n  D->>PG: 解析后的 prompt 转为消息 text 变 system 消息 记录 sourcePrompt\n  U->>PG: 填变量和 placeholder 选模型 运行\n  U->>PG: 存为 prompt\n  alt 存为新 prompt\n    PG->>F: /prompts/new?loadPlaygroundCache=true\n  else 存为新版本\n    PG->>F: /prompts/new?promptId=X&loadPlaygroundCache=true\n  end\n  F-->>U: 预填表单 保存后得到新版本\n",
+"langfuse.md#4": "flowchart LR\n  APP[\"用户应用 SDK 获取 prompt\"] -->|\"把 prompt 对象传给 generation\"| GEN[\"Trace 中的 generation\"]\n  GEN -->|\"PromptBadge Prompt: name - vN\"| DET[\"Prompt 详情 ?version=N\"]\n  DET -->|\"Linked Generations 标签页\"| GEN\n  GEN --> MET[\"Metrics 标签 每版本 延迟 token 成本 评分\"]\n  LIST[\"列表 观测数 7 天\"] --> GEN\n",
+"langfuse.md#5": "flowchart LR\n  W[\"Prompt 写操作 创建 设标签 标记 删除\"] --> E[\"EntityChangeJob prompt-version\"]\n  E --> P[\"promptVersionProcessor 按名称 标签 标记匹配触发器\"]\n  P --> WH[\"Webhook\"]\n  P --> SL[\"Slack\"]\n  P --> GH[\"GitHub dispatch\"]\n",
+"langfuse.md#6": "stateDiagram-v2\n  [*] --> Draft: 打开表单 草稿本地自动保存\n  Draft --> Latest: 保存 创建 vN 总带 latest 勾选则带 production\n  Latest --> Labeled: 创建 vN+1 后 latest 移走\n  Labeled --> Labeled: 设置标签 加标签即从其他版本移除\n  Latest --> Production: 推到生产\n  Labeled --> Production: 推到生产 或 回滚\n  Production --> Labeled: production 移到其他版本\n  Labeled --> Unlabeled: 所有标签都移走\n  Unlabeled --> Labeled: 重新加标签\n  Latest --> Deleted: 删除版本 latest 重挂到最高剩余版本\n  Labeled --> Deleted: 删除 有依赖或无受保护标签权限时被阻止\n  Unlabeled --> Deleted\n  Production --> Deleted: production 受保护时需 promptProtectedLabels CUD\n  Deleted --> [*]\n  note right of Production\n    SDK 不带标签和版本时返回此版本\n  end note\n",
+"comparison.md#0": "flowchart TB\n  subgraph CZ[\"coze-loop：IDE 型 编辑 调试 对比在一个工作台\"]\n    direction LR\n    C1[\"私有草稿<br/>自动保存\"] --> C2[\"就地调试<br/>单次 多次 单步\"] --> C3[\"对比组<br/>最多 3 组\"] --> C4[\"提交 semver<br/>附标签\"] --> C5[\"去 Trace<br/>去评测\"]\n  end\n  subgraph LF[\"Langfuse：注册中心型 版本 标签 指标闭环\"]\n    direction LR\n    L1[\"表单保存<br/>即新版本\"] --> L2[\"审阅 Diff\"] --> L3[\"设置标签<br/>推到生产\"] --> L4[\"SDK 读取<br/>Use Prompt 代码\"] --> L5[\"Trace 关联<br/>每版本指标\"]\n  end\n  CZ ~~~ LF\n",
+"comparison.md#1": "flowchart TD\n  HOME[\"提示词库\"] --> LIST[\"列表 文件夹 标记 搜索\"]\n  LIST --> DET[\"Prompt 详情\"]\n  DET --> ED[\"编辑器 私有草稿 内置调试 对比 工具 mock\"]\n  DET --> VER[\"版本 时间线 任意 Diff 评论\"]\n  DET --> DEP[\"部署 每个标签当前版本 移动历史 一键回滚 审批\"]\n  DET --> USE[\"使用 SDK 代码 按当前部署生成\"]\n  DET --> MET[\"指标 每版本 延迟 成本 评分\"]\n  DET --> EVAL[\"评测 选版本加数据集\"]\n  ED -->|\"提交 Diff 确认\"| VER\n  VER -->|\"推到生产 需授权\"| DEP\n  DEP -->|\"变更事件\"| HOOK[\"Webhook Slack CI\"]\n  MET -->|\"Trace 双向跳转\"| TRACE[\"观测\"]\n"
+};
+
+/* ---------------- Feature matrix (drives feature map + matrix) ---------------- */
+// [group, feature, czStatus, czText, lfStatus, lfText]
+const M = [
+  ["组织与概念", "租户范围", "y", "空间。[[C:frontend/apps/cozeloop/src/routes/index.tsx#L48-L84]]", "y", "项目。[[L:web/src/pages/project/%5BprojectId%5D/prompts/%5B%5B...folder%5D%5D.tsx#L1|folder 路由]]"],
+  ["组织与概念", "标识", "y", "Prompt Key，不可改，≤ 100。[[C:FE/components/prompt-create-modal/index.tsx#L256-L327]]", "y", "名字，不可改，≤ 255。[[L:packages/shared/src/features/prompts/constants.ts#L6-L19]]"],
+  ["组织与概念", "显示名与描述", "y", "名称 + 描述。[[C:FE/components/prompt-create-modal/index.tsx#L286-L327]]", "n", "只有名字；版本有提交说明。[[L:LF/components/NewPromptForm/index.tsx#L76-L90]]"],
+  ["组织与概念", "文件夹", "n", "平铺列表。[[C:frontend/packages/loop-pages/prompt-pages/src/pages/list/index.tsx#L28-L159]]", "y", "名字中的 / 形成文件夹。[[L:LF/components/prompts-table.tsx#L115-L139]]"],
+  ["组织与概念", "标记 tags", "n", "无。", "y", "跨版本共享，可筛选。[[L:LF/server/utils/updatePromptTags.ts#L3-L36]]"],
+  ["组织与概念", "内容形态", "y", "消息列表 + Placeholder 角色 + 多模态。[[C:FE/consts/index.ts#L107-L112]]", "y", "text 或 chat，创建后固定。[[L:LF/components/NewPromptForm/index.tsx#L297-L318]]"],
+  ["组织与概念", "模型配置", "y", "结构化表单；模型来自 model_config.yaml。[[C:FE/consts/index.ts#L14-L28]]", "p", "自由 JSON config。[[L:LF/components/NewPromptForm/index.tsx#L389-L411]]"],
+  ["组织与概念", "工具定义", "y", "函数卡片 + mock 返回。[[C:FE/components/prompt-develop/components/tools-card/index.tsx#L132-L305]]", "p", "写在 config 中，实验读取。[[L:worker/src/features/experiments/utils.ts#L199-L218]]"],
+  ["组织与概念", "模板引擎", "y", "Normal / Jinja2 / GoTemplate。[[C:FE/components/prompt-develop/components/prompt-editor-card/template-select.tsx#L41-L176]]", "p", "仅 {{var}}。[[L:packages/shared/src/utils/stringChecks.ts#L7-L47]]"],
+  ["组织与概念", "带类型变量", "y", "非 Normal 引擎可定义类型。[[C:FE/consts/index.ts#L78-L91]]", "n", "文本变量 + placeholder。[[L:packages/shared/src/server/llm/compileChatMessages.ts#L34-L91]]"],
+  ["组织与概念", "组合复用", "p", "片段存在，开源版隐藏。[[C:frontend/packages/loop-pages/prompt-pages/src/pages/develop/index.tsx#L79-L86]]", "y", "链接 text prompt，已解析 / 带标签切换。[[L:LF/components/prompt-detail.tsx#L695-L720]]"],
+  ["编辑与调试", "草稿", "y", "服务端每用户草稿，800 ms 自动保存。[[C:FE/hooks/use-prompt.ts#L238-L285]]", "p", "表单草稿只存本地。[[L:LF/components/NewPromptForm/index.tsx#L194-L215]]"],
+  ["编辑与调试", "编辑器内运行", "y", "单次 / 多次 2–10 组。[[C:FE/components/prompt-develop/components/send-msg-area/group-select.tsx#L52-L153]]", "n", "需跳到 Playground。[[L:web/src/features/playground/page/components/JumpToPlaygroundDropdownMenuController.tsx#L265-L306]]"],
+  ["编辑与调试", "工具单步调试", "y", "每次工具调用暂停，可改 mock。[[C:FE/components/prompt-develop/components/tools-card/index.tsx#L132-L305]]", "n", "无。"],
+  ["编辑与调试", "多模态输入", "y", "≤ 20 张图，每张 ≤ 20 MB。[[C:FE/consts/index.ts#L10-L12]]", "n", "提示词管理中未见。"],
+  ["编辑与调试", "并排对比", "y", "最多 3 组，可设为基准组。[[C:FE/components/prompt-develop/components/prompt-content/compare-area.tsx#L160-L185]]", "p", "Playground 多窗口。[[L:web/src/features/playground/page/components/JumpToPlaygroundDropdownMenuController.tsx#L265-L306]]"],
+  ["编辑与调试", "调试历史", "y", "最近 7 天。[[C:frontend/packages/loop-pages/prompt-pages/src/components/execute-history-panel/index.tsx#L60-L72]]", "n", "无。"],
+  ["编辑与调试", "调试 Trace", "y", "按 debug_id 抽屉。[[C:frontend/packages/loop-pages/prompt-pages/src/pages/develop/index.tsx#L65-L92]]", "n", "Playground 运行不关联版本。[[L:web/src/features/playground/server/chatCompletionHandler.ts#L29-L170]]"],
+  ["编辑与调试", "Playground", "p", "状态存浏览器，可快速创建。[[C:FE/hooks/use-playground.ts#L119-L131]]", "y", "双向：载入、存为新 prompt 或版本。[[L:web/src/features/playground/page/components/SaveToPromptButton.tsx#L59-L91]]"],
+  ["版本与发布", "版本号", "y", "用户填 semver，前端要求不低于基线。[[C:FE/utils/prompt.ts#L314-L366]]", "y", "系统自增整数。[[L:LF/server/actions/createPrompt.ts#L170]]"],
+  ["版本与发布", "提交说明", "y", "≤ 200 字。[[C:FE/components/prompt-submit/index.tsx#L160-L167]]", "y", "≤ 500 字。[[L:packages/shared/src/features/prompts/constants.ts#L3]]"],
+  ["版本与发布", "提交前 Diff", "y", "第 2 次起强制 2 步。[[C:FE/components/prompt-submit/index.tsx#L90-L276]]", "y", "审阅变更。[[L:LF/components/NewPromptForm/ReviewPromptDialog.tsx#L44-L70]]"],
+  ["版本与发布", "版本间 Diff", "p", "草稿 vs 已提交。[[C:FE/components/prompt-develop/components/prompt-editor-card/editor-card-header-actions.tsx#L80-L110]]", "p", "任一版本 vs 选中版本，含 config。[[L:LF/components/PromptVersionDiffDialog.tsx#L18-L100]]"],
+  ["版本与发布", "标签", "y", "预置 production / beta / test + 自定义。[[C:FE/components/version-label/version-label-select.tsx#L43-L97]]", "y", "latest 自动、production 默认 + 自定义。[[L:packages/shared/src/features/prompts/constants.ts#L22-L25]]"],
+  ["版本与发布", "推到生产引导", "p", "在提交弹窗或版本记录面板编辑标签。[[C:FE/components/version-list/index.tsx#L153-L177]]", "y", "专门的推到生产分组和按钮。[[L:LF/components/SetPromptVersionLabels/index.tsx#L210-L225]]"],
+  ["版本与发布", "默认安全", "p", "SDK 不带标签时读最新版本，提交即生效。[[C:backend/modules/prompt/domain/service/manage.go#L221-L307]]", "y", "新版本默认不带 production。[[L:LF/components/NewPromptForm/index.tsx#L89]]"],
+  ["版本与发布", "回滚", "p", "移动标签，或恢复为草稿再提交。[[C:FE/components/version-list/index.tsx#L101-L127]]", "p", "移动 production 标签。[[L:LF/components/SetPromptVersionLabels/index.tsx#L210-L225]]"],
+  ["版本与发布", "受保护标签", "n", "无。", "y", "需套餐权益。[[L:LF/server/routers/promptRouter.ts#L1407-L1529]]"],
+  ["版本与发布", "标签移动历史", "n", "无。", "p", "只在审计日志和自动化事件中。[[L:LF/server/routers/promptRouter.ts#L352-L361]]"],
+  ["消费与闭环", "SDK 引导", "p", "外链文档 + 复制 key。[[C:FE/components/prompt-develop/components/prompt-header/index.tsx#L543-L581]]", "y", "Use Prompt 标签页生成代码。[[L:LF/components/prompt-detail.tsx#L766-L785]]"],
+  ["消费与闭环", "托管执行", "y", "PTaaS execute。[[C:idl/thrift/coze/loop/prompt/coze.loop.prompt.openapi.thrift#L7-L17]]", "n", "只分发模板。[[L:LF/server/handlers/promptNameHandler.ts#L40-L53]]"],
+  ["消费与闭环", "生产 Trace 关联", "p", "列表调用记录按 key 筛选。[[C:frontend/packages/loop-pages/prompt-pages/src/pages/list/index.tsx#L54-L60]]", "y", "PromptBadge + Linked Generations。[[L:web/src/features/traces/components/PromptBadge.tsx#L7-L19]]"],
+  ["消费与闭环", "每版本指标", "n", "无。", "y", "延迟、token、成本、评分。[[L:LF/PromptMetricsPage.tsx#L176-L313]]"],
+  ["消费与闭环", "数据集评测", "y", "已提交版本作为评测对象。[[C:idl/thrift/coze/loop/evaluation/domain/eval_target.thrift#L88-L94]]", "y", "详情页发起实验，实时校验变量。[[L:web/src/features/experiments/components/MultiStepExperimentForm.tsx#L272-L280]]"],
+  ["消费与闭环", "自动化通知", "n", "无。", "y", "Webhook / Slack / GitHub。[[L:web/src/features/automations/components/automationForm.tsx#L268-L312]]"],
+  ["消费与闭环", "评论", "n", "无。", "y", "版本评论。[[L:LF/components/prompt-detail.tsx#L590-L631]]"],
+  ["消费与闭环", "导入导出", "n", "无。", "y", "JSON，导入 ≤ 500。[[L:LF/server/routers/promptRouter.ts#L1530-L1728]]"],
+  ["消费与闭环", "复制", "y", "从版本创建副本。[[C:FE/components/version-list/index.tsx#L101-L319]]", "y", "prompt 和文件夹，可重写引用。[[L:LF/server/actions/createPrompt.ts#L292-L691]]"],
+  ["消费与闭环", "AI agent 工具", "n", "无。", "y", "MCP 工具，写操作需批准。[[L:packages/shared/src/in-app-agent/server/mcpPolicy.ts#L259-L290]]"],
+  ["权限与治理", "角色", "n", "开源版只查空间成员。[[C:backend/modules/foundation/application/auth.go#L30-L70]]", "y", "Owner / Admin / Member / Viewer。[[L:packages/shared/src/features/rbac/projectAccessRights.ts#L105-L293]]"],
+  ["权限与治理", "界面按权限禁用", "p", "仅创建人删除，且只在前端。[[C:frontend/packages/loop-pages/prompt-pages/src/pages/list/index.tsx#L74-L84]]", "y", "无 CUD 时禁用写按钮。[[L:LF/PromptsPage.tsx#L47-L54]]"],
+  ["权限与治理", "审计日志", "n", "界面中未见。", "y", "每次增删改。[[L:LF/server/prompt-api-service.ts#L85-L93]]"],
+  ["权限与治理", "冲突提示", "n", "常量存在但未使用。[[C:FE/consts/index.ts#L6-L8]]", "x", "无草稿概念，不需要。"],
+  ["权限与治理", "获取限流", "y", "每空间 500 QPS。[[C:release/deployment/docker-compose/conf/prompt.yaml#L1-L16]]", "n", "不限。[[L:web/src/features/public-api/server/RateLimitService.ts#L280-L285]]"],
+];
+
+const SUMMARY = [
+  ["产品形态", "IDE 型工作台：编辑、调试、对比在一屏", "注册中心型：版本、标签、指标闭环"],
+  ["编辑", "服务端私有草稿，自动保存", "每次保存即新版本"],
+  ["调试", "编辑器内单次 / 多次 / 工具单步调试，最多 3 组对比", "跳到 Playground；多窗口"],
+  ["发布", "在提交弹窗或版本记录中编辑标签", "专门的推到生产；新版本默认不上线"],
+  ["回滚", "移动标签，或恢复为草稿再提交", "移动 production 标签"],
+  ["闭环", "调用记录 + 评测对象", "PromptBadge、Linked Generations、每版本指标、实验"],
+  ["治理", "开源版无角色，删除限制仅前端", "RBAC 四角色 + 受保护标签 + 审计 + 自动化"],
+];
+
+/* ---------------- Information architecture ---------------- */
+const IA = {
+  cz: {
+    name: "coze-loop", cls: "cz", route: "coze-loop.md#1",
+    routeNote: "所有路由在 /console/enterprise/:enterpriseID/space/:spaceID/ 下。[[C:frontend/apps/cozeloop/src/routes/index.tsx#L21-L96]] [[C:frontend/packages/loop-pages/prompt-pages/src/app.tsx#L10-L20]]",
+    pages: [
+      { name: "Prompt 开发页", cols: "2fr 1.4fr 1.4fr 1fr", rows: "auto 1fr", regions: [
+        { a: "1 / 1 / 2 / 5", t: "页头：名称 · key 浮层 · 状态 · 对比 · 版本记录 · 提交 · 更多", d: "查看旧版本时“提交新版本”变为“回到草稿”。有草稿时隐藏复制。Key 浮层有复制和“使用 SDK”外链。[[C:FE/components/prompt-develop/components/prompt-header/index.tsx#L292-L463]] [[C:FE/components/prompt-develop/components/prompt-header/index.tsx#L520-L582]]" },
+        { a: "2 / 1 / 3 / 2", t: "模板编辑器\n引擎 · 进入 Diff\nSystem / User / Placeholder", d: "切换引擎需确认。进入 Diff 比较草稿与已提交版本，无已提交版本时禁用。[[C:FE/components/prompt-develop/components/prompt-editor-card/template-select.tsx#L41-L176]] [[C:FE/components/prompt-develop/components/prompt-editor-card/editor-card-header-actions.tsx#L80-L110]]" },
+        { a: "2 / 2 / 3 / 3", t: "通用配置\n模型 · 变量 · 函数（可折叠）", d: "模型参数、变量（自动识别或手动定义）、函数 + mock 返回。[[C:FE/components/prompt-develop/components/prompt-content/normal-area.tsx#L211-L331]] [[C:FE/components/prompt-develop/components/variables-card/index.tsx#L67-L158]]" },
+        { a: "2 / 3 / 3 / 4", t: "预览与调试\n消息流 · 单次 / 多次 · 发送", d: "单次或多次 2–10 组；消息可重跑、编辑、删除；Trace 抽屉按 debug_id。[[C:FE/components/prompt-develop/components/send-msg-area/group-select.tsx#L52-L153]] [[C:FE/components/prompt-develop/components/message-area/message-item/tool-btns.tsx#L95-L210]]" },
+        { a: "2 / 4 / 3 / 5", t: "版本记录（可选，360px）\n当前草稿 · 各版本 · 标签", d: "选中版本只读加载；可创建副本、恢复到此版本、编辑标签。[[C:FE/components/version-list/index.tsx#L101-L319]] [[C:FE/components/prompt-develop/develop.tsx#L49-L60]]" },
+      ]},
+      { name: "Prompt 列表", cols: "1fr", rows: "auto auto 1fr", regions: [
+        { a: "1 / 1 / 2 / 2", t: "搜索 key / 名称 · 创建人筛选 · + 创建 Prompt", d: "创建弹窗：key、名称、描述。[[C:FE/components/prompt-create-modal/index.tsx#L66-L156]]" },
+        { a: "2 / 1 / 3 / 2", t: "列：Key（未提交徽标） · 名称 · 描述 · 最新版本 · 最新提交人 · 最近提交 · 创建人 · 创建时间", d: "[[C:FE/components/prompt-list/column.tsx#L14-L121]]" },
+        { a: "3 / 1 / 4 / 2", t: "行操作：详情 · 调用记录 · 编辑 · 复制 · 删除", d: "调用记录打开按 prompt_key 筛选的 Trace；复制在首次提交前禁用；删除仅创建人（仅前端）。[[C:frontend/packages/loop-pages/prompt-pages/src/pages/list/index.tsx#L40-L88]]" },
+      ]},
+    ],
+  },
+  lf: {
+    name: "Langfuse", cls: "lf", route: "langfuse.md#1",
+    routeNote: "通配路由解析 URL 片段，决定显示指标、详情或文件夹。[[L:LF/PromptsPage.tsx#L28-L45]] 详情页有 Versions / Metrics 两个顶部标签。[[L:web/src/features/navigation/utils/prompt-tabs.ts#L1-L17]]",
+    pages: [
+      { name: "Prompt 详情页", cols: "1fr 2.6fr", rows: "auto auto auto 1fr", regions: [
+        { a: "1 / 1 / 2 / 3", t: "面包屑 · 标记 · 复制 · [Versions | Metrics]", d: "名字不可改，提示改为复制。[[L:LF/components/prompt-detail.tsx#L401-L440]]" },
+        { a: "2 / 1 / 5 / 2", t: "版本时间线\n搜索 · + 新版本\nv5 latest · v4 production [比较]", d: "节点显示版本、标签、提交说明、作者、评论数、比较按钮。[[L:LF/components/prompt-history.tsx#L140-L178]] [[L:LF/components/prompt-detail.tsx#L320-L344]]" },
+        { a: "2 / 2 / 3 / 3", t: "工具栏：设置标签 · Playground · 实验 · 评论 · 删除版本", d: "设置标签含推到生产；实验需 promptExperiments:CUD。[[L:LF/components/prompt-detail.tsx#L501-L645]] [[L:LF/components/SetPromptVersionLabels/index.tsx#L210-L225]]" },
+        { a: "3 / 2 / 4 / 3", t: "[Prompt] [Config] [Linked Generations] [Use Prompt]", d: "四个内容标签页。[[L:LF/components/prompt-detail.tsx#L654-L785]]" },
+        { a: "4 / 2 / 5 / 3", t: "内容区：消息 · 已解析 / 带标签切换 · 变量列表", d: "使用组合时可切换已解析与带标签视图。[[L:LF/components/prompt-detail.tsx#L695-L720]]" },
+      ]},
+      { name: "列表 / 文件夹", cols: "1fr", rows: "auto auto 1fr", regions: [
+        { a: "1 / 1 / 2 / 2", t: "自动化 · 导出 · 导入 · + 新 prompt", d: "[[L:LF/PromptsPage.tsx#L127-L195]]" },
+        { a: "2 / 1 / 3 / 2", t: "面包屑 · 搜索", d: "文件夹感知分页和面包屑。[[L:LF/components/prompts-table.tsx#L115-L139]]" },
+        { a: "3 / 1 / 4 / 2", t: "列：名称（文件夹 / prompt） · 版本数 · 类型 · 最新版本创建 · 观测数 7 天 · 标记 · 操作", d: "[[L:LF/components/prompts-table.tsx#L304-L440]]" },
+      ]},
+      { name: "新建 / 编辑表单", cols: "1fr", rows: "repeat(6, auto)", regions: [
+        { a: "1 / 1 / 2 / 2", t: "名称（仅新建，预填当前文件夹）", d: "[[L:LF/components/NewPromptForm/index.tsx#L76-L90]]" },
+        { a: "2 / 1 / 3 / 2", t: "类型 Text / Chat（编辑时锁定）", d: "[[L:LF/components/NewPromptForm/index.tsx#L297-L318]]" },
+        { a: "3 / 1 / 4 / 2", t: "Prompt 编辑器 · {{var}} · + 链接 prompt", d: "[[L:LF/components/PromptSelectionDialog.tsx#L32-L66]]" },
+        { a: "4 / 1 / 5 / 2", t: "Config JSON", d: "[[L:LF/components/NewPromptForm/index.tsx#L389-L411]]" },
+        { a: "5 / 1 / 6 / 2", t: "☐ 设置 production 标签（新版本默认不勾）", d: "isActive: !Boolean(initialPrompt)。[[L:LF/components/NewPromptForm/index.tsx#L89]]" },
+        { a: "6 / 1 / 7 / 2", t: "提交说明 · 审阅变更 → 保存新版本", d: "[[L:LF/components/NewPromptForm/ReviewPromptDialog.tsx#L44-L70]]" },
+      ]},
+    ],
+  },
+};
+
+/* ---------------- Journeys ---------------- */
+const J = [
+  { id: "create", name: "创建",
+    cz: { diagram: "coze-loop.md#2", steps: [
+      ["打开创建弹窗", "在列表点“创建 Prompt”。填写 key、名称、描述。[[C:FE/components/prompt-create-modal/index.tsx#L256-L327]]"],
+      ["或从 Playground 快速创建", "Playground 页头的“快速创建”把临时内容变成正式 prompt，带 draft_detail。[[C:FE/components/prompt-develop/components/prompt-header/index.tsx#L334-L390]]"],
+      ["进入开发页", "新 prompt 只有草稿，没有版本；复制禁用。[[C:FE/components/prompt-develop/components/prompt-header/index.tsx#L697-L730]]"],
+    ]},
+    lf: { diagram: "langfuse.md#2", steps: [
+      ["点新 prompt", "列表页按钮；无 prompts:CUD 时禁用。[[L:LF/PromptsPage.tsx#L47-L54]]"],
+      ["填写表单", "名称、类型、内容、config、production 勾选（新 prompt 默认勾）、提交说明。[[L:LF/components/NewPromptForm/index.tsx#L76-L90]]"],
+      ["保存得到 v1", "v1 自动带 latest；勾选时带 production。[[L:LF/server/actions/createPrompt.ts#L190-L203]]"],
+    ]}},
+  { id: "debug", name: "编辑与调试",
+    cz: { diagram: "coze-loop.md#3", steps: [
+      ["编辑草稿", "改消息、引擎、变量；800 ms 自动保存。[[C:FE/hooks/use-prompt.ts#L238-L285]]"],
+      ["配置模型和函数", "模型参数 + 函数 mock 返回；Auto 或指定函数时自动开启单步调试。[[C:FE/components/prompt-develop/components/tools-card/index.tsx#L132-L305]]"],
+      ["运行", "单次或多次 2–10 组；单步调试在每次工具调用暂停。[[C:FE/components/prompt-develop/components/send-msg-area/group-select.tsx#L52-L153]]"],
+      ["对比", "最多 3 组并排，可设为基准组。[[C:FE/components/prompt-develop/components/compare-item/index.tsx#L290-L320]]"],
+      ["看 Trace", "按 debug_id 打开 Trace 抽屉；调试历史保留 7 天。[[C:frontend/packages/loop-pages/prompt-pages/src/pages/develop/index.tsx#L65-L92]]"],
+    ]},
+    lf: { diagram: "langfuse.md#3", steps: [
+      ["点 Playground", "详情页工具栏；载入已解析内容，text 变 system 消息。[[L:web/src/features/playground/page/components/JumpToPlaygroundDropdownMenuController.tsx#L265-L306]]"],
+      ["填变量并运行", "在浏览器中渲染，服务端只代理 LLM，不关联版本。[[L:web/src/features/playground/server/chatCompletionHandler.ts#L29-L170]]"],
+      ["存回", "存为新 prompt 或新版本，表单预填。[[L:web/src/features/playground/page/components/SaveToPromptButton.tsx#L59-L91]]"],
+      ["注意", "config（模型参数、工具）不会带入 Playground；组合标签被展平。[[L:web/src/features/playground/page/components/JumpToPlaygroundDropdownMenuController.tsx#L265-L306]]"],
+    ]}},
+  { id: "submit", name: "版本提交",
+    cz: { diagram: "coze-loop.md#6", steps: [
+      ["提交检查", "无草稿、placeholder 缺失、多模态不匹配时禁止。[[C:FE/components/prompt-develop/components/prompt-header/index.tsx#L208-L253]]"],
+      ["确认差异", "第 2 次起先看草稿 vs 最新版本 Diff。[[C:FE/components/prompt-submit/index.tsx#L90-L276]]"],
+      ["填版本信息", "semver（默认补丁 +1）、标签 ≤ 20、描述 ≤ 200。[[C:FE/utils/prompt.ts#L314-L366]]"],
+      ["成功", "弹窗引导去 Trace 或评测。[[C:FE/components/prompt-submit/show-submit-success.tsx#L10-L62]]"],
+    ]},
+    lf: { diagram: "langfuse.md#6", steps: [
+      ["点新版本", "打开预填所选版本的表单；production 默认不勾。[[L:LF/components/NewPromptForm/index.tsx#L89]]"],
+      ["审阅变更", "保存前与基线版本 Diff。[[L:LF/components/NewPromptForm/ReviewPromptDialog.tsx#L44-L70]]"],
+      ["保存新版本", "版本号自增，自动带 latest。[[L:LF/server/actions/createPrompt.ts#L170]]"],
+      ["时间线比较", "任一节点点“比较”，与选中版本 Diff。[[L:LF/components/prompt-history.tsx#L140-L178]]"],
+    ]}},
+  { id: "release", name: "标签发布与回滚",
+    cz: { diagram: "coze-loop.md#4", steps: [
+      ["选择标签", "提交时选，或在版本记录中编辑标签。[[C:FE/components/version-list/index.tsx#L153-L177]]"],
+      ["确认移动", "标签已在其他版本时提示会移动。[[C:FE/components/version-label/version-label-select.tsx#L291-L329]]"],
+      ["生效", "SDK 按标签解析版本，缓存 60 s。[[C:release/deployment/docker-compose/conf/prompt.yaml#L24-L27]]"],
+      ["回滚", "把标签移回旧版本，或“恢复到此版本”覆盖草稿后再提交。[[C:FE/components/version-list/index.tsx#L101-L127]]"],
+    ]},
+    lf: { diagram: "langfuse.md#6", steps: [
+      ["设置标签", "对话框说明 production 是默认返回的版本。[[L:LF/components/SetPromptVersionLabels/index.tsx#L210-L225]]"],
+      ["推到生产", "按钮“保存并推到生产”；受保护时需 promptProtectedLabels:CUD。[[L:LF/server/routers/promptRouter.ts#L1407-L1529]]"],
+      ["通知", "变更事件可触发 Webhook / Slack / GitHub。[[L:web/src/features/automations/components/automationForm.tsx#L268-L312]]"],
+      ["回滚", "把 production 移回旧版本；版本不可变所以安全。[[L:LF/server/utils/updatePromptLabels.ts#L3-L43]]"],
+    ]}},
+  { id: "sdk", name: "SDK 使用",
+    cz: { diagram: "coze-loop.md#4", steps: [
+      ["找到 key", "Key 浮层复制 key，点“使用 SDK”外链。[[C:FE/components/prompt-develop/components/prompt-header/index.tsx#L543-L581]]"],
+      ["调用 mget", "PromptQuery{prompt_key, version, label}；设版本时忽略标签。[[C:idl/thrift/coze/loop/prompt/domain_openapi/prompt.thrift#L85-L89]]"],
+      ["或托管执行", "PTaaS execute / execute_streaming。[[C:idl/thrift/coze/loop/prompt/coze.loop.prompt.openapi.thrift#L7-L17]]"],
+      ["缺口", "外链指向商业文档；无按当前 key 生成的代码。[[C:FE/components/prompt-develop/components/prompt-header/index.tsx#L562-L570]]"],
+    ]},
+    lf: { diagram: "langfuse.md#4", steps: [
+      ["打开 Use Prompt", "详情页标签页生成 Python 和 JS/TS 代码。[[L:LF/components/prompt-detail.tsx#L766-L785]]"],
+      ["默认读取 production", "不带标签和版本时返回 production。[[L:LF/server/actions/getPromptByName.ts#L49-L55]]"],
+      ["客户端渲染", "服务端返回原始模板，SDK 渲染变量。[[L:LF/server/handlers/promptNameHandler.ts#L40-L53]]"],
+      ["关联 generation", "把 prompt 对象传给 generation，Trace 中显示 PromptBadge。[[L:web/src/features/traces/components/PromptBadge.tsx#L7-L19]]"],
+    ]}},
+  { id: "loop", name: "Trace / 评测 / 实验",
+    cz: { diagram: "coze-loop.md#5", steps: [
+      ["调用记录", "列表行操作，打开按 prompt_key 筛选的 Trace。[[C:frontend/packages/loop-pages/prompt-pages/src/pages/list/index.tsx#L54-L60]]"],
+      ["选为评测对象", "实验界面选 prompt 和版本。[[C:frontend/packages/loop-components/evaluate-components/src/components/selectors/evaluate-target/eval-target-prompt-version-select.tsx#L1-L82]]"],
+      ["执行评测", "ExecuteInternal，可覆盖模型参数。[[C:backend/modules/evaluation/infra/rpc/prompt/prompt.go#L37-L72]]"],
+      ["限制", "只能评测已提交版本。[[C:idl/thrift/coze/loop/prompt/coze.loop.prompt.execute.thrift#L10-L21]]"],
+    ]},
+    lf: { diagram: "langfuse.md#4", steps: [
+      ["Linked Generations", "详情页标签页按名字 + 版本筛选观测。[[L:LF/components/prompt-detail.tsx#L667-L689]]"],
+      ["Metrics", "每版本延迟、token、成本、评分。[[L:LF/PromptMetricsPage.tsx#L176-L313]]"],
+      ["发起实验", "实时校验变量与数据集键。[[L:web/src/features/experiments/components/MultiStepExperimentForm.tsx#L272-L280]]"],
+      ["异步执行", "创建数据集运行，worker 执行，生成关联回版本。[[L:web/src/features/experiments/server/router.ts#L213-L300]]"],
+    ]}},
+];
+
+const ADVICE = {
+  cz: [
+    "编辑器内调试：编辑、运行、看 Trace 在同一屏。[[C:FE/components/prompt-develop/components/prompt-content/normal-area.tsx#L211-L331]]",
+    "工具 mock + 单步调试。[[C:FE/components/prompt-develop/components/tools-card/index.tsx#L132-L305]]",
+    "多次运行测稳定性。[[C:FE/components/prompt-develop/components/send-msg-area/group-select.tsx#L52-L153]]",
+    "服务端私有草稿 + 自动保存。[[C:FE/hooks/use-prompt.ts#L238-L285]]",
+    "提交前强制 Diff 确认。[[C:FE/components/prompt-submit/index.tsx#L90-L276]]",
+    "模型能力不匹配时拦截提交。[[C:FE/components/prompt-develop/components/prompt-header/index.tsx#L208-L253]]",
+    "结构化模型与工具配置。[[C:FE/consts/index.ts#L14-L28]]",
+  ],
+  lf: [
+    "默认读取 production；新版本默认不上线。[[L:LF/components/NewPromptForm/index.tsx#L89]]",
+    "显式“推到生产”操作。[[L:LF/components/SetPromptVersionLabels/index.tsx#L210-L225]]",
+    "受保护标签 + 角色。[[L:packages/shared/src/features/rbac/projectAccessRights.ts#L105-L293]]",
+    "每版本指标页。[[L:LF/PromptMetricsPage.tsx#L176-L313]]",
+    "Trace ↔ Prompt 双向跳转。[[L:web/src/features/traces/components/PromptBadge.tsx#L7-L19]]",
+    "产品内 SDK 代码片段。[[L:LF/components/prompt-detail.tsx#L766-L785]]",
+    "变更事件 → Webhook / Slack / CI。[[L:web/src/features/automations/components/automationForm.tsx#L268-L312]]",
+    "文件夹、标记、导入导出、评论。[[L:LF/components/prompts-table.tsx#L115-L139]]",
+  ],
+  both: [
+    "标签移动时间线 / 部署视图：回答“线上是哪个版本、谁何时改的”。[[L:LF/components/prompt-history.tsx#L140-L178|Langfuse 时间线]] [[C:FE/components/version-list/index.tsx#L153-L177|coze-loop 版本记录]]",
+    "一键回滚：两者都靠手动移动标签。",
+    "任意两版本 Diff（含标签与 config）。[[L:LF/components/PromptVersionDiffDialog.tsx#L18-L100]]",
+    "发布审批：两者都没有。",
+    "Playground 运行关联版本。[[L:web/src/features/playground/server/chatCompletionHandler.ts#L29-L170]]",
+    "评估器 prompt 纳入版本管理。[[L:packages/shared/prisma/schema.prisma#L1007]]",
+  ],
+  avoid: [
+    "权限只在前端检查。[[C:frontend/packages/loop-pages/prompt-pages/src/pages/list/index.tsx#L74-L84]]",
+    "文案与行为不一致（“三花括号”实为双花括号）。[[C:frontend/packages/loop-base/loop-lng/src/locales/prompt/en-US.json#L171-L174]]",
+    "存在却无入口的概念（安全级别、MCP）。[[C:FE/components/prompt-create-modal/index.tsx#L66-L91]]",
+    "不同入口事件行为不一致（REST 删除不发事件）。[[L:LF/server/actions/deletePrompt.ts#L13-L127]]",
+    "降级后旧限制仍生效却隐藏设置入口。[[L:LF/server/utils/checkHasProtectedLabels.ts#L9-L25]]",
+    "SDK 文档指向商业站点而非当前部署。[[C:FE/components/prompt-develop/components/prompt-header/index.tsx#L562-L570]]",
+  ],
+};
+
+/* ---------------- Rendering helpers ---------------- */
+let seq = 0;
+async function renderDiagrams(root) {
+  for (const box of root.querySelectorAll(".mermaid-box[data-diagram]:not([data-done])")) {
+    if (box.offsetParent === null) continue;
+    box.setAttribute("data-done", "1");
+    const key = box.dataset.diagram;
+    try {
+      const { svg } = await mermaid.render(`mmd-${seq++}`, D[key]);
+      box.innerHTML = svg;
+    } catch (e) {
+      box.innerHTML = `<div class="err">Mermaid 渲染失败（${key}）：${String(e.message || e)}</div>`;
+    }
+  }
+}
+const st = (s) => `<span class="st ${s}">${ST[s]}</span>`;
+function seg(el, items, cur, onPick) {
+  el.innerHTML = items.map(([k, t]) => `<button data-k="${k}" class="${k === cur ? "on" : ""}">${t}</button>`).join("");
+  el.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
+    el.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); onPick(b.dataset.k);
+  }));
+}
+
+/* overview */
+document.getElementById("summary").innerHTML =
+  `<tr><th>维度</th><th class="cz">coze-loop</th><th class="lf">Langfuse</th></tr>` +
+  SUMMARY.map(([d, c, l]) => `<tr><td class="dim">${d}</td><td>${c}</td><td>${l}</td></tr>`).join("");
+
+/* feature map */
+(function buildFeatureMap() {
+  const groups = [...new Set(M.map((r) => r[0]))];
+  const grid = document.getElementById("fm-grid");
+  grid.innerHTML = groups.map((g) => `<div class="fm-group"><h4>${g}</h4>${
+    M.map((r, i) => r[0] === g ? `<button class="chip" data-i="${i}">${r[1]}<span class="dots"><span class="dot ${r[2]}"></span><span class="dot ${r[4]}"></span></span></button>` : "").join("")
+  }</div>`).join("");
+  const filters = [["all", "全部"], ["both", "两者都有"], ["cz", "coze-loop 更强"], ["lf", "Langfuse 更强"], ["gap", "两者都弱"]];
+  const rank = { y: 2, p: 1, n: 0, x: 0 };
+  const match = (r, f) => f === "all" ? true
+    : f === "both" ? r[2] === "y" && r[4] === "y"
+    : f === "cz" ? rank[r[2]] > rank[r[4]]
+    : f === "lf" ? rank[r[4]] > rank[r[2]]
+    : rank[r[2]] < 2 && rank[r[4]] < 2;
+  seg(document.getElementById("fm-toolbar"), filters, "all", (f) => {
+    grid.querySelectorAll(".chip").forEach((c) => c.classList.toggle("dim", !match(M[+c.dataset.i], f)));
+  });
+  const detail = document.getElementById("fm-detail");
+  grid.querySelectorAll(".chip").forEach((c) => c.addEventListener("click", () => {
+    grid.querySelectorAll(".chip").forEach((x) => x.classList.toggle("active", x === c));
+    const [g, f, cs, ct, ls, lt] = M[+c.dataset.i];
+    detail.innerHTML = `<div class="note">${g}</div><h3>${f}</h3>
+      <p><span class="tag cz">coze-loop</span> ${st(cs)}<br>${rich(ct)}</p>
+      <p><span class="tag lf">Langfuse</span> ${st(ls)}<br>${rich(lt)}</p>`;
+  }));
+  grid.querySelector(".chip").click();
+})();
+
+/* information architecture */
+(function buildIA() {
+  const body = document.getElementById("ia-body");
+  const show = (sys) => {
+    const s = IA[sys];
+    body.innerHTML = `
+      <div class="card"><h3><span class="tag ${s.cls}">${s.name}</span> 路由树</h3>
+        <div class="note">${rich(s.routeNote)}</div>
+        <div class="mermaid-box" data-diagram="${s.route}"></div></div>
+      ${s.pages.map((p, pi) => `
+      <div class="card"><h3>${p.name} 布局草图 <span class="note">（点击区域查看说明）</span></h3>
+        <div class="grid2" style="grid-template-columns:1.6fr 1fr">
+          <div class="wf" style="grid-template-columns:${p.cols};grid-template-rows:${p.rows}">
+            ${p.regions.map((r, ri) => `<div class="r" data-p="${pi}" data-r="${ri}" style="grid-area:${r.a};white-space:pre-line">${r.t}</div>`).join("")}
+          </div>
+          <div id="ia-d-${pi}" class="note">点击左侧区域。</div>
+        </div></div>`).join("")}`;
+    body.querySelectorAll(".r").forEach((el) => el.addEventListener("click", () => {
+      const pi = +el.dataset.p, r = s.pages[pi].regions[+el.dataset.r];
+      body.querySelectorAll(`.r[data-p="${pi}"]`).forEach((x) => x.classList.toggle("active", x === el));
+      body.querySelector(`#ia-d-${pi}`).innerHTML = `<h3>${r.t.split("\n")[0]}</h3><div style="color:var(--text)">${rich(r.d)}</div>`;
+    }));
+    s.pages.forEach((_, pi) => body.querySelector(`.r[data-p="${pi}"]`).click());
+    renderDiagrams(body);
+  };
+  seg(document.getElementById("ia-sys"), [["cz", "coze-loop"], ["lf", "Langfuse"]], "cz", show);
+  show("cz");
+})();
+
+/* journeys */
+(function buildJourneys() {
+  let jid = "create", sys = "cz";
+  const body = document.getElementById("jr-body");
+  const draw = () => {
+    const j = J.find((x) => x.id === jid), d = j[sys], cls = sys;
+    const other = sys === "cz" ? "lf" : "cz";
+    body.innerHTML = `
+      <div class="card">
+        <h3>${j.name} · <span class="tag ${cls}">${sys === "cz" ? "coze-loop" : "Langfuse"}</span></h3>
+        <div class="stepper">${d.steps.map((s, i) => `${i ? '<span class="arrow">→</span>' : ""}<button class="step ${cls}" data-i="${i}"><span class="n">${i + 1}</span>${s[0]}</button>`).join("")}</div>
+        <div id="jr-detail"></div>
+        <div class="note" style="margin-top:8px">对照：<a href="#" id="jr-swap">查看 ${other === "cz" ? "coze-loop" : "Langfuse"} 的同一旅程</a></div>
+      </div>
+      <div class="card"><h3>相关流程图</h3><div class="mermaid-box" data-diagram="${d.diagram}"></div></div>`;
+    const showStep = (i) => {
+      body.querySelectorAll(".step").forEach((b) => b.classList.toggle("active", +b.dataset.i === i));
+      body.querySelector("#jr-detail").innerHTML = `<b>${i + 1}. ${d.steps[i][0]}</b><div>${rich(d.steps[i][1])}</div>`;
+    };
+    body.querySelectorAll(".step").forEach((b) => b.addEventListener("click", () => showStep(+b.dataset.i)));
+    body.querySelector("#jr-swap").addEventListener("click", (e) => {
+      e.preventDefault(); sys = other;
+      document.querySelectorAll("#jr-sys button").forEach((b) => b.classList.toggle("on", b.dataset.k === sys)); draw();
+    });
+    showStep(0);
+    renderDiagrams(body);
+  };
+  seg(document.getElementById("jr-list"), J.map((j) => [j.id, j.name]), jid, (k) => { jid = k; draw(); });
+  seg(document.getElementById("jr-sys"), [["cz", "coze-loop"], ["lf", "Langfuse"]], sys, (k) => { sys = k; draw(); });
+  draw();
+})();
+
+/* matrix */
+(function buildMatrix() {
+  const groups = [...new Set(M.map((r) => r[0]))];
+  let g = "全部", diffOnly = false, q = "";
+  const tb = document.getElementById("mx-toolbar");
+  tb.innerHTML = `<span class="seg" id="mx-g"></span><span class="sep"></span>
+    <button id="mx-diff">只看差异</button><input id="mx-q" placeholder="搜索：如 标签、Diff、Trace">`;
+  const table = document.getElementById("mx-table");
+  const draw = () => {
+    let html = `<tr><th>功能</th><th class="cz">coze-loop</th><th class="lf">Langfuse</th></tr>`;
+    for (const grp of groups) {
+      if (g !== "全部" && g !== grp) continue;
+      const rows = M.filter((r) => r[0] === grp && (!diffOnly || r[2] !== r[4]) && (!q || r.join(" ").toLowerCase().includes(q)));
+      if (!rows.length) continue;
+      html += `<tr class="group"><td colspan="3">${grp}</td></tr>` +
+        rows.map((r) => `<tr><td class="dim">${r[1]}</td><td>${st(r[2])}${rich(r[3])}</td><td>${st(r[4])}${rich(r[5])}</td></tr>`).join("");
+    }
+    table.innerHTML = html;
+  };
+  seg(document.getElementById("mx-g"), [["全部", "全部"], ...groups.map((x) => [x, x])], g, (k) => { g = k; draw(); });
+  tb.querySelector("#mx-diff").addEventListener("click", (e) => { diffOnly = !diffOnly; e.target.classList.toggle("on", diffOnly); draw(); });
+  tb.querySelector("#mx-q").addEventListener("input", (e) => { q = e.target.value.trim().toLowerCase(); draw(); });
+  draw();
+})();
+
+/* advice */
+document.getElementById("tab-advice").innerHTML = `
+  <h2>自建提示词库的产品建议 <span class="tag inf">【推断】非源码事实</span></h2>
+  <div class="grid2">
+    <div class="card"><h3>借鉴 <span class="tag cz">coze-loop</span></h3>${ADVICE.cz.map((x) => `<div class="good">${rich(x)}</div>`).join("")}</div>
+    <div class="card"><h3>借鉴 <span class="tag lf">Langfuse</span></h3>${ADVICE.lf.map((x) => `<div class="good">${rich(x)}</div>`).join("")}</div>
+  </div>
+  <div class="grid2">
+    <div class="card"><h3>两者都缺，应补齐</h3><ul>${ADVICE.both.map((x) => `<li>${rich(x)}</li>`).join("")}</ul></div>
+    <div class="card"><h3>应避免</h3>${ADVICE.avoid.map((x) => `<div class="risk">${rich(x)}</div>`).join("")}</div>
+  </div>
+  <div class="card"><h3>建议的信息架构</h3><div class="mermaid-box" data-diagram="comparison.md#1"></div></div>`;
+
+/* tabs */
+function activate(tab) {
+  document.querySelectorAll("#nav button").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
+  document.querySelectorAll("section.tab").forEach((s) => s.classList.toggle("active", s.id === `tab-${tab}`));
+  history.replaceState(null, "", `#${tab}`);
+  renderDiagrams(document.getElementById(`tab-${tab}`));
+}
+document.querySelectorAll("#nav button").forEach((b) => b.addEventListener("click", () => activate(b.dataset.tab)));
+const tabs = ["overview", "fmap", "ia", "journey", "matrix", "advice"];
+const initial = location.hash.slice(1);
+activate(tabs.includes(initial) ? initial : "overview");
+</script>
+</body>
+</html>
