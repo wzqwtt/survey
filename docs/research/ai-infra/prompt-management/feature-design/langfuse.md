@@ -1,6 +1,6 @@
 ---
 sidebar_position: 3
-sidebar_label: Langfuse 功能设计
+sidebar_label: Langfuse
 description: Langfuse 提示词管理的产品功能设计：功能地图、概念、路由与页面布局、用户旅程、版本与标签生命周期、权限与套餐、集成与缺口。
 tags: [LLM, 提示词管理, 产品设计, Langfuse]
 ---
@@ -11,7 +11,7 @@ tags: [LLM, 提示词管理, 产品设计, Langfuse]
 
 - **仓库：** [wzqwtt/langfuse](https://github.com/wzqwtt/langfuse)，提交 `f75c661dbe8c6b85523c81486b39e8403ac2c141`。
 - **视角：** 用户能看到什么、能做什么。
-- **后端实现** 见 [Langfuse 实现](../prompt-management/langfuse.md)。
+- **后端实现** 见 [实现方式 · Langfuse](../implementation/langfuse.md)。
 - **规则：** 每条事实带永久链接。推断用 **【推断】** 标注。
 
 ## 目录

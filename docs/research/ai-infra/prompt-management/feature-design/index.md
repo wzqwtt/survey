@@ -1,17 +1,17 @@
 ---
 sidebar_position: 1
 sidebar_label: 概览
-title: 提示词管理功能设计调研：coze-loop vs Langfuse（产品视角）
+title: 提示词管理 · 功能设计：coze-loop vs Langfuse（产品视角）
 description: 从产品视角对比 coze-loop 与 Langfuse 的提示词管理：功能地图、信息架构、关键用户旅程、版本与发布、权限、集成、缺口与产品建议。
 tags: [LLM, 提示词管理, 产品设计, coze-loop, Langfuse]
 date: 2026-10-03
 ---
 
-# 提示词管理功能设计调研：coze-loop vs Langfuse（产品视角）
+# 提示词管理 · 功能设计：coze-loop vs Langfuse（产品视角）
 
-本专题从**产品视角**对比两个开源 LLM 平台的提示词管理：用户看到什么、能做什么、如何发布与回滚、如何与 Trace / 评测 / 实验联动。
+本部分从**产品视角**对比两个开源 LLM 平台的提示词管理：用户看到什么、能做什么、如何发布与回滚、如何与 Trace / 评测 / 实验联动。
 
-- 实现层（存储、缓存、API、执行路径）见 [提示词管理调研：coze-loop vs Langfuse](../prompt-management/index.md)。
+- 本部分属于专题 [提示词管理](../index.md)。实现层（存储、缓存、API、执行路径）见 [实现方式](../implementation/index.md)。
 
 ![交互页面截图：功能地图，筛选"Langfuse 更强"，展开"每版本指标"](assets/feature-design-screenshot.png)
 
@@ -19,7 +19,7 @@ date: 2026-10-03
 
 | 文档 | 内容 |
 |---|---|
-| [交互页面](interactive.mdx) | 可点击功能地图、信息架构线框图、用户旅程步进器、可筛选对比矩阵、Mermaid 图。也可[新窗口打开](pathname:///html/prompt-feature-design/) |
+| [交互页面](interactive.mdx) | 可点击功能地图、信息架构线框图、用户旅程步进器、可筛选对比矩阵、Mermaid 图。也可[新窗口打开](pathname:///html/prompt-management-feature-design/) |
 | [coze-loop 功能设计](coze-loop.md) | coze-loop 功能设计：功能地图、概念、路由与页面布局、用户旅程、生命周期、权限、限制、集成、缺口 |
 | [Langfuse 功能设计](langfuse.md) | Langfuse 功能设计：同上结构 |
 | [功能对比与产品建议](comparison.md) | 功能对比矩阵 + 自建提示词库的产品建议 + 建议信息架构 |
@@ -47,7 +47,7 @@ date: 2026-10-03
 ## 查看交互页面
 
 - 在站内阅读：[交互页面](interactive.mdx)。
-- 单独打开：[`/html/prompt-feature-design/`](pathname:///html/prompt-feature-design/)。源文件为 `static/html/prompt-feature-design/index.html`。
+- 单独打开：[`/html/prompt-management-feature-design/`](pathname:///html/prompt-management-feature-design/)。源文件为 `static/html/prompt-management-feature-design/index.html`。
 - 页面内的 Mermaid 从 jsDelivr CDN 加载，需要联网。
 
 ## 写作约定

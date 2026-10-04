@@ -1,0 +1,13 @@
+{
+  "label": "AI Infra",
+  "position": 1,
+  "description": "LLM 应用平台、提示词管理、评测、可观测性等 AI 基础设施调研。",
+  "link": {
+    "type": "generated-index",
+    "slug": "/research/ai-infra",
+    "description": "LLM 应用平台、提示词管理、评测、可观测性等 AI 基础设施调研。"
+  },
+  "customProps": {
+    "badge": "AI"
+  }
+}

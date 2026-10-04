@@ -1,6 +1,6 @@
 ---
 sidebar_position: 4
-sidebar_label: 横向对比与建议
+sidebar_label: 对比与建议
 description: coze-loop 与 Langfuse 提示词管理的横向对比矩阵，以及自建提示词库的建议。
 tags: [LLM, 提示词管理, coze-loop, Langfuse]
 ---

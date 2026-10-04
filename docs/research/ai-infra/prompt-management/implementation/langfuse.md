@@ -1,6 +1,6 @@
 ---
 sidebar_position: 3
-sidebar_label: Langfuse 实现
+sidebar_label: Langfuse
 description: Langfuse 提示词管理的数据模型、版本与标签、公开 API 获取、依赖组合、模板、缓存与风险。
 tags: [LLM, 提示词管理, Langfuse]
 ---
