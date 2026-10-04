@@ -1,0 +1,18 @@
+.lead {
+  max-width: 720px;
+  color: var(--ifm-color-emphasis-700);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.25rem;
+  margin-top: 2rem;
+}
+
+.empty {
+  padding: 2rem;
+  text-align: center;
+  border: 1px dashed var(--ifm-color-emphasis-400);
+  border-radius: 14px;
+}

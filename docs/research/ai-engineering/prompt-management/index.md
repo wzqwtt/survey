@@ -1,16 +1,24 @@
+---
+sidebar_position: 1
+sidebar_label: 概览
+title: 提示词管理调研：coze-loop vs Langfuse
+description: 对比 coze-loop 与 Langfuse 的提示词管理实现：创建、存储、获取、发送给 LLM，以及数据模型、模板、版本、缓存与风险。
+tags: [LLM, 提示词管理, coze-loop, Langfuse]
+date: 2026-10-03
+---
+
 # 提示词管理调研：coze-loop vs Langfuse
 
-本目录对比两个开源 LLM 平台的提示词管理实现。范围：创建 → 存储 → 获取 → 发送给 LLM，以及数据模型、模板、版本与标签、缓存、风险。
+本专题对比两个开源 LLM 平台的提示词管理实现。范围：创建 → 存储 → 获取 → 发送给 LLM，以及数据模型、模板、版本与标签、缓存、风险。
 
-## 文件索引
+## 文档索引
 
-| 文件 | 内容 |
+| 文档 | 内容 |
 |---|---|
-| [index.html](index.html) | 交互页面：按系统分页签、可点击的流程步骤、对比矩阵、Mermaid 图。单文件，无构建步骤 |
-| [coze-loop.md](coze-loop.md) | coze-loop 详细报告 |
-| [langfuse.md](langfuse.md) | Langfuse 详细报告 |
-| [comparison.md](comparison.md) | 横向对比矩阵 + 自建提示词库建议 |
-| [assets/report-screenshot.png](assets/report-screenshot.png) | 交互页面截图 |
+| [交互页面](interactive.mdx) | 按系统分页签、可点击的流程步骤、对比矩阵、Mermaid 图。也可[新窗口打开](pathname:///html/prompt-management/) |
+| [coze-loop 实现](coze-loop.md) | coze-loop 详细报告 |
+| [Langfuse 实现](langfuse.md) | Langfuse 详细报告 |
+| [横向对比与建议](comparison.md) | 横向对比矩阵 + 自建提示词库建议 |
 
 ![交互页面截图：coze-loop 页签，展开"获取"步骤](assets/report-screenshot.png)
 
@@ -36,13 +44,12 @@
 | 服务端缓存 | 仅标签→版本（60 s） | 已解析提示词（1 h），epoch 失效 |
 | 主要风险 | 跨空间标签修改、标签缓存漏失效、密钥落库 | 项目级缓存冷启动、删除非原子、获取不限流 |
 
-详细对比与建议见 [comparison.md](comparison.md)。
+详细对比与建议见[横向对比与建议](comparison.md)。
 
-## 本地查看交互页面
+## 查看交互页面
 
-- 直接用浏览器打开 `prompt/index.html`。
-- 或运行 `python3 -m http.server`，访问 `http://localhost:8000/prompt/`。
-- 开启 GitHub Pages（master 分支根目录）后，访问 `/prompt/`。
+- 在站内阅读：[交互页面](interactive.mdx)。
+- 单独打开：[`/html/prompt-management/`](pathname:///html/prompt-management/)。源文件为 `static/html/prompt-management/index.html`。
 - Mermaid 从 jsDelivr CDN 加载，需要联网。
 
 ## 写作约定

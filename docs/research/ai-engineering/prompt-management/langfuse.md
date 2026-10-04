@@ -1,6 +1,13 @@
+---
+sidebar_position: 3
+sidebar_label: Langfuse 实现
+description: Langfuse 提示词管理的数据模型、版本与标签、公开 API 获取、依赖组合、模板、缓存与风险。
+tags: [LLM, 提示词管理, Langfuse]
+---
+
 # Langfuse 提示词管理实现
 
-> 返回 [索引](README.md) · 对照阅读 [coze-loop](coze-loop.md) · [横向对比与建议](comparison.md) · [交互页面](index.html)
+> 返回 [概览](index.md) · 对照阅读 [coze-loop](coze-loop.md) · [横向对比与建议](comparison.md) · [交互页面](interactive.mdx)
 
 - **仓库：** [wzqwtt/langfuse](https://github.com/wzqwtt/langfuse)
 - **提交：** `f75c661dbe8c6b85523c81486b39e8403ac2c141`
