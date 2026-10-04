@@ -4,7 +4,8 @@
   z-index: calc(var(--ifm-z-index-overlay) + 10);
   display: flex;
   flex-direction: column;
-  background: var(--ifm-background-color);
+  /* --ifm-background-color is transparent in light mode. */
+  background: var(--ifm-background-surface-color);
   outline: none;
 }
 
@@ -15,7 +16,7 @@
   gap: 1rem;
   padding: 0.5rem 1rem;
   border-bottom: 1px solid var(--ifm-color-emphasis-200);
-  background: var(--ifm-background-surface-color);
+  background: var(--ifm-color-emphasis-100);
 }
 
 .hint {
@@ -39,7 +40,7 @@
   padding: 0 0.625rem;
   border: 1px solid var(--ifm-color-emphasis-300);
   border-radius: var(--ifm-global-radius);
-  background: var(--ifm-background-color);
+  background: var(--ifm-background-surface-color);
   color: var(--ifm-font-color-base);
   font-size: 0.9rem;
   cursor: pointer;
