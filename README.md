@@ -18,6 +18,13 @@
 |---|---|
 | AI Infra | [提示词管理：coze-loop vs Langfuse](docs/research/ai-infra/prompt-management/index.md)：[功能设计](docs/research/ai-infra/prompt-management/feature-design/index.md) · [实现方式](docs/research/ai-infra/prompt-management/implementation/index.md) |
 
+已有学习：
+
+| 分类 | 笔记 |
+|---|---|
+| 工具与方法 | [本站写作指南](docs/learning/tools/writing-guide.mdx) |
+| 软件架构 | [五种经典架构模式](docs/learning/architecture/five-patterns/index.md)：分层、事件驱动、微内核、微服务、基于空间 |
+
 ## 站点功能
 
 - 首页、调研总览、学习总览根据目录自动生成，显示分类、专题卡片、最近更新、统计。
