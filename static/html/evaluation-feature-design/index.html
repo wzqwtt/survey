@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="对照 Coze Loop 与 Langfuse 的评测对象、运行步骤，以及得分写到 MySQL 还是 ClickHouse。">
+<meta name="survey:doc" content="/research/ai-infra/evaluation">
+<base target="_top">
+<title>评测功能设计：Coze Loop 与 Langfuse</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --card: #fff;
+    --text: #1c2128;
+    --muted: #57606a;
+    --border: #d0d7de;
+    --cz: #1d4f91;
+    --cz-soft: #e7f0fb;
+    --lf: #9a3412;
+    --lf-soft: #ffedd5;
+    --accent: #0f766e;
+    --focus: #0969da;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header { background: #111827; color: #fff; padding: 18px 24px 0; }
+  header h1 { margin: 0 0 6px; font-size: 22px; }
+  header p { margin: 0; color: #cbd5e1; font-size: 14px; }
+  header a { color: #93c5fd; }
+  nav[aria-label="页签"] { display: flex; gap: 4px; margin-top: 14px; flex-wrap: wrap; }
+  nav button {
+    border: 0; background: transparent; color: #cbd5e1;
+    padding: 10px 14px; font-size: 15px; cursor: pointer;
+    border-radius: 8px 8px 0 0;
+  }
+  nav button[aria-selected="true"] { background: var(--bg); color: var(--text); font-weight: 650; }
+  nav button:focus-visible, .obj:focus-visible, .step:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  main { max-width: 1180px; margin: 0 auto; padding: 20px 24px 48px; }
+  section[hidden] { display: none; }
+  h2 { font-size: 18px; margin: 0 0 10px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 860px) { .grid2 { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: 999px; }
+  .tag.cz { background: var(--cz-soft); color: var(--cz); }
+  .tag.lf { background: var(--lf-soft); color: var(--lf); }
+  .objs { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; }
+  .obj {
+    border: 1px solid var(--border); background: #fff; border-radius: 8px;
+    padding: 6px 10px; cursor: pointer; font-size: 14px; text-align: left;
+  }
+  .obj.on { border-color: var(--accent); background: #ecfdf5; font-weight: 650; }
+  .detail { min-height: 7.5em; }
+  .detail h3 { margin: 0 0 6px; font-size: 16px; }
+  .muted { color: var(--muted); font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; background: #fff; }
+  th, td { border: 1px solid var(--border); padding: 8px 10px; vertical-align: top; text-align: left; }
+  th { background: #f3f4f6; }
+  .steps { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 12px; }
+  .step {
+    border: 1px solid var(--border); background: #fff; border-radius: 999px;
+    padding: 6px 12px; cursor: pointer; font-size: 14px;
+  }
+  .step.on.cz { background: var(--cz); color: #fff; border-color: var(--cz); }
+  .step.on.lf { background: var(--lf); color: #fff; border-color: var(--lf); }
+  .flow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0; }
+  .node { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; font-size: 13px; }
+  .node strong { display: block; font-size: 12px; color: var(--muted); font-weight: 650; }
+  .arrow { color: var(--muted); }
+  a.src { color: var(--accent); }
+  footer { color: var(--muted); font-size: 12px; text-align: center; padding: 8px 16px 24px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>评测功能设计：Coze Loop 与 Langfuse</h1>
+  <p>
+    Coze Loop
+    <a href="https://github.com/wzqwtt/coze-loop/tree/3a6a2bf07b057fec0c702e514e8345fb5684e83a">3a6a2bf0</a>
+    · Langfuse
+    <a href="https://github.com/wzqwtt/langfuse/tree/f75c661dbe8c6b85523c81486b39e8403ac2c141">f75c661d</a>
+    · 文档
+    <a href="../../research/ai-infra/evaluation/">概览</a>
+    · <a href="../../research/ai-infra/evaluation/coze-loop/">Coze Loop</a>
+    · <a href="../../research/ai-infra/evaluation/langfuse/">Langfuse</a>
+    · <a href="../../research/ai-infra/evaluation/comparison/">对比</a>
+  </p>
+  <nav aria-label="页签">
+    <button type="button" id="tab-objects" aria-controls="panel-objects" aria-selected="true">对象</button>
+    <button type="button" id="tab-life" aria-controls="panel-life" aria-selected="false">运行步骤</button>
+    <button type="button" id="tab-score" aria-controls="panel-score" aria-selected="false">得分写到哪里</button>
+    <button type="button" id="tab-cost" aria-controls="panel-cost" aria-selected="false">选择的代价</button>
+  </nav>
+</header>
+<main>
+  <section id="panel-objects" role="tabpanel" aria-labelledby="tab-objects">
+    <h2>点一个对象，看它连着谁</h2>
+    <div class="grid2">
+      <div class="card">
+        <p><span class="tag cz">Coze Loop</span> 实验把评测集、评测对象和评估器钉在一起。</p>
+        <div class="objs" id="cz-objs"></div>
+        <div class="detail" id="cz-detail"></div>
+      </div>
+      <div class="card">
+        <p><span class="tag lf">Langfuse</span> 得分是公共结果。规则决定评估器何时跑。</p>
+        <div class="objs" id="lf-objs"></div>
+        <div class="detail" id="lf-detail"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="panel-life" role="tabpanel" aria-labelledby="tab-life" hidden>
+    <h2>一次评测怎么往下走</h2>
+    <div class="grid2">
+      <div class="card">
+        <p><span class="tag cz">Coze Loop</span> 提交实验后，服务端先调评测对象，再调评估器。</p>
+        <div class="steps" id="cz-steps"></div>
+        <div class="detail" id="cz-step"></div>
+      </div>
+      <div class="card">
+        <p><span class="tag lf">Langfuse</span> 已有 trace 可以先打分。实验是另一次模型调用。</p>
+        <div class="steps" id="lf-steps"></div>
+        <div class="detail" id="lf-step"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="panel-score" role="tabpanel" aria-labelledby="tab-score" hidden>
+    <h2>同一条得分，两边落在不同的表</h2>
+    <div class="card" style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>问题</th>
+            <th>Coze Loop</th>
+            <th>Langfuse</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>机器得分</td>
+            <td>MySQL <code>evaluator_record.score</code>，类型 decimal(10,4)</td>
+            <td>ClickHouse <code>scores.value</code>，<code>source=EVAL</code></td>
+          </tr>
+          <tr>
+            <td>理由</td>
+            <td><code>EvaluatorResult.reasoning</code>，随 <code>output_data</code> JSON</td>
+            <td><code>comment</code>，以及 <code>string_value</code></td>
+          </tr>
+          <tr>
+            <td>属于哪次运行</td>
+            <td><code>experiment_id</code> + <code>experiment_run_id</code> + <code>item_id</code> + <code>turn_id</code></td>
+            <td><code>trace_id</code>，可选 <code>dataset_run_id</code>、<code>evaluator_id</code></td>
+          </tr>
+          <tr>
+            <td>人工结果</td>
+            <td>另一张记录 <code>AnnotateRecord</code>。改机器分用 <code>Correction</code></td>
+            <td>同一张 <code>scores</code>，<code>source=ANNOTATION</code></td>
+          </tr>
+          <tr>
+            <td>汇总</td>
+            <td>实验结束后写入聚合结果。含平均、求和、最大、最小、分布</td>
+            <td><code>aggregateScores</code> 对已取出的行分组。数值取平均</td>
+          </tr>
+          <tr>
+            <td>执行指针</td>
+            <td>得分行本身就在 MySQL</td>
+            <td>Postgres <code>job_executions.job_output_score_id</code> 指向 ClickHouse</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="grid2" style="margin-top:16px">
+      <div class="card">
+        <p><span class="tag cz">Coze Loop 写入顺序</span></p>
+        <div class="flow" aria-label="Coze Loop 得分写入顺序">
+          <div class="node"><strong>1</strong>CallTarget</div>
+          <span class="arrow" aria-hidden="true">→</span>
+          <div class="node"><strong>2</strong>CallEvaluators</div>
+          <span class="arrow" aria-hidden="true">→</span>
+          <div class="node"><strong>3</strong>evaluator_record</div>
+          <span class="arrow" aria-hidden="true">→</span>
+          <div class="node"><strong>4</strong>结束后 aggr</div>
+        </div>
+      </div>
+      <div class="card">
+        <p><span class="tag lf">Langfuse 写入顺序</span></p>
+        <div class="flow" aria-label="Langfuse 得分写入顺序">
+          <div class="node"><strong>1</strong>规则命中</div>
+          <span class="arrow" aria-hidden="true">→</span>
+          <div class="node"><strong>2</strong>执行队列</div>
+          <span class="arrow" aria-hidden="true">→</span>
+          <div class="node"><strong>3</strong>摄入队列</div>
+          <span class="arrow" aria-hidden="true">→</span>
+          <div class="node"><strong>4</strong>scores</div>
+        </div>
+        <p class="muted">人工标注跳过执行队列，tRPC 直接 <code>upsertScore</code>。</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="panel-cost" role="tabpanel" aria-labelledby="tab-cost" hidden>
+    <h2>同一任务，结构不同，代价不同</h2>
+    <div class="card" style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr><th>选择</th><th>得到</th><th>付出</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Coze 以实验为中心</td>
+            <td>版本、状态、行、轮在一个对象上对齐</td>
+            <td>线上 trace 要进入实验，才和离线结果同一套</td>
+          </tr>
+          <tr>
+            <td>Langfuse 以得分为中心</td>
+            <td>API、评估器、人工标注共用查询</td>
+            <td>没有单行的「实验已成功」。汇总每次现算</td>
+          </tr>
+          <tr>
+            <td>Coze 分数是定长小数</td>
+            <td>加权分和聚合类型明确</td>
+            <td>分类和文本主要在标注记录，不在 score 列</td>
+          </tr>
+          <tr>
+            <td>Langfuse 分数带数据类型</td>
+            <td>数值、分类、布尔、文本、修正同一张表</td>
+            <td>调用方要自己按 name 和 source 聚合</td>
+          </tr>
+          <tr>
+            <td>Coze 扩展在进程内类型表</td>
+            <td>SPI 和 CustomRPC 在契约里</td>
+            <td>开源只执行 Prompt 和 Code。沙箱调度是空实现</td>
+          </tr>
+          <tr>
+            <td>Langfuse 扩展在边界上</td>
+            <td>公共 API 和远程实验 URL 不必改执行器</td>
+            <td>trace / dataset 规则只能挂一个模型评估器</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted">最后一行的「付出」来自源码限制。任务适配见文档对比页，其中有标注为推断的建议。</p>
+  </section>
+</main>
+<footer>页面不加载外部脚本。事实与文档页一致。</footer>
+<script>
+(function () {
+  var tabs = ["objects", "life", "score", "cost"];
+  tabs.forEach(function (id) {
+    var btn = document.getElementById("tab-" + id);
+    btn.addEventListener("click", function () {
+      tabs.forEach(function (other) {
+        var on = other === id;
+        document.getElementById("tab-" + other).setAttribute("aria-selected", on ? "true" : "false");
+        document.getElementById("panel-" + other).hidden = !on;
+      });
+    });
+  });
+
+  var cz = [
+    { id: "set", name: "评测集", text: "EvaluationSet。版本是 SemVer。行数据经数据集服务保存。一行有稳定的 item_id 和若干 Turn。" },
+    { id: "ev", name: "评估器", text: "类型 Prompt、Code、CustomRPC、Agent。开源执行只注册 Prompt 和 Code。版本提交后才能被实验引用。" },
+    { id: "tgt", name: "评测对象", text: "EvalTarget 的一个版本。开源 operator 只有 LoopPrompt 和 SandboxAgent。沙箱调度方法返回 not implement。界面还列出 CozeBot。" },
+    { id: "ex", name: "实验", text: "绑定评测集版本、评测对象版本、评估器版本和字段映射。Submit 创建并运行。Create 本身没有公开 HTTP。" },
+    { id: "score", name: "得分", text: "EvaluatorRecord.score 写入 MySQL。理由在 output_data。人工标注是并列的 AnnotateRecord。聚合在实验结束后另算。" }
+  ];
+  var lf = [
+    { id: "set", name: "评测集", text: "Dataset 加 DatasetItem。行用 validFrom / validTo 版本化。可配置远程实验 URL。" },
+    { id: "ev", name: "评估器", text: "Evaluator 加整数版本。类型含模型、代码、决策模型、FACET。FACET 调度时被跳过。" },
+    { id: "rule", name: "规则", text: "EvaluationRule 决定目标、过滤、采样和延迟。trace / dataset 必须恰好一个模型评估器。event / experiment 可以多赋值。" },
+    { id: "ex", name: "实验", text: "没有独立实验表。创建时插入 dataset_runs，再投入 experiment-create-queue。菜单要 experimentsV4Enabled。" },
+    { id: "score", name: "得分", text: "ClickHouse scores。来源 API、EVAL、ANNOTATION。配置在 Postgres score_configs。人工标注直接 upsertScore。" },
+    { id: "q", name: "标注队列", text: "队列绑定一组得分配置。项的对象是 trace、observation 或 session。状态 PENDING 或 COMPLETED。" }
+  ];
+
+  function renderObjs(list, boxId, detailId) {
+    var box = document.getElementById(boxId);
+    var detail = document.getElementById(detailId);
+    list.forEach(function (item, index) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "obj" + (index === 0 ? " on" : "");
+      b.textContent = item.name;
+      b.addEventListener("click", function () {
+        box.querySelectorAll(".obj").forEach(function (el) { el.classList.remove("on"); });
+        b.classList.add("on");
+        detail.innerHTML = "<h3>" + item.name + "</h3><p>" + item.text + "</p>";
+      });
+      box.appendChild(b);
+    });
+    detail.innerHTML = "<h3>" + list[0].name + "</h3><p>" + list[0].text + "</p>";
+  }
+  renderObjs(cz, "cz-objs", "cz-detail");
+  renderObjs(lf, "lf-objs", "lf-detail");
+
+  var czSteps = [
+    { n: "1", t: "提交", d: "POST /api/evaluation/v1/experiments/submit。SubmitExperiment 创建实验，再调用 RunExperiment。单次 item_ids 最多 100。" },
+    { n: "2", t: "发事件", d: "Run 生成 runID，写运行日志，发布 ExptScheduleEvent。在线实验要先拿到心跳锁。" },
+    { n: "3", t: "跑一行", d: "ExptItemEventEvalServiceImpl.Eval 消费行事件。每一轮进入 DefaultExptTurnEvaluationImpl。" },
+    { n: "4", t: "调对象", d: "CallTarget 执行评测对象。失败则本轮停止，不再调用评估器。" },
+    { n: "5", t: "写得分", d: "CallEvaluators 进入 RunEvaluator。分数写入 evaluator_record。实验全部结束后才能算聚合。" }
+  ];
+  var lfSteps = [
+    { n: "1", t: "有输入", d: "一条新 trace，或一条评测集 run item。实验路径会先由 worker 调用模型，再产生 trace。" },
+    { n: "2", t: "挑规则", d: "createEvalJobs 读取 evaluation_rules。trace / dataset 只保留单个 LLM_AS_JUDGE。观察级还可跑代码和决策模型。" },
+    { n: "3", t: "执行", d: "JobExecution 记在 Postgres。执行队列按类型分开：evaluation-execution、llm-as-a-judge、code-eval。" },
+    { n: "4", t: "写得分", d: "completeEvalExecution 组 source=EVAL 的事件，投入摄入队列。job_output_score_id 指向这条得分。" },
+    { n: "5", t: "人补标", d: "标注队列不走评估器。createAnnotationScore 直接 upsertScore，source=ANNOTATION。" }
+  ];
+
+  function renderSteps(list, boxId, detailId, tone) {
+    var box = document.getElementById(boxId);
+    var detail = document.getElementById(detailId);
+    list.forEach(function (item, index) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "step" + (index === 0 ? " on " + tone : "");
+      b.textContent = item.n + " " + item.t;
+      b.addEventListener("click", function () {
+        box.querySelectorAll(".step").forEach(function (el) { el.className = "step"; });
+        b.className = "step on " + tone;
+        detail.innerHTML = "<h3>" + item.t + "</h3><p>" + item.d + "</p>";
+      });
+      box.appendChild(b);
+    });
+    detail.innerHTML = "<h3>" + list[0].t + "</h3><p>" + list[0].d + "</p>";
+  }
+  renderSteps(czSteps, "cz-steps", "cz-step", "cz");
+  renderSteps(lfSteps, "lf-steps", "lf-step", "lf");
+})();
+</script>
+</body>
+</html>
