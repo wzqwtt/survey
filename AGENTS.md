@@ -9,6 +9,7 @@
 - 每个分类目录需要 `_category_.json`（`label`、`position`、`description`、`link.slug`、`customProps.badge`）。参考 `docs/research/ai-engineering/_category_.json`。
 - `static/html/<名称>/index.html`：独立 HTML 页面。需要 `<title>`、`<meta name="description">`、`<meta name="survey:doc">`（所属文档路径，不含 baseUrl）和 `<base target="_top">`。
 - 首页和总览页由 `plugins/knowledge-index.ts` 根据目录自动生成。不要手工维护列表。
+- 访问统计：`plugins/analytics-snapshot.ts`（构建时拉取 GoatCounter API）、`src/lib/analytics.ts`（读取阅读量）、`src/clientModules/goatcounter.ts`（记录访问）、`src/pages/stats/`。用 `scripts/mock-goatcounter.mjs` 在本地验证，见 README。
 
 ## 写作约定
 

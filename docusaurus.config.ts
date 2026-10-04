@@ -2,13 +2,28 @@ import {themes as prismThemes} from 'prism-react-renderer';
 import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 import knowledgeIndexPlugin, {type KnowledgeIndexOptions} from './plugins/knowledge-index';
+import analyticsSnapshotPlugin, {type AnalyticsSnapshotOptions} from './plugins/analytics-snapshot';
+import type {AnalyticsConfig} from './src/types/analytics';
 
 const githubUser = 'wzqwtt';
 const repo = 'survey';
 const repoUrl = `https://github.com/${githubUser}/${repo}`;
 
+// GoatCounter analytics. Set GOATCOUNTER_CODE (or a full GOATCOUNTER_URL for a self-hosted
+// instance) to enable. GOATCOUNTER_TOKEN is only used at build time for the stats snapshot.
+const analytics: AnalyticsConfig = {
+  endpoint: (
+    process.env.GOATCOUNTER_URL ||
+    (process.env.GOATCOUNTER_CODE ? `https://${process.env.GOATCOUNTER_CODE}.goatcounter.com` : '')
+  ).replace(/\/$/, ''),
+};
+
 const sections: KnowledgeIndexOptions['sections'] = [
-  {key: 'research', label: '调研', description: '按分类整理的技术调研：源码分析、方案对比、选型建议。'},
+  {
+    key: 'research',
+    label: '调研',
+    description: '按分类整理的技术调研：源码分析、方案对比、选型建议。',
+  },
   {key: 'learning', label: '学习', description: '系统学习的笔记与总结：概念、实践与方法。'},
 ];
 
@@ -62,7 +77,32 @@ const config: Config = {
     ],
   ],
 
-  plugins: [[knowledgeIndexPlugin, {sections} satisfies KnowledgeIndexOptions]],
+  plugins: [
+    [knowledgeIndexPlugin, {sections} satisfies KnowledgeIndexOptions],
+    [
+      analyticsSnapshotPlugin,
+      {
+        endpoint: analytics.endpoint,
+        token: process.env.GOATCOUNTER_TOKEN ?? '',
+      } satisfies AnalyticsSnapshotOptions,
+    ],
+  ],
+
+  customFields: {analytics},
+
+  clientModules: ['./src/clientModules/goatcounter.ts'],
+
+  scripts: analytics.endpoint
+    ? [
+        {
+          src: 'https://gc.zgo.at/count.js',
+          async: true,
+          'data-goatcounter': `${analytics.endpoint}/count`,
+          // Page views are sent from the client module so in-app navigation is counted too.
+          'data-goatcounter-settings': JSON.stringify({no_onload: true}),
+        },
+      ]
+    : [],
 
   presets: [
     [
@@ -109,6 +149,7 @@ const config: Config = {
         {type: 'docSidebar', sidebarId: 'learning', position: 'left', label: '学习'},
         {to: '/gallery', label: '交互页面', position: 'left'},
         {to: '/tags', label: '标签', position: 'left'},
+        {to: '/stats', label: '统计', position: 'left'},
         {href: repoUrl, position: 'right', className: 'header-github-link', 'aria-label': 'GitHub'},
       ],
     },
@@ -122,6 +163,7 @@ const config: Config = {
             {label: '学习总览', to: '/learning'},
             {label: '交互页面', to: '/gallery'},
             {label: '标签', to: '/tags'},
+            {label: '访问统计', to: '/stats'},
           ],
         },
         {

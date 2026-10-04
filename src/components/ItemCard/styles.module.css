@@ -113,6 +113,12 @@
   color: var(--ifm-color-emphasis-600);
 }
 
+.stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
 .html {
   color: var(--sv-html);
   font-weight: 600;

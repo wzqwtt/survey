@@ -4,7 +4,9 @@ import {execFileSync} from 'node:child_process';
 import {normalizeUrl} from '@docusaurus/utils';
 import type {LoadContext, Plugin} from '@docusaurus/types';
 import type {DocMetadata, LoadedContent} from '@docusaurus/plugin-content-docs';
+import {computeReadingStats, type ReadingStats} from './reading-stats';
 import type {
+  Article,
   HtmlPage,
   KnowledgeCategory,
   KnowledgeIndex,
@@ -87,7 +89,10 @@ function metaContent(html: string, name: string): string | null {
 }
 
 function isIndexDoc(doc: DocMetadata): boolean {
-  const base = path.basename(doc.source).replace(/\.mdx?$/, '').toLowerCase();
+  const base = path
+    .basename(doc.source)
+    .replace(/\.mdx?$/, '')
+    .toLowerCase();
   const dirName = path.basename(doc.sourceDirName).toLowerCase();
   return base === 'index' || base === 'readme' || base === dirName;
 }
@@ -96,20 +101,20 @@ function sortByPosition(a: DocMetadata, b: DocMetadata): number {
   return (a.sidebarPosition ?? Infinity) - (b.sidebarPosition ?? Infinity);
 }
 
-export default function knowledgeIndexPlugin(
-  context: LoadContext,
-  rawOptions: unknown,
-): Plugin {
+export default function knowledgeIndexPlugin(context: LoadContext, rawOptions: unknown): Plugin {
   const options = rawOptions as KnowledgeIndexOptions;
   const {siteDir, baseUrl} = context;
   const docsDir = path.join(siteDir, 'docs');
   const htmlDirName = options.htmlDir ?? 'html';
   const htmlDir = path.join(siteDir, 'static', htmlDirName);
   const trailingSlash = context.siteConfig.trailingSlash;
-  const permalinkOf = (p: string) => {
-    const url = normalizeUrl([baseUrl, p]).replace(/(.)\/$/, '$1');
-    return trailingSlash && !url.endsWith('/') ? `${url}/` : url;
+  // Doc permalinks omit the trailing slash even when the site adds one; normalize them so they
+  // match `location.pathname` and the paths sent to analytics.
+  const withSlash = (url: string) => {
+    const bare = url.replace(/(.)\/$/, '$1');
+    return trailingSlash && !bare.endsWith('/') ? `${bare}/` : bare;
   };
+  const permalinkOf = (p: string) => withSlash(normalizeUrl([baseUrl, p]));
 
   return {
     name: 'knowledge-index',
@@ -142,12 +147,24 @@ export default function knowledgeIndexPlugin(
     async allContentLoaded({allContent, actions}) {
       const htmlPages = (allContent['knowledge-index']?.default ?? []) as HtmlPage[];
       const docsContent = allContent['docusaurus-plugin-content-docs']?.default as
-        | LoadedContent
-        | undefined;
+        LoadedContent | undefined;
       const docs = docsContent?.loadedVersions[0]?.docs ?? [];
 
       const docsUnder = (dir: string) =>
         docs.filter((d) => d.sourceDirName === dir || d.sourceDirName.startsWith(`${dir}/`));
+
+      const readingCache = new Map<string, ReadingStats>();
+      const readingOf = (doc: DocMetadata): ReadingStats => {
+        let stats = readingCache.get(doc.source);
+        if (!stats) {
+          const file = path.join(siteDir, doc.source.replace(/^@site\//, ''));
+          stats = fs.existsSync(file)
+            ? computeReadingStats(fs.readFileSync(file, 'utf8'))
+            : {words: 0, minutes: 1};
+          readingCache.set(doc.source, stats);
+        }
+        return stats;
+      };
 
       const makeItem = (
         doc: DocMetadata,
@@ -155,19 +172,26 @@ export default function knowledgeIndexPlugin(
         section: SectionOption,
         category: {key: string; label: string},
         title?: string,
-      ): KnowledgeItem => ({
-        title: title ?? doc.title,
-        description: doc.description,
-        permalink: doc.permalink,
-        section: section.key,
-        sectionLabel: section.label,
-        category: category.key,
-        categoryLabel: category.label,
-        tags: doc.tags.map((t) => ({label: t.label, permalink: t.permalink})),
-        date: toTimestamp(doc.frontMatter.date) ?? doc.lastUpdatedAt ?? null,
-        docCount: dir ? docsUnder(dir).length : 1,
-        htmlPages: htmlPages.filter((p) => p.docPermalink === doc.permalink).map((p) => p.slug),
-      });
+      ): KnowledgeItem => {
+        const itemDocs = dir ? docsUnder(dir) : [doc];
+        return {
+          title: title ?? doc.title,
+          description: doc.description,
+          permalink: withSlash(doc.permalink),
+          section: section.key,
+          sectionLabel: section.label,
+          category: category.key,
+          categoryLabel: category.label,
+          tags: doc.tags.map((t) => ({label: t.label, permalink: t.permalink})),
+          date: toTimestamp(doc.frontMatter.date) ?? doc.lastUpdatedAt ?? null,
+          docCount: itemDocs.length,
+          words: itemDocs.reduce((n, d) => n + readingOf(d).words, 0),
+          readingMinutes: itemDocs.reduce((n, d) => n + readingOf(d).minutes, 0),
+          htmlPages: htmlPages
+            .filter((p) => p.docPermalink === withSlash(doc.permalink))
+            .map((p) => p.slug),
+        };
+      };
 
       const sections: KnowledgeSection[] = options.sections.map((section) => {
         const sectionDocs = docsUnder(section.key);
@@ -210,7 +234,8 @@ export default function knowledgeIndexPlugin(
             if (meta.link?.type === 'generated-index' && meta.link.slug) {
               permalink = permalinkOf(meta.link.slug);
             } else if (meta.link?.type === 'doc' && meta.link.id) {
-              permalink = docs.find((d) => d.id === meta.link?.id)?.permalink ?? null;
+              const linked = docs.find((d) => d.id === meta.link?.id);
+              permalink = linked ? withSlash(linked.permalink) : null;
             }
 
             return {
@@ -232,7 +257,7 @@ export default function knowledgeIndexPlugin(
           key: section.key,
           label: section.label,
           description: section.description,
-          permalink: root?.permalink ?? permalinkOf(section.key),
+          permalink: root ? withSlash(root.permalink) : permalinkOf(section.key),
           docCount: sectionDocs.length,
           categories,
         };
@@ -245,7 +270,27 @@ export default function knowledgeIndexPlugin(
 
       const tagCount = new Set(docs.flatMap((d) => d.tags.map((t) => t.label))).size;
 
-      const data: KnowledgeIndex = {sections, htmlPages, recent, tagCount};
+      const articles: Article[] = docs.map((doc) => {
+        const [sectionKey = '', categoryKey = null] = doc.sourceDirName.split('/');
+        const section = sections.find((sec) => sec.key === sectionKey);
+        const category = section?.categories.find((c) => c.key === categoryKey);
+        const isSectionRoot = doc.sourceDirName === sectionKey && isIndexDoc(doc);
+        const {words, minutes} = readingOf(doc);
+        return {
+          title: doc.title,
+          permalink: withSlash(doc.permalink),
+          section: sectionKey,
+          sectionLabel: section?.label ?? sectionKey,
+          category: categoryKey,
+          categoryLabel: category?.label ?? categoryKey,
+          words,
+          readingMinutes: minutes,
+          lastUpdatedAt: doc.lastUpdatedAt ?? null,
+          showMeta: !isSectionRoot && doc.frontMatter.reading_meta !== false,
+        };
+      });
+
+      const data: KnowledgeIndex = {sections, htmlPages, recent, articles, tagCount};
       actions.setGlobalData(data);
     },
   };
