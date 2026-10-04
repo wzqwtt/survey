@@ -1,6 +1,13 @@
+---
+sidebar_position: 2
+sidebar_label: coze-loop 实现
+description: coze-loop 提示词管理的数据模型、草稿与提交、OpenAPI 获取、服务端渲染与 LLM 调用、缓存与风险。
+tags: [LLM, 提示词管理, coze-loop]
+---
+
 # coze-loop 提示词管理实现
 
-> 返回 [索引](README.md) · 对照阅读 [Langfuse](langfuse.md) · [横向对比与建议](comparison.md) · [交互页面](index.html)
+> 返回 [概览](index.md) · 对照阅读 [Langfuse](langfuse.md) · [横向对比与建议](comparison.md) · [交互页面](interactive.mdx)
 
 - **仓库：** [wzqwtt/coze-loop](https://github.com/wzqwtt/coze-loop)
 - **提交：** `3a6a2bf07b057fec0c702e514e8345fb5684e83a`（2026-09-28）

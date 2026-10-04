@@ -1,0 +1,13 @@
+{
+  "label": "工具与方法",
+  "position": 1,
+  "description": "写作、研究与开发工具的使用方法。",
+  "link": {
+    "type": "generated-index",
+    "slug": "/learning/tools",
+    "description": "写作、研究与开发工具的使用方法。"
+  },
+  "customProps": {
+    "badge": "T"
+  }
+}
