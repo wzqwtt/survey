@@ -80,8 +80,11 @@
   will-change: transform;
 }
 
-.canvas > svg {
+.canvas > * {
   display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
 }
 
 @media (max-width: 640px) {

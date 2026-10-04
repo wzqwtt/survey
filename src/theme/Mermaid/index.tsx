@@ -2,15 +2,33 @@ import React, {useCallback, useEffect, useRef, useState, type ReactNode} from 'r
 import Mermaid from '@theme-original/Mermaid';
 import type MermaidType from '@theme/Mermaid';
 import type {WrapperProps} from '@docusaurus/types';
-import MermaidViewer from '@site/src/components/MermaidViewer';
+import ZoomViewer from '@site/src/components/ZoomViewer';
 import styles from './styles.module.css';
 
 type Props = WrapperProps<typeof MermaidType>;
 
+type Snapshot = {markup: string; width: number; height: number};
+
+function snapshot(svg: SVGSVGElement): Snapshot {
+  const vb = svg.viewBox?.baseVal;
+  const rect = svg.getBoundingClientRect();
+  const width = vb && vb.width > 0 ? vb.width : rect.width || 800;
+  const height = vb && vb.height > 0 ? vb.height : rect.height || 600;
+
+  const clone = svg.cloneNode(true) as SVGSVGElement;
+  clone.setAttribute('width', String(width));
+  clone.setAttribute('height', String(height));
+  clone.style.maxWidth = 'none';
+  const html = clone.outerHTML;
+  // Mermaid scopes its styles and markers by the SVG id, so the clone needs its own id.
+  const markup = svg.id ? html.split(svg.id).join(`${svg.id}-zoom`) : html;
+  return {markup, width, height};
+}
+
 export default function MermaidWrapper(props: Props): ReactNode {
   const ref = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
-  const [svg, setSvg] = useState<SVGSVGElement | null>(null);
+  const [zoomed, setZoomed] = useState<Snapshot | null>(null);
 
   useEffect(() => {
     const root = ref.current;
@@ -24,7 +42,7 @@ export default function MermaidWrapper(props: Props): ReactNode {
 
   const open = useCallback(() => {
     const el = ref.current?.querySelector('svg');
-    if (el) setSvg(el);
+    if (el) setZoomed(snapshot(el));
   }, []);
 
   return (
@@ -51,7 +69,12 @@ export default function MermaidWrapper(props: Props): ReactNode {
           <span>放大</span>
         </button>
       )}
-      {svg && <MermaidViewer source={svg} onClose={() => setSvg(null)} />}
+      {zoomed && (
+        <ZoomViewer width={zoomed.width} height={zoomed.height} label="图表放大查看" onClose={() => setZoomed(null)}>
+          {/* eslint-disable-next-line react/no-danger */}
+          <div dangerouslySetInnerHTML={{__html: zoomed.markup}} />
+        </ZoomViewer>
+      )}
     </div>
   );
 }
