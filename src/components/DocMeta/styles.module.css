@@ -1,0 +1,36 @@
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  margin: -0.5rem 0 1.75rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px dashed var(--ifm-color-emphasis-300);
+  font-size: 0.85rem;
+  color: var(--ifm-color-emphasis-700);
+}
+
+.item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.item svg {
+  color: var(--ifm-color-primary);
+}
+
+.skeleton {
+  display: inline-block;
+  width: 2.2em;
+  height: 0.9em;
+  border-radius: 4px;
+  background: var(--ifm-color-emphasis-200);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.4;
+  }
+}

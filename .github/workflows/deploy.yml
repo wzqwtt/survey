@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [master]
   workflow_dispatch:
+  # Daily rebuild refreshes the analytics snapshot on the stats page.
+  schedule:
+    - cron: '0 1 * * *'
 
 permissions:
   contents: read
@@ -31,6 +34,9 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run build
+        env:
+          GOATCOUNTER_CODE: ${{ vars.GOATCOUNTER_CODE }}
+          GOATCOUNTER_TOKEN: ${{ secrets.GOATCOUNTER_TOKEN }}
       - uses: actions/upload-pages-artifact@v5
         if: github.event_name != 'pull_request'
         with:

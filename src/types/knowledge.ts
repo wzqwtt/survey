@@ -15,6 +15,9 @@ export type KnowledgeItem = {
   /** Milliseconds. Front matter `date` first, then git last-update time. */
   date: number | null;
   docCount: number;
+  /** Sum over every doc in the item. */
+  words: number;
+  readingMinutes: number;
   htmlPages: string[];
 };
 
@@ -46,9 +49,25 @@ export type HtmlPage = {
   updatedAt: number;
 };
 
+/** One doc page, with build-time reading statistics. */
+export type Article = {
+  title: string;
+  permalink: string;
+  section: string;
+  sectionLabel: string;
+  category: string | null;
+  categoryLabel: string | null;
+  words: number;
+  readingMinutes: number;
+  lastUpdatedAt: number | null;
+  /** False for overview pages and docs with `reading_meta: false`. */
+  showMeta: boolean;
+};
+
 export type KnowledgeIndex = {
   sections: KnowledgeSection[];
   htmlPages: HtmlPage[];
   recent: KnowledgeItem[];
+  articles: Article[];
   tagCount: number;
 };
