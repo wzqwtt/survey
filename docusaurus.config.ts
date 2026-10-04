@@ -149,7 +149,6 @@ const config: Config = {
         {type: 'docSidebar', sidebarId: 'learning', position: 'left', label: '学习'},
         {to: '/gallery', label: '交互页面', position: 'left'},
         {to: '/tags', label: '标签', position: 'left'},
-        {to: '/stats', label: '统计', position: 'left'},
         {href: repoUrl, position: 'right', className: 'header-github-link', 'aria-label': 'GitHub'},
       ],
     },
