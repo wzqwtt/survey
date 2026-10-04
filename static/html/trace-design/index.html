@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="点选 coze-loop 与 Langfuse 的 Trace 能力，打开固定提交上的源码证据。">
+<meta name="survey:doc" content="/research/ai-infra/trace-design">
+<base target="_top">
+<title>Trace 设计：点选能力</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #fff; --text: #1f2328; --muted: #656d76; --border: #d0d7de;
+    --cz: #1d4ed8; --cz-soft: #e8f0fe; --lf: #c2410c; --lf-soft: #fff1e6;
+    --ok: #15803d; --ok-soft: #dcfce7; --no: #b42318; --no-soft: #fee4e2;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--text); }
+  header { background: #111827; color: #fff; padding: 18px 24px 16px; }
+  header h1 { margin: 0 0 6px; font-size: 22px; }
+  header p { margin: 0; color: #cbd5e1; font-size: 13px; }
+  header a { color: #93c5fd; }
+  main { max-width: 1180px; margin: 0 auto; padding: 18px 20px 48px; }
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+  .toolbar button, .seg button { border: 1px solid var(--border); background: #fff; border-radius: 16px; padding: 4px 12px; cursor: pointer; font-size: 14px; }
+  .toolbar button.on { background: #111827; color: #fff; border-color: #111827; }
+  .toolbar input { border: 1px solid var(--border); border-radius: 16px; padding: 6px 12px; min-width: 220px; font-size: 14px; }
+  .layout { display: grid; grid-template-columns: 1fr 380px; gap: 16px; align-items: start; }
+  @media (max-width: 960px) { .layout { grid-template-columns: 1fr; } }
+  .group { margin: 0 0 14px; }
+  .group h2 { margin: 0 0 8px; font-size: 13px; color: var(--muted); font-weight: 700; letter-spacing: .04em; }
+  .item { display: flex; width: 100%; text-align: left; gap: 8px; align-items: center; border: 1px solid var(--border); background: #fff; border-radius: 8px; padding: 7px 10px; margin: 6px 0; cursor: pointer; font-size: 14px; }
+  .item.active { outline: 2px solid #111827; }
+  .item .name { flex: 1; }
+  .badge { font-size: 12px; font-weight: 700; border-radius: 6px; padding: 0 6px; white-space: nowrap; }
+  .badge.cz { background: var(--cz-soft); color: var(--cz); }
+  .badge.lf { background: var(--lf-soft); color: var(--lf); }
+  .st { font-size: 12px; font-weight: 700; border-radius: 6px; padding: 0 6px; }
+  .st.yes { background: var(--ok-soft); color: var(--ok); }
+  .st.no { background: var(--no-soft); color: var(--no); }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; position: sticky; top: 12px; }
+  .card h3 { margin: 0 0 8px; font-size: 18px; }
+  .card p { margin: 8px 0; }
+  .links { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+  .links a { color: #0f766e; text-decoration: none; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; background: #ecfdf5; padding: 6px 8px; border-radius: 6px; word-break: break-all; }
+  .links a:hover { text-decoration: underline; }
+  .note { color: var(--muted); font-size: 13px; }
+  .empty { color: var(--muted); padding: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Trace 设计：点选能力</h1>
+  <p>
+    coze-loop <a href="https://github.com/wzqwtt/coze-loop/tree/3a6a2bf07b057fec0c702e514e8345fb5684e83a">3a6a2bf0</a>
+    · Langfuse <a href="https://github.com/wzqwtt/langfuse/tree/f75c661dbe8c6b85523c81486b39e8403ac2c141">f75c661d</a>
+    · 事实明细见 <a href="../../research/ai-infra/trace-design/">调研文章</a>
+  </p>
+</header>
+<main>
+  <div class="toolbar" id="bar">
+    <input id="q" type="search" placeholder="搜索能力" aria-label="搜索能力">
+    <button type="button" data-sys="all" class="on">全部系统</button>
+    <button type="button" data-sys="cz">coze-loop</button>
+    <button type="button" data-sys="lf">Langfuse</button>
+    <button type="button" data-exist="all" class="on">全部结论</button>
+    <button type="button" data-exist="yes">有</button>
+    <button type="button" data-exist="no">无</button>
+  </div>
+  <div class="layout">
+    <div id="list"></div>
+    <aside class="card" id="detail">
+      <p class="note">点左侧一项能力。这里给出一句结论，并链到固定提交上的源码。</p>
+    </aside>
+  </div>
+</main>
+<script>
+const ITEMS = [
+  {sys:"cz", exist:"no", group:"存储", name:"Trace 独立存储表", text:"ClickHouse 没有名为 traces 的表。Span 存在 observability_spans。", links:[
+    ["observability_spans.sql L1","https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/release/deployment/docker-compose/bootstrap/clickhouse-init/init-sql/observability_spans.sql#L1"]
+  ]},
+  {sys:"cz", exist:"yes", group:"查询", name:"Trace 作为 Span 集合查询", text:"GetTrace 按 trace_id 或 logid 查出一组 Span。", links:[
+    ["GetTrace L1255","https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/backend/modules/observability/domain/trace/service/trace_service.go#L1255"],
+    ["L1280-L1344","https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/backend/modules/observability/domain/trace/service/trace_service.go#L1280-L1344"]
+  ]},
+  {sys:"cz", exist:"yes", group:"领域模型", name:"Trace 含 token 与 size", text:"IDL Trace 有可选字段 trace_id、tokens、size。", links:[
+    ["trace.thrift L3","https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/idl/thrift/coze/loop/observability/domain/trace.thrift#L3"]
+  ]},
+  {sys:"cz", exist:"yes", group:"写入", name:"OpenAPI JSON 写入", text:"POST /v1/loop/traces/ingest 接收 Span 列表。", links:[
+    ["IngestTraces L232","https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/idl/thrift/coze/loop/observability/coze.loop.observability.openapi.thrift#L232"]
+  ]},
+  {sys:"cz", exist:"yes", group:"写入", name:"OpenTelemetry 写入", text:"POST /v1/loop/opentelemetry/v1/traces 接收原始字节。", links:[
+    ["OtelIngestTraces L233","https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/idl/thrift/coze/loop/observability/coze.loop.observability.openapi.thrift#L233"]
+  ]},
+  {sys:"cz", exist:"yes", group:"写入", name:"MQ 再入 ClickHouse", text:"collector 从 topic 消费，经 queue/default 交给 clickhouse/default。", links:[
+    ["observability.yaml L330","https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/release/deployment/docker-compose/conf/observability.yaml#L330"]
+  ]},
+  {sys:"cz", exist:"yes", group:"查询", name:"root / all / llm 列表", text:"列表范围有 root_span、all_span、llm_span。", links:[
+    ["SpanListType L22","https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/idl/thrift/coze/loop/observability/domain/common.thrift#L22"]
+  ]},
+  {sys:"cz", exist:"yes", group:"查询", name:"列表过滤、分页、系统视图", text:"列表支持过滤和分页。系统视图含 Exceptions 与 High-latency。", links:[
+    ["ListSpans L15","https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/idl/thrift/coze/loop/observability/coze.loop.observability.trace.thrift#L15"],
+    ["系统视图 L44","https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/release/deployment/docker-compose/conf/observability.yaml#L44"]
+  ]},
+  {sys:"cz", exist:"yes", group:"查询", name:"详情按 trace_id 取 Span", text:"详情 HTTP 是 GET /api/observability/v1/traces/:trace_id。", links:[
+    ["GetTrace 路由 L628","https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/idl/thrift/coze/loop/observability/coze.loop.observability.trace.thrift#L628"]
+  ]},
+  {sys:"cz", exist:"yes", group:"界面", name:"前端 Span 树", text:"详情按 span_id 去重，再用 parent_id 组树。", links:[
+    ["spans2SpanNodes L18","https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/frontend/packages/loop-components/observation-components/src/features/trace-detail/utils/span.tsx#L18"]
+  ]},
+  {sys:"cz", exist:"no", group:"界面", name:"Trace 页调用 SearchTraceTree", text:"Trace 页面调用 GetTrace。它不调用 SearchTraceTree。", links:[
+    ["trace-render.tsx L85","https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/frontend/packages/loop-pages/observation-pages/src/pages/trace/trace-render.tsx#L85"]
+  ]},
+  {sys:"cz", exist:"yes", group:"查询", name:"token 汇总", text:"token 汇总只统计 span_type 为 LLMCall 或 model 的 Span。", links:[
+    ["SpanList.Stat L885","https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/backend/modules/observability/domain/trace/entity/loop_span/span.go#L885"]
+  ]},
+  {sys:"cz", exist:"yes", group:"评分", name:"手工反馈", text:"创建手工标注时，服务先找到原 Span，再写成 manual_feedback。", links:[
+    ["CreateManualAnnotation L1955","https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/backend/modules/observability/domain/trace/service/trace_service.go#L1955"]
+  ]},
+  {sys:"cz", exist:"yes", group:"评分", name:"自动评估分与改分", text:"自动评估结果含 score。改分接口要求 annotation id 和 correction。", links:[
+    ["annotation.thrift L32","https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/idl/thrift/coze/loop/observability/domain/annotation.thrift#L32"],
+    ["ChangeEvaluatorScore L1171","https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/backend/modules/observability/application/trace.go#L1171"]
+  ]},
+  {sys:"cz", exist:"no", group:"界面", name:"Trace 页挂上 Feedback 页签", text:"Feedback 组件存在。列表面板默认传入空的额外页签。", links:[
+    ["tab.tsx L9","https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/frontend/packages/loop-components/observation-components/src/features/trace-detail/components/feedback/tab.tsx#L9"],
+    ["面板 L390","https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/frontend/packages/loop-components/observation-components/src/trace-list-with-detail-panel.tsx#L390"]
+  ]},
+  {sys:"cz", exist:"yes", group:"会话", name:"按 trace 的对话视图 API", text:"ListTraceChat 按 trace_id 拉 model 和 tool Span。", links:[
+    ["ListTraceChat L3016","https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/backend/modules/observability/domain/trace/service/trace_service.go#L3016"]
+  ]},
+  {sys:"cz", exist:"yes", group:"会话", name:"按 thread 的会话 API", text:"ListThreadChat 按 thread_id 只拉 model Span。", links:[
+    ["ListThreadChat L3102","https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/backend/modules/observability/domain/trace/service/trace_service.go#L3102"]
+  ]},
+  {sys:"cz", exist:"no", group:"界面", name:"Trace 页使用 thread 或 chat API", text:"Trace 页的数据入口是 ListSpans 与 GetTrace。", links:[
+    ["trace-render.tsx L69","https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/frontend/packages/loop-pages/observation-pages/src/pages/trace/trace-render.tsx#L69"]
+  ]},
+  {sys:"cz", exist:"yes", group:"评测", name:"导出到数据集", text:"接口是 POST /api/observability/v1/traces/export_to_dataset。", links:[
+    ["ExportTracesToDataset L642","https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/idl/thrift/coze/loop/observability/coze.loop.observability.trace.thrift#L642"]
+  ]},
+  {sys:"cz", exist:"yes", group:"评测", name:"Prompt、评估器、评测对象平台过滤", text:"三个过滤器分别按 Prompt、Evaluator、EvalTarget 的 call_type 限制 Span。", links:[
+    ["prompt_filter.go L29","https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/backend/modules/observability/domain/trace/service/trace/span_filter/prompt_filter.go#L29"],
+    ["evaluator_filter.go L26","https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/backend/modules/observability/domain/trace/service/trace/span_filter/evaluator_filter.go#L26"],
+    ["eval_target_filter.go L25","https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/backend/modules/observability/domain/trace/service/trace/span_filter/eval_target_filter.go#L25"]
+  ]},
+  {sys:"cz", exist:"yes", group:"约束", name:"单批 Span 上限", text:"默认配置 max_span_length 为 100。", links:[
+    ["openapi.go L250-L258","https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/backend/modules/observability/application/openapi.go#L250-L258"],
+    ["observability.yaml L1-L3","https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/release/deployment/docker-compose/conf/observability.yaml#L1-L3"]
+  ]},
+  {sys:"cz", exist:"yes", group:"约束", name:"trace_id 与 span_id 格式", text:"trace_id 是 32 位小写十六进制。span_id 是 16 位小写十六进制。两者都不能全 0。", links:[
+    ["span.go L537-L556","https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/backend/modules/observability/domain/trace/entity/loop_span/span.go#L537-L556"]
+  ]},
+  {sys:"cz", exist:"yes", group:"约束", name:"详情拉取上限", text:"GetTraceAll 累计上限 10 万条。带详情时单页 1000。不带详情时单页 10000。", links:[
+    ["trace_service.go L59-L62","https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/backend/modules/observability/domain/trace/service/trace_service.go#L59-L62"]
+  ]},
+  {sys:"cz", exist:"yes", group:"约束", name:"查询时间跨度", text:"默认配置里 cozeloop 的最大查询跨度是 180 天。", links:[
+    ["observability.yaml L74-L76","https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/release/deployment/docker-compose/conf/observability.yaml#L74-L76"]
+  ]},
+  {sys:"lf", exist:"yes", group:"领域模型", name:"Trace 领域对象", text:"TraceDomain 含 id、输入输出、user、session、tags、public、bookmark。", links:[
+    ["traces.ts L12-L30","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/packages/shared/src/domain/traces.ts#L12-L30"]
+  ]},
+  {sys:"lf", exist:"yes", group:"领域模型", name:"Observation 挂到 Trace", text:"ObservationSchema 用可空 traceId 指向 Trace。", links:[
+    ["observations.ts L55-L65","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/packages/shared/src/domain/observations.ts#L55-L65"]
+  ]},
+  {sys:"lf", exist:"yes", group:"领域模型", name:"Span 树", text:"events_full 用 trace_id、span_id、parent_span_id 表示 span 树。", links:[
+    ["0039 L3-L5","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/packages/shared/clickhouse/migrations/canonical/0039_create_events_full.up.sql#L3-L5"]
+  ]},
+  {sys:"lf", exist:"yes", group:"领域模型", name:"多种 Observation 类型", text:"类型含 SPAN、EVENT、GENERATION、AGENT、TOOL、CHAIN、RETRIEVER、EVALUATOR、EMBEDDING、GUARDRAIL。", links:[
+    ["observations.ts L3-L16","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/packages/shared/src/domain/observations.ts#L3-L16"]
+  ]},
+  {sys:"lf", exist:"yes", group:"写入", name:"批量 legacy ingestion", text:"POST /api/public/ingestion 接收 batch 与 metadata。", links:[
+    ["ingestion.ts L56-L70","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/web/src/pages/api/public/ingestion.ts#L56-L70"]
+  ]},
+  {sys:"lf", exist:"yes", group:"写入", name:"events_only 拒绝 legacy trace 写入", text:"events_only 时，ingestion 端点只接受 score-create。", links:[
+    ["ingestion.ts L295-L297","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/web/src/pages/api/public/ingestion.ts#L295-L297"]
+  ]},
+  {sys:"lf", exist:"yes", group:"写入", name:"Legacy REST", text:"Legacy 路由分别写入 trace、span、event、generation。", links:[
+    ["traces POST","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/web/src/pages/api/public/traces/index.ts#L39-L47"],
+    ["spans","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/web/src/pages/api/public/spans.ts#L18-L25"],
+    ["events","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/web/src/pages/api/public/events.ts#L16-L23"],
+    ["generations","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/web/src/pages/api/public/generations.ts#L19-L26"]
+  ]},
+  {sys:"lf", exist:"yes", group:"写入", name:"OTLP 写入", text:"POST /api/public/otel/v1/traces 的权限是 traces:create。", links:[
+    ["otel route L26-L33","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/web/src/pages/api/public/otel/v1/traces/index.ts#L26-L33"]
+  ]},
+  {sys:"lf", exist:"yes", group:"存储", name:"ClickHouse traces 表", text:"初始 traces 表使用 ReplacingMergeTree。", links:[
+    ["0001 L1-L23","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/packages/shared/clickhouse/migrations/canonical/0001_traces.up.sql#L1-L23"]
+  ]},
+  {sys:"lf", exist:"yes", group:"存储", name:"events_full 与 events_core", text:"events_full 保存完整事件。物化视图把 input 和 output 截到 200 字符后写入 events_core。", links:[
+    ["0039 L1-L24","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/packages/shared/clickhouse/migrations/canonical/0039_create_events_full.up.sql#L1-L24"],
+    ["0041 L39-L42","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/packages/shared/clickhouse/migrations/canonical/0041_create_events_core_mv.up.sql#L39-L42"]
+  ]},
+  {sys:"lf", exist:"yes", group:"查询", name:"从 events 聚合出 Trace", text:"聚合时 id 取 trace_id，timestamp 取最早 start_time。", links:[
+    ["event-query-builder.ts L528-L558","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/packages/shared/src/server/queries/clickhouse-sql/event-query-builder.ts#L528-L558"]
+  ]},
+  {sys:"lf", exist:"no", group:"存储", name:"Postgres 中的 Trace 主表", text:"schema 没有名为 Trace 的 Prisma model。会话模型是 TraceSession。", links:[
+    ["schema.prisma L501-L513","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/packages/shared/prisma/schema.prisma#L501-L513"]
+  ]},
+  {sys:"lf", exist:"yes", group:"会话", name:"Session 挂在 sessionId 上", text:"Trace 带 sessionId。Worker 向 trace_sessions 插入一行。", links:[
+    ["traces.ts L27","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/packages/shared/src/domain/traces.ts#L27"],
+    ["IngestionService L882-L894","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/worker/src/services/IngestionService/index.ts#L882-L894"]
+  ]},
+  {sys:"lf", exist:"yes", group:"评分", name:"Trace 级 Score", text:"Trace 级聚合要求 observation_id 为空。", links:[
+    ["query-fragments.ts L197-L204","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/packages/shared/src/server/queries/clickhouse-sql/query-fragments.ts#L197-L204"]
+  ]},
+  {sys:"lf", exist:"yes", group:"评分", name:"Observation 级 Score", text:"observationId 必须伴随 traceId。", links:[
+    ["scores.ts L6-L24","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/packages/shared/src/utils/scores.ts#L6-L24"]
+  ]},
+  {sys:"lf", exist:"yes", group:"评分", name:"Session 级 Score", text:"创建 Score 时可以只提供 sessionId。", links:[
+    ["shared.ts L13-L16","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/packages/shared/src/features/scores/interfaces/shared.ts#L13-L16"]
+  ]},
+  {sys:"lf", exist:"yes", group:"界面", name:"Trace 列表 UI", text:"v4 渲染 ObservationsEventsTable。非 v4 渲染 TracesTable。", links:[
+    ["TracesPage.tsx L97-L105","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/web/src/features/traces/TracesPage.tsx#L97-L105"]
+  ]},
+  {sys:"lf", exist:"yes", group:"界面", name:"详情树、时间线、图", text:"移动端 tab 是 Tree、Timeline、Graph、Info。", links:[
+    ["Trace.tsx L301-L320","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/web/src/features/traces/components/Trace.tsx#L301-L320"]
+  ]},
+  {sys:"lf", exist:"yes", group:"界面", name:"Bookmark 与公开分享", text:"bookmark 更新收藏。publish 更新 public。非 legacy 时两者都写 events。", links:[
+    ["bookmark L565-L610","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/web/src/server/api/routers/traces.ts#L565-L610"],
+    ["publish L625-L675","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/web/src/server/api/routers/traces.ts#L625-L675"]
+  ]},
+  {sys:"lf", exist:"yes", group:"查询", name:"删除 Trace", text:"traces.deleteMany 要求 traces:delete，并调用 traceDeletionProcessor。", links:[
+    ["deleteMany L469-L495","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/web/src/server/api/routers/traces.ts#L469-L495"]
+  ]},
+  {sys:"lf", exist:"yes", group:"界面", name:"JSON 下载", text:"GET /api/traces/[traceId]/download 用 buildTraceExport 导出 JSON。", links:[
+    ["download.ts L1-L8","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/web/src/pages/api/traces/%5BtraceId%5D/download.ts#L1-L8"]
+  ]},
+  {sys:"lf", exist:"yes", group:"评分", name:"挂在 Trace 上的评论", text:"Comment.objectType 可以是 TRACE。", links:[
+    ["schema.prisma L751-L756","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/packages/shared/prisma/schema.prisma#L751-L756"]
+  ]},
+  {sys:"lf", exist:"yes", group:"评测", name:"Prompt 挂在 Observation", text:"Observation 保存 promptId、promptName、promptVersion。", links:[
+    ["observations.ts L77-L79","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/packages/shared/src/domain/observations.ts#L77-L79"]
+  ]},
+  {sys:"lf", exist:"yes", group:"评测", name:"实验字段挂在 event 行", text:"events_full 含 experiment_id、dataset id、item id 和期望输出。", links:[
+    ["0039 L68-L80","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/packages/shared/clickhouse/migrations/canonical/0039_create_events_full.up.sql#L68-L80"]
+  ]},
+  {sys:"lf", exist:"yes", group:"约束", name:"ingestion 请求体上限", text:"POST /api/public/ingestion 的请求体上限是 4.5mb。", links:[
+    ["ingestion.ts L48-L54","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/web/src/pages/api/public/ingestion.ts#L48-L54"]
+  ]},
+  {sys:"lf", exist:"yes", group:"约束", name:"Trace 名称长度", text:"采集侧 TraceBody 限制 name 最长 1000。", links:[
+    ["ingestion/types.ts L465-L480","https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/packages/shared/src/server/ingestion/types.ts#L465-L480"]
+  ]}
+];
+
+const sysLabel = {cz:"coze-loop", lf:"Langfuse"};
+let sys = "all";
+let exist = "all";
+let current = null;
+
+function visible() {
+  const q = document.getElementById("q").value.trim().toLowerCase();
+  return ITEMS.filter((item) => {
+    if (sys !== "all" && item.sys !== sys) return false;
+    if (exist !== "all" && item.exist !== exist) return false;
+    if (!q) return true;
+    return (item.name + " " + item.text + " " + item.group).toLowerCase().includes(q);
+  });
+}
+
+function renderList() {
+  const rows = visible();
+  const root = document.getElementById("list");
+  root.replaceChildren();
+  if (rows.length === 0) {
+    const p = document.createElement("p");
+    p.className = "empty";
+    p.textContent = "没有匹配的能力。";
+    root.append(p);
+    return;
+  }
+  const groups = [];
+  rows.forEach((item) => {
+    if (!groups.includes(item.group)) groups.push(item.group);
+  });
+  groups.forEach((group) => {
+    const section = document.createElement("section");
+    section.className = "group";
+    const h = document.createElement("h2");
+    h.textContent = group;
+    section.append(h);
+    rows.filter((item) => item.group === group).forEach((item) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "item" + (item === current ? " active" : "");
+      const name = document.createElement("span");
+      name.className = "name";
+      name.textContent = item.name;
+      const badge = document.createElement("span");
+      badge.className = "badge " + item.sys;
+      badge.textContent = sysLabel[item.sys];
+      const st = document.createElement("span");
+      st.className = "st " + item.exist;
+      st.textContent = item.exist === "yes" ? "有" : "无";
+      btn.append(name, badge, st);
+      btn.addEventListener("click", () => {
+        current = item;
+        renderList();
+        renderDetail();
+      });
+      section.append(btn);
+    });
+    root.append(section);
+  });
+}
+
+function renderDetail() {
+  const box = document.getElementById("detail");
+  box.replaceChildren();
+  if (!current) {
+    const p = document.createElement("p");
+    p.className = "note";
+    p.textContent = "点左侧一项能力。这里给出一句结论，并链到固定提交上的源码。";
+    box.append(p);
+    return;
+  }
+  const h = document.createElement("h3");
+  h.textContent = current.name;
+  const meta = document.createElement("p");
+  const badge = document.createElement("span");
+  badge.className = "badge " + current.sys;
+  badge.textContent = sysLabel[current.sys];
+  const st = document.createElement("span");
+  st.className = "st " + current.exist;
+  st.textContent = current.exist === "yes" ? "有" : "无";
+  meta.append(badge, document.createTextNode(" "), st);
+  const text = document.createElement("p");
+  text.textContent = current.text;
+  const links = document.createElement("div");
+  links.className = "links";
+  current.links.forEach(([label, href]) => {
+    const a = document.createElement("a");
+    a.href = href;
+    a.textContent = label;
+    links.append(a);
+  });
+  box.append(h, meta, text, links);
+}
+
+document.getElementById("q").addEventListener("input", renderList);
+document.getElementById("bar").addEventListener("click", (event) => {
+  const btn = event.target.closest("button");
+  if (!btn) return;
+  if (btn.dataset.sys) {
+    sys = btn.dataset.sys;
+    document.querySelectorAll("[data-sys]").forEach((el) => el.classList.toggle("on", el === btn));
+  }
+  if (btn.dataset.exist) {
+    exist = btn.dataset.exist;
+    document.querySelectorAll("[data-exist]").forEach((el) => el.classList.toggle("on", el === btn));
+  }
+  renderList();
+});
+renderList();
+</script>
+</body>
+</html>
