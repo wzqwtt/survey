@@ -1,6 +1,13 @@
+---
+sidebar_position: 4
+sidebar_label: 功能对比与产品建议
+description: coze-loop 与 Langfuse 提示词管理的功能对比矩阵，以及自建提示词库的产品设计建议和建议信息架构。
+tags: [LLM, 提示词管理, 产品设计, coze-loop, Langfuse]
+---
+
 # coze-loop 与 Langfuse 提示词管理：功能横向对比与产品建议
 
-> 返回 [索引](README.md) · 详细报告：[coze-loop](coze-loop.md) · [Langfuse](langfuse.md) · [交互页面](index.html)
+> 返回 [概览](index.md) · 详细报告：[coze-loop](coze-loop.md) · [Langfuse](langfuse.md) · [交互页面](interactive.mdx)
 
 - coze-loop 提交 `3a6a2bf0`；Langfuse 提交 `f75c661d`。
 - 每个单元格带源码永久链接。第 3 节"产品建议"是**推断**，已标注。

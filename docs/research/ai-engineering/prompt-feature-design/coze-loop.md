@@ -1,10 +1,17 @@
+---
+sidebar_position: 2
+sidebar_label: coze-loop 功能设计
+description: coze-loop 提示词管理的产品功能设计：功能地图、概念、路由与页面布局、用户旅程、生命周期、权限、限制、集成与缺口。
+tags: [LLM, 提示词管理, 产品设计, coze-loop]
+---
+
 # coze-loop 提示词管理：功能设计（产品视角）
 
-> 返回 [索引](README.md) · 对照阅读 [Langfuse](langfuse.md) · [横向对比与产品建议](comparison.md) · [交互页面](index.html)
+> 返回 [概览](index.md) · 对照阅读 [Langfuse](langfuse.md) · [横向对比与产品建议](comparison.md) · [交互页面](interactive.mdx)
 
 - **仓库：** [wzqwtt/coze-loop](https://github.com/wzqwtt/coze-loop)，提交 `3a6a2bf07b057fec0c702e514e8345fb5684e83a`。
 - **视角：** 用户能看到什么、能做什么。来源：前端页面与组件、IDL、i18n 文案、部署配置。
-- **后端实现** 见 [../prompt/coze-loop.md](../prompt/coze-loop.md)。本文只在后端规则影响用户体验时引用后端代码。
+- **后端实现** 见 [coze-loop 实现](../prompt-management/coze-loop.md)。本文只在后端规则影响用户体验时引用后端代码。
 - **路径简写：** `FE` = `frontend/packages/loop-components/prompt-components-v2/src`。
 - **规则：** 每条事实带永久链接。推断用 **【推断】** 标注。
 

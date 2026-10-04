@@ -17,6 +17,7 @@
 | 分类 | 专题 |
 |---|---|
 | AI 工程 | [提示词管理：coze-loop vs Langfuse](docs/research/ai-engineering/prompt-management/index.md) |
+| AI 工程 | [提示词管理功能设计（产品视角）：coze-loop vs Langfuse](docs/research/ai-engineering/prompt-feature-design/index.md) |
 
 ## 站点功能
 
