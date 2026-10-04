@@ -19,7 +19,7 @@ import TabItem from '@theme/TabItem';
 docs/
 ├── research/                    # 调研
 │   ├── index.mdx                # 调研总览（自动列出所有分类和专题）
-│   └── ai-engineering/          # 分类
+│   └── ai-infra/          # 分类
 │       ├── _category_.json      # 分类名称、排序、描述
 │       └── prompt-management/   # 专题（一个目录 = 一个调研）
 │           ├── index.md         # 专题概览，首页卡片读取它的标题和描述
@@ -48,7 +48,7 @@ static/
 
 在已有分类下新建目录，并添加 `index.md`：
 
-```md title="docs/research/ai-engineering/my-topic/index.md"
+```md title="docs/research/ai-infra/my-topic/index.md"
 ---
 sidebar_position: 1
 sidebar_label: 概览
@@ -125,7 +125,7 @@ import HtmlEmbed from '@site/src/components/HtmlEmbed';
 同源页面会自动调整高度。传入 `height={720}` 可以固定高度。
 
 :::tip
-从 HTML 页面链接到文档时，使用相对路径，例如 `../../research/ai-engineering/my-topic`。这样本地预览和线上都能用。
+从 HTML 页面链接到文档时，使用相对路径，例如 `../../research/ai-infra/my-topic`。这样本地预览和线上都能用。
 :::
 
 ## Markdown 能力

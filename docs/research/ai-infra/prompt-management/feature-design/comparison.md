@@ -1,6 +1,6 @@
 ---
 sidebar_position: 4
-sidebar_label: 功能对比与产品建议
+sidebar_label: 对比与建议
 description: coze-loop 与 Langfuse 提示词管理的功能对比矩阵，以及自建提示词库的产品设计建议和建议信息架构。
 tags: [LLM, 提示词管理, 产品设计, coze-loop, Langfuse]
 ---

@@ -187,8 +187,13 @@ export default function knowledgeIndexPlugin(context: LoadContext, rawOptions: u
           docCount: itemDocs.length,
           words: itemDocs.reduce((n, d) => n + readingOf(d).words, 0),
           readingMinutes: itemDocs.reduce((n, d) => n + readingOf(d).minutes, 0),
+          // A topic owns the pages linked to any doc inside it, including sub-part docs.
           htmlPages: htmlPages
-            .filter((p) => p.docPermalink === withSlash(doc.permalink))
+            .filter((p) =>
+              dir
+                ? p.docPermalink?.startsWith(withSlash(doc.permalink))
+                : p.docPermalink === withSlash(doc.permalink),
+            )
             .map((p) => p.slug),
         };
       };

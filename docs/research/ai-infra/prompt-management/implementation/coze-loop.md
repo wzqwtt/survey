@@ -1,6 +1,6 @@
 ---
 sidebar_position: 2
-sidebar_label: coze-loop 实现
+sidebar_label: coze-loop
 description: coze-loop 提示词管理的数据模型、草稿与提交、OpenAPI 获取、服务端渲染与 LLM 调用、缓存与风险。
 tags: [LLM, 提示词管理, coze-loop]
 ---

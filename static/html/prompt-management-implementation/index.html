@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="coze-loop 与 Langfuse 提示词管理的交互式对比：流程步骤、架构图、对比矩阵、自建建议。">
-<meta name="survey:doc" content="/research/ai-engineering/prompt-management">
+<meta name="survey:doc" content="/research/ai-infra/prompt-management/implementation">
 <base target="_top">
 <title>提示词管理调研：coze-loop vs Langfuse</title>
 <style>
@@ -73,7 +73,7 @@
   <div class="meta">
     coze-loop @ <a href="https://github.com/wzqwtt/coze-loop/tree/3a6a2bf07b057fec0c702e514e8345fb5684e83a"><code style="background:none;color:inherit">3a6a2bf0</code></a> ·
     Langfuse @ <a href="https://github.com/wzqwtt/langfuse/tree/f75c661dbe8c6b85523c81486b39e8403ac2c141"><code style="background:none;color:inherit">f75c661d</code></a> ·
-    每条事实带源码永久链接 · 文档版：<a href="../../research/ai-engineering/prompt-management/">概览</a> / <a href="../../research/ai-engineering/prompt-management/coze-loop/">coze-loop</a> / <a href="../../research/ai-engineering/prompt-management/langfuse/">Langfuse</a> / <a href="../../research/ai-engineering/prompt-management/comparison/">对比</a>
+    每条事实带源码永久链接 · 文档版：<a href="../../research/ai-infra/prompt-management/implementation/">概览</a> / <a href="../../research/ai-infra/prompt-management/implementation/coze-loop/">coze-loop</a> / <a href="../../research/ai-infra/prompt-management/implementation/langfuse/">Langfuse</a> / <a href="../../research/ai-infra/prompt-management/implementation/comparison/">对比</a>
   </div>
   <nav id="nav">
     <button data-tab="overview" class="active">概览</button>
@@ -336,7 +336,7 @@ lfLLM: `flowchart LR
 /* ---------------- System flows ---------------- */
 const SYS = {
 cz: {
-  name: "coze-loop", cls: "cz", arch: "czArch", md: "coze-loop.md", doc: "../../research/ai-engineering/prompt-management/coze-loop/",
+  name: "coze-loop", cls: "cz", arch: "czArch", md: "coze-loop.md", doc: "../../research/ai-infra/prompt-management/implementation/coze-loop/",
   intro: "服务端执行型。存储、渲染、调用 LLM、追踪都在服务端完成。",
   steps: [
     { t: "创建与编辑", sum: "先建提示词，再在私有草稿中编辑。", diagram: "czCreate", items: [
@@ -403,7 +403,7 @@ cz: {
   ],
 },
 lf: {
-  name: "Langfuse", cls: "lf", arch: "lfArch", md: "langfuse.md", doc: "../../research/ai-engineering/prompt-management/langfuse/",
+  name: "Langfuse", cls: "lf", arch: "lfArch", md: "langfuse.md", doc: "../../research/ai-infra/prompt-management/implementation/langfuse/",
   intro: "注册中心型。服务端存储并分发提示词，变量由客户端渲染。",
   steps: [
     { t: "创建", sum: "每次保存创建新的不可变版本。无草稿。", diagram: "lfCreate", items: [
@@ -621,7 +621,7 @@ function buildAdvice() {
       <tr><th>选择</th><th class="cz">方案 A</th><th class="lf">方案 B</th></tr>
       ${ADVICE.choose.map(([a, b, c]) => `<tr><td class="dim">${a}</td><td>${b}</td><td>${c}</td></tr>`).join("")}</table></div>
     <div class="card"><h3 style="margin-top:0">应该避免</h3>${ADVICE.avoid.map((x) => `<div class="risk">${rich(x)}</div>`).join("")}</div>
-    <p class="note">建议的最小数据模型见 <a href="../../research/ai-engineering/prompt-management/comparison/#34-最小可行数据模型建议">comparison.md §3.4</a>。</p>`;
+    <p class="note">建议的最小数据模型见 <a href="../../research/ai-infra/prompt-management/implementation/comparison/#34-最小可行数据模型建议">comparison.md §3.4</a>。</p>`;
 }
 
 document.getElementById("summary-table").innerHTML =
