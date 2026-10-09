@@ -26,6 +26,7 @@
 |---|---|
 | 工具与方法 | [本站写作指南](docs/learning/tools/writing-guide.mdx) |
 | 软件架构 | [五种经典架构模式](docs/learning/architecture/five-patterns/index.md)：分层、事件驱动、微内核、微服务、基于空间 |
+| 可观测性 | [OpenTelemetry 生成式 AI 语义约定](docs/learning/observability/otel-genai/index.md)：Agent 的 Span、事件、指标和属性 |
 
 ## 站点功能
 
