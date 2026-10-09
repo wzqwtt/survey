@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="按操作和属性浏览 OpenTelemetry 生成式 AI 语义约定，并打开钉住提交上的规范原文。">
+<meta name="survey:doc" content="/learning/observability/otel-genai">
+<base target="_top">
+<title>生成式 AI 语义约定：按操作和属性浏览</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #fff; --text: #1f2328; --muted: #656d76; --border: #d0d7de;
+    --ink: #111827; --link: #0f766e; --soft: #ecfdf5;
+    --req: #1d4ed8; --req-soft: #e8f0fe;
+    --cond: #9a3412; --cond-soft: #ffedd5;
+    --rec: #3f6212; --rec-soft: #ecfccb;
+    --opt: #6b21a8; --opt-soft: #f3e8ff;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--text); }
+  header { background: var(--ink); color: #fff; padding: 18px 24px 16px; }
+  header h1 { margin: 0 0 6px; font-size: 22px; }
+  header p { margin: 0; color: #cbd5e1; font-size: 13px; }
+  header a { color: #93c5fd; }
+  main { max-width: 1180px; margin: 0 auto; padding: 18px 20px 48px; }
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+  .toolbar button, .seg button { border: 1px solid var(--border); background: #fff; border-radius: 16px; padding: 4px 12px; cursor: pointer; font-size: 14px; }
+  .toolbar button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .toolbar input { border: 1px solid var(--border); border-radius: 16px; padding: 6px 12px; min-width: 220px; font-size: 14px; }
+  .layout { display: grid; grid-template-columns: 1fr 420px; gap: 16px; align-items: start; }
+  @media (max-width: 960px) { .layout { grid-template-columns: 1fr; } }
+  .group { margin: 0 0 14px; }
+  .group h2 { margin: 0 0 8px; font-size: 13px; color: var(--muted); font-weight: 700; letter-spacing: .04em; }
+  .item { display: flex; width: 100%; text-align: left; gap: 8px; align-items: center; border: 1px solid var(--border); background: #fff; border-radius: 8px; padding: 7px 10px; margin: 6px 0; cursor: pointer; font-size: 14px; }
+  .item.active { outline: 2px solid var(--ink); }
+  .item .name { flex: 1; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+  .badge { font-size: 12px; font-weight: 700; border-radius: 6px; padding: 0 6px; white-space: nowrap; background: #eef2ff; color: #3730a3; }
+  .lv { font-size: 12px; font-weight: 700; border-radius: 6px; padding: 0 6px; white-space: nowrap; }
+  .lv.req { background: var(--req-soft); color: var(--req); }
+  .lv.cond { background: var(--cond-soft); color: var(--cond); }
+  .lv.rec { background: var(--rec-soft); color: var(--rec); }
+  .lv.opt { background: var(--opt-soft); color: var(--opt); }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; }
+  .card h3 { margin: 0 0 8px; font-size: 18px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .card p { margin: 8px 0; }
+  .meta { display: grid; grid-template-columns: 88px 1fr; gap: 4px 8px; font-size: 13px; margin: 10px 0; }
+  .meta dt { color: var(--muted); }
+  .meta dd { margin: 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+  th, td { border-bottom: 1px solid var(--border); text-align: left; padding: 4px 6px; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+  .links { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+  .links a { color: var(--link); text-decoration: none; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; background: var(--soft); padding: 6px 8px; border-radius: 6px; word-break: break-all; }
+  .links a:hover { text-decoration: underline; }
+  .note { color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>生成式 AI 语义约定：按操作和属性浏览</h1>
+  <p>
+    仓库 open-telemetry/semantic-conventions-genai
+    · 提交 <a id="sha" href="https://github.com/open-telemetry/semantic-conventions-genai/tree/06ec68e722c45a7218e23ea1bc1339fe4e21ecae">06ec68e7</a>
+    · 状态 development
+    · 说明见 <a href="../../learning/observability/otel-genai/">学习笔记</a>
+  </p>
+</header>
+<main>
+  <div class="toolbar" id="bar">
+    <input id="q" type="search" placeholder="搜索操作或属性" aria-label="搜索操作或属性">
+    <button type="button" data-mode="op" class="on">操作</button>
+    <button type="button" data-mode="attr">属性</button>
+  </div>
+  <div class="layout">
+    <div id="list"></div>
+    <aside class="card" id="detail">
+      <p class="note">点左侧一项。这里给出 Span 名、种类、要求级别，并链到该提交的规范原文。</p>
+    </aside>
+  </div>
+</main>
+<script>
+const SHA = "06ec68e722c45a7218e23ea1bc1339fe4e21ecae";
+const ROOT = "https://github.com/open-telemetry/semantic-conventions-genai/blob/" + SHA + "/";
+function blob(path, lines) {
+  return ROOT + path + "#L" + lines;
+}
+
+const OPS = [
+  {id:"chat", group:"模型", name:"chat / generate_content / text_completion", kind:"CLIENT，同进程模型可以是 INTERNAL", span:"{操作名} {gen_ai.request.model}", spanType:"gen_ai.client.inference",
+    brief:"客户端调用模型，生成响应或请求工具调用。",
+    events:["gen_ai.client.inference.operation.details（选择加入，DEBUG 5）", "gen_ai.client.operation.exception（建议，WARN 13）"],
+    metrics:["gen_ai.client.inference.duration", "流式：time_to_first_chunk、time_per_output_chunk", "token 计数器与每次操作的 token 直方图"],
+    attrs:[
+      ["gen_ai.operation.name","必填"],["gen_ai.provider.name","必填"],["gen_ai.request.model","条件必填"],
+      ["error.type","条件必填"],["gen_ai.conversation.id","条件必填"],["gen_ai.output.type","条件必填"],
+      ["gen_ai.request.stream","条件必填"],["gen_ai.request.temperature","建议"],["gen_ai.usage.input_tokens","建议"],
+      ["gen_ai.usage.output_tokens","建议"],["gen_ai.response.finish_reasons","建议"],
+      ["gen_ai.input.messages","选择加入"],["gen_ai.output.messages","选择加入"],["gen_ai.system_instructions","选择加入"],["gen_ai.tool.definitions","选择加入"]
+    ],
+    links:[["spans.yaml L172-L271","model/gen-ai/spans.yaml","172-L271"],["client-inference.md L42-L64","docs/gen-ai/client-inference.md","42-L64"]]},
+  {id:"embeddings", group:"模型", name:"embeddings", kind:"CLIENT", span:"embeddings {gen_ai.request.model}", spanType:"gen_ai.embeddings.client",
+    brief:"根据输入生成嵌入。不带输出消息。",
+    events:["gen_ai.client.operation.exception（建议，客户端操作）"],
+    metrics:["gen_ai.client.operation.duration"],
+    attrs:[["gen_ai.operation.name","必填"],["gen_ai.provider.name","必填"],["gen_ai.request.model","条件必填"],["gen_ai.request.encoding_formats","建议"],["gen_ai.usage.input_tokens","建议"],["gen_ai.embeddings.dimension.count","建议"],["gen_ai.response.model","建议"]],
+    links:[["spans.yaml L273-L307","model/gen-ai/spans.yaml","273-L307"]]},
+  {id:"retrieval", group:"模型", name:"retrieval", kind:"CLIENT", span:"retrieval {gen_ai.data_source.id}", spanType:"gen_ai.retrieval.client",
+    brief:"从向量库或搜索系统取出相关信息。",
+    events:["规范未给该 Span 单独的事件名"],
+    metrics:["gen_ai.client.operation.duration"],
+    attrs:[["gen_ai.operation.name","必填"],["gen_ai.provider.name","条件必填"],["gen_ai.data_source.id","条件必填"],["gen_ai.retrieval.top_k","建议"],["gen_ai.retrieval.query.text","选择加入"],["gen_ai.retrieval.documents","选择加入"]],
+    links:[["spans.yaml L309-L337","model/gen-ai/spans.yaml","309-L337"]]},
+  {id:"fetch_response", group:"模型", name:"fetch_response", kind:"CLIENT", span:"fetch_response", spanType:"gen_ai.fetch_response.client",
+    brief:"按标识取回先前的模型响应。不执行推理。不上报 token。不设置 gen_ai.input.messages。",
+    events:["规范未给该 Span 单独的事件名"],
+    metrics:["gen_ai.client.operation.duration"],
+    attrs:[["gen_ai.operation.name","必填"],["gen_ai.provider.name","必填"],["gen_ai.response.id","必填"],["gen_ai.request.stream_cursor","条件必填"],["gen_ai.response.status","建议"],["gen_ai.response.finish_reasons","建议"],["gen_ai.output.messages","选择加入"]],
+    links:[["spans.yaml L339-L402","model/gen-ai/spans.yaml","339-L402"],["registry.yaml L666-L670","model/gen-ai/registry.yaml","666-L670"]]},
+  {id:"memory", group:"记忆", name:"create_memory_store / delete_memory_store / create_memory / update_memory / upsert_memory / search_memory / delete_memory", kind:"CLIENT，同进程可以是 INTERNAL", span:"{操作名}", spanType:"gen_ai.memory.client",
+    brief:"记忆库生命周期和记忆记录操作共用这一个 Span 类型。",
+    events:["规范未给该 Span 单独的事件名"],
+    metrics:["gen_ai.client.operation.duration"],
+    attrs:[["gen_ai.operation.name","必填"],["gen_ai.provider.name","条件必填"],["gen_ai.memory.store.id","条件必填"],["gen_ai.memory.record.id","条件必填"],["gen_ai.memory.record.count","建议"],["gen_ai.memory.query.text","选择加入"],["gen_ai.memory.records","选择加入"]],
+    links:[["spans.yaml L404-L453","model/gen-ai/spans.yaml","404-L453"]]},
+  {id:"create_agent", group:"Agent", name:"create_agent", kind:"CLIENT", span:"create_agent {gen_ai.agent.name}", spanType:"gen_ai.create_agent.client",
+    brief:"创建 Agent。通常用于远程 Agent 服务。",
+    events:["gen_ai.client.operation.exception（建议，客户端操作）"],
+    metrics:["gen_ai.client.operation.duration"],
+    attrs:[["gen_ai.operation.name","必填"],["gen_ai.provider.name","必填"],["gen_ai.agent.id","条件必填"],["gen_ai.agent.name","条件必填"],["gen_ai.agent.description","条件必填"],["gen_ai.agent.version","条件必填"],["gen_ai.system_instructions","选择加入"]],
+    links:[["spans.yaml L455-L503","model/gen-ai/spans.yaml","455-L503"]]},
+  {id:"invoke_client", group:"Agent", name:"invoke_agent（远程）", kind:"CLIENT", span:"invoke_agent {gen_ai.agent.name}，没有名字时为 invoke_agent", spanType:"gen_ai.invoke_agent.client",
+    brief:"调用远程 Agent 服务。例子：OpenAI Assistants API、AWS Bedrock Agents。",
+    events:["gen_ai.client.operation.exception（建议）", "gen_ai.evaluation.result 可以挂到被评估的操作 Span"],
+    metrics:["远程客户端边界用 gen_ai.client.operation.duration"],
+    attrs:[["gen_ai.operation.name","必填"],["gen_ai.provider.name","必填"],["gen_ai.agent.name","条件必填"],["gen_ai.agent.id","条件必填"],["gen_ai.request.model","建议"],["gen_ai.conversation.id","条件必填"],["gen_ai.usage.input_tokens","建议"],["gen_ai.input.messages","选择加入"],["gen_ai.output.messages","选择加入"]],
+    links:[["spans.yaml L505-L547","model/gen-ai/spans.yaml","505-L547"]]},
+  {id:"invoke_internal", group:"Agent", name:"invoke_agent（进程内）", kind:"INTERNAL", span:"invoke_agent {gen_ai.agent.name}，没有名字时为 invoke_agent", spanType:"gen_ai.invoke_agent.internal",
+    brief:"同一进程内的 Agent 调用。例子：LangChain agents、CrewAI agents。关联实体 gen_ai.main_agent。",
+    events:["异常事件正文写的是客户端操作。规范没有把它写到 INTERNAL Span 上。"],
+    metrics:["gen_ai.invoke_agent.duration", "gen_ai.invoke_agent.inference_calls", "gen_ai.invoke_agent.tool_calls"],
+    attrs:[["gen_ai.operation.name","必填"],["gen_ai.agent.name","条件必填"],["gen_ai.agent.description","条件必填"],["gen_ai.request.model","建议"],["gen_ai.conversation.id","条件必填"],["gen_ai.usage.input_tokens","建议"],["gen_ai.input.messages","选择加入"],["gen_ai.output.messages","选择加入"]],
+    links:[["spans.yaml L549-L573","model/gen-ai/spans.yaml","549-L573"],["metrics.yaml L149-L228","model/gen-ai/metrics.yaml","149-L228"]]},
+  {id:"execute_tool", group:"Agent", name:"execute_tool", kind:"INTERNAL", span:"execute_tool {gen_ai.tool.name}", spanType:"gen_ai.execute_tool.internal",
+    brief:"执行工具。同一次调用只记一个 Span。MCP 已覆盖时不必再记第二个。",
+    events:["规范没有为该 Span 单独定义事件。参数和结果是选择加入属性。"],
+    metrics:["gen_ai.execute_tool.duration"],
+    attrs:[["gen_ai.operation.name","必填"],["gen_ai.tool.name","必填"],["gen_ai.tool.type","建议"],["gen_ai.tool.call.id","建议"],["gen_ai.agent.name","条件必填"],["gen_ai.conversation.id","条件必填"],["gen_ai.tool.call.arguments","选择加入"],["gen_ai.tool.call.result","选择加入"]],
+    links:[["spans.yaml L575-L628","model/gen-ai/spans.yaml","575-L628"]]},
+  {id:"load_skill", group:"技能", name:"execute_tool · 加载技能", kind:"INTERNAL", span:"execute_tool {工具名} {技能名}", spanType:"gen_ai.execute_tool.load_skill.internal",
+    brief:"专用工具把技能载入 Agent 上下文。例子：ADK load_skill、OpenAI Agents load_skill。",
+    events:["沿用 execute_tool，无单独事件"],
+    metrics:["gen_ai.execute_tool.duration"],
+    attrs:[["gen_ai.tool.name","必填"],["gen_ai.skill.name","条件必填"],["gen_ai.skill.description","建议"],["gen_ai.skill.source.uri","建议"]],
+    links:[["spans.yaml L884-L914","model/gen-ai/spans.yaml","884-L914"]]},
+  {id:"read_skill", group:"技能", name:"execute_tool · 读技能资源", kind:"INTERNAL", span:"execute_tool {工具名} {技能名} {资源名}", spanType:"gen_ai.execute_tool.read_skill_resource.internal",
+    brief:"读取技能所属资源。不得只追加技能名。",
+    events:["沿用 execute_tool，无单独事件"],
+    metrics:["gen_ai.execute_tool.duration"],
+    attrs:[["gen_ai.skill.name","条件必填"],["gen_ai.skill.resource.name","条件必填"]],
+    links:[["spans.yaml L916-L953","model/gen-ai/spans.yaml","916-L953"]]},
+  {id:"command", group:"技能", name:"execute_tool · 执行命令", kind:"INTERNAL", span:"按技能、资源、可执行文件名逐级拼接", spanType:"gen_ai.execute_tool.command.internal",
+    brief:"工具表示命令执行，含技能脚本。还可以另发 CLI 客户端 Span。",
+    events:["沿用 execute_tool，无单独事件"],
+    metrics:["gen_ai.execute_tool.duration"],
+    attrs:[["process.executable.name","条件必填"],["process.executable.path","建议"],["process.exit.code","条件必填"],["gen_ai.skill.resource.name","条件必填"]],
+    links:[["spans.yaml L955-L1019","model/gen-ai/spans.yaml","955-L1019"]]},
+  {id:"workflow", group:"Agent", name:"invoke_workflow", kind:"INTERNAL", span:"invoke_workflow {gen_ai.workflow.name}", spanType:"gen_ai.invoke_workflow.internal",
+    brief:"协调多个 Agent 或其他生成式 AI 操作。单独的 Agent 调用不记这个 Span。",
+    events:["规范没有为该 Span 单独定义事件"],
+    metrics:["gen_ai.invoke_workflow.duration"],
+    attrs:[["gen_ai.operation.name","必填"],["gen_ai.workflow.name","条件必填"],["gen_ai.conversation.id","条件必填"],["error.type","条件必填"],["gen_ai.input.messages","选择加入"],["gen_ai.output.messages","选择加入"]],
+    links:[["spans.yaml L630-L680","model/gen-ai/spans.yaml","630-L680"]]},
+  {id:"plan", group:"Agent", name:"plan", kind:"INTERNAL", span:"plan {gen_ai.agent.name}，没有名字时为 plan", spanType:"gen_ai.plan.internal",
+    brief:"规划或任务分解。产生计划的模型调用应当是它的子 Span。分不清规划与普通推理时不记。",
+    events:["规范没有为该 Span 单独定义事件"],
+    metrics:["规范没有 gen_ai.plan.duration"],
+    attrs:[["gen_ai.operation.name","必填"],["gen_ai.agent.name","条件必填"],["error.type","条件必填"]],
+    links:[["spans.yaml L682-L716","model/gen-ai/spans.yaml","682-L716"]]}
+];
+
+const ATTRS = [
+  {group:"提供方", name:"gen_ai.provider.name", type:"枚举 string", level:"推理与远程 Agent 上必填", example:"openai；gcp.gemini；aws.bedrock", note:"开放枚举。已知值适用时必须使用。可以和实际上游提供方不同。", lines:["model/gen-ai/registry.yaml","3-L97"]},
+  {group:"操作与模型", name:"gen_ai.operation.name", type:"枚举 string", level:"各 Span 必填", example:"chat；invoke_agent；execute_tool", note:"已知值适用时必须使用。否则可以用自定义值。", lines:["model/gen-ai/registry.yaml","643-L725"]},
+  {group:"操作与模型", name:"gen_ai.request.model", type:"string", level:"拿得到时条件必填", example:"gpt-4", note:"必须是所请求模型的准确名字。", lines:["model/gen-ai/registry.yaml","98-L102"]},
+  {group:"操作与模型", name:"gen_ai.response.model", type:"string", level:"建议", example:"gpt-4-0613", note:"实际生成响应的模型。", lines:["model/gen-ai/registry.yaml","205-L209"]},
+  {group:"操作与模型", name:"gen_ai.response.id", type:"string", level:"推理上建议；fetch_response 上必填", example:"chatcmpl-123", note:"这一次补全的唯一标识。", lines:["model/gen-ai/registry.yaml","200-L204"]},
+  {group:"操作与模型", name:"gen_ai.output.type", type:"枚举 string", level:"请求含输出格式时条件必填", example:"text；json；image；speech", note:"表示请求的模态，不表示实际文件格式。", lines:["model/gen-ai/registry.yaml","726-L759"]},
+  {group:"操作与模型", name:"gen_ai.response.status", type:"枚举 string", level:"fetch_response 上建议", example:"queued；in_progress；completed；incomplete；failed；cancelled", note:"响应生命周期。不同于 finish_reasons。", lines:["model/gen-ai/registry.yaml","230-L269"]},
+  {group:"操作与模型", name:"gen_ai.response.finish_reasons", type:"string[]", level:"建议", example:"stop；length；error", note:"与候选顺序一致。缺失时该位置填 error。", lines:["model/gen-ai/registry.yaml","210-L229"]},
+  {group:"请求", name:"gen_ai.request.temperature", type:"double", level:"建议", example:"0.0", note:"温度。", lines:["model/gen-ai/registry.yaml","113-L117"]},
+  {group:"请求", name:"gen_ai.request.top_p", type:"double", level:"建议", example:"1.0", note:"top_p。", lines:["model/gen-ai/registry.yaml","118-L122"]},
+  {group:"请求", name:"gen_ai.request.top_k", type:"int", level:"适用时条件必填", example:"40", note:"解码参数。不得用 OpenAI top_logprobs 填充。", lines:["model/gen-ai/registry.yaml","123-L135"]},
+  {group:"请求", name:"gen_ai.request.max_tokens", type:"int", level:"建议", example:"100", note:"模型为该请求生成的 token 上限。", lines:["model/gen-ai/registry.yaml","103-L107"]},
+  {group:"请求", name:"gen_ai.request.stream", type:"boolean", level:"仅流式请求时条件必填", example:"未给示例值", note:"不设置时视为非流式。", lines:["model/gen-ai/registry.yaml","167-L170"]},
+  {group:"请求", name:"gen_ai.request.reasoning.level", type:"string", level:"适用时建议", example:"low；medium；high", note:"应当是发给提供方的原文字符串。", lines:["model/gen-ai/registry.yaml","171-L181"]},
+  {group:"请求", name:"gen_ai.request.seed", type:"int", level:"请求带 seed 时条件必填", example:"100", note:"相同 seed 更可能得到相同结果。", lines:["model/gen-ai/registry.yaml","162-L166"]},
+  {group:"用量", name:"gen_ai.usage.input_tokens", type:"int", level:"建议", example:"100", note:"含各类输入，含缓存。同时有计费数时上报计费数。", lines:["model/gen-ai/registry.yaml","278-L300"]},
+  {group:"用量", name:"gen_ai.usage.output_tokens", type:"int", level:"建议", example:"180", note:"输出总量。推理 token 应当包含在内。", lines:["model/gen-ai/registry.yaml","336-L345"]},
+  {group:"用量", name:"gen_ai.usage.cache_read.input_tokens", type:"int", level:"适用时建议", example:"50", note:"应当包含在输入总量里。", lines:["model/gen-ai/registry.yaml","301-L307"]},
+  {group:"用量", name:"gen_ai.usage.reasoning.output_tokens", type:"int", level:"适用时建议", example:"50", note:"应当包含在输出总量里。", lines:["model/gen-ai/registry.yaml","346-L352"]},
+  {group:"用量", name:"gen_ai.token.modality", type:"枚举 string", level:"token 计数器上必填", example:"text；image；audio；unknown", note:"无法判断模态时用 unknown。", lines:["model/gen-ai/registry.yaml","398-L423"]},
+  {group:"会话与提示词", name:"gen_ai.conversation.id", type:"string", level:"手头有标识时条件必填", example:"conv_5j66UpCpwteGg4YSxUnt7lPY", note:"不得用新 UUID、trace id 或内容哈希充数。", lines:["model/gen-ai/registry.yaml","424-L447"]},
+  {group:"会话与提示词", name:"gen_ai.conversation.compacted", type:"boolean", level:"拿得到时建议", example:"true", note:"只在确定压缩时设 true。不设 false。", lines:["model/gen-ai/registry.yaml","448-L457"]},
+  {group:"会话与提示词", name:"gen_ai.prompt.name", type:"string", level:"使用命名模板时条件必填", example:"analyze-code", note:"唯一标识提示词的名字。", lines:["model/gen-ai/registry.yaml","1035-L1039"]},
+  {group:"会话与提示词", name:"gen_ai.prompt.variable", type:"模板 string", level:"选择加入", example:"gen_ai.prompt.variable.user_name = Alice", note:"可能含敏感信息。", lines:["model/gen-ai/registry.yaml","1050-L1069"]},
+  {group:"Agent", name:"gen_ai.agent.name", type:"string", level:"拿得到时条件必填", example:"Math Tutor", note:"应用提供的人读名字。", lines:["model/gen-ai/registry.yaml","470-L474"]},
+  {group:"Agent", name:"gen_ai.agent.id", type:"string", level:"适用时条件必填", example:"asst_5j66UpCpwteGg4YSxUnt7lPY", note:"托管资源的稳定标识。不建议记内存实例号。", lines:["model/gen-ai/registry.yaml","458-L469"]},
+  {group:"Agent", name:"gen_ai.main_agent.id", type:"string", level:"发出实体时必填", example:"arn:aws:bedrock:us-east-1:123:agent/42", note:"不得由临时标识生成。没有稳定标识就不出实体。", lines:["model/gen-ai/registry.yaml","485-L499"]},
+  {group:"Agent", name:"gen_ai.workflow.name", type:"string", level:"拿得到时条件必填", example:"multi_agent_rag", note:"必须低基数。不得用 StateGraph 这类类型名。", lines:["model/gen-ai/registry.yaml","1070-L1089"]},
+  {group:"工具", name:"gen_ai.tool.name", type:"string", level:"execute_tool 上必填", example:"Flights", note:"同时进入 Span 名。", lines:["model/gen-ai/registry.yaml","516-L520"]},
+  {group:"工具", name:"gen_ai.tool.type", type:"string", level:"拿得到时建议", example:"function；extension；datastore", note:"string，不是封闭枚举。", lines:["model/gen-ai/registry.yaml","534-L544"]},
+  {group:"工具", name:"gen_ai.tool.call.id", type:"string", level:"拿得到时建议", example:"call_mszuSIzqtI65i1wAUOE8w5H4", note:"工具调用标识。", lines:["model/gen-ai/registry.yaml","521-L525"]},
+  {group:"工具", name:"gen_ai.tool.call.arguments", type:"any", level:"选择加入", example:"{\"location\":\"San Francisco?\"}", note:"期望是对象。可能含敏感信息。", lines:["model/gen-ai/registry.yaml","545-L564"]},
+  {group:"工具", name:"gen_ai.tool.call.result", type:"any", level:"选择加入", example:"{\"conditions\":\"sunny\"}", note:"执行成功且有结果时。可能含敏感信息。", lines:["model/gen-ai/registry.yaml","565-L588"]},
+  {group:"工具", name:"gen_ai.tool.definitions", type:"any", level:"选择加入", example:"type=function, name=get_current_weather", note:"默认不填非必填属性。", lines:["model/gen-ai/registry.yaml","589-L632"]},
+  {group:"工具", name:"gen_ai.skill.name", type:"string", level:"技能细化上条件必填", example:"code-review", note:"Agent Skill 的名字。", lines:["model/gen-ai/registry.yaml","1090-L1094"]},
+  {group:"工具", name:"gen_ai.skill.source.uri", type:"string", level:"拿得到时建议", example:"file:///opt/skills/code-review", note:"应当抹掉 URI 里的用户信息和访问令牌。", lines:["model/gen-ai/registry.yaml","1103-L1117"]},
+  {group:"检索与记忆", name:"gen_ai.retrieval.documents", type:"any", level:"选择加入", example:"id=doc_123, score=0.95", note:"拿得到时含 id 和 score。", lines:["model/gen-ai/registry.yaml","765-L790"]},
+  {group:"检索与记忆", name:"gen_ai.memory.records", type:"any", level:"选择加入", example:"content=User prefers dark mode", note:"默认不采集。例子环境变量 OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT。", lines:["model/gen-ai/registry.yaml","842-L872"]},
+  {group:"内容", name:"gen_ai.system_instructions", type:"any", level:"选择加入", example:"type=text", note:"与对话历史分开提供的系统指令。", lines:["model/gen-ai/registry.yaml","873-L914"]},
+  {group:"内容", name:"gen_ai.input.messages", type:"any", level:"选择加入", example:"role=user, type=text", note:"必须按送给模型的顺序。很可能含个人数据。", lines:["model/gen-ai/registry.yaml","915-L968"]},
+  {group:"内容", name:"gen_ai.output.messages", type:"any", level:"选择加入", example:"role=assistant, type=text", note:"一条消息对应一个候选。失败且无输出时不编造。", lines:["model/gen-ai/registry.yaml","969-L1009"]},
+  {group:"评估", name:"gen_ai.evaluation.name", type:"string", level:"评估事件上必填", example:"Relevance", note:"评估指标名。", lines:["model/gen-ai/registry.yaml","1010-L1014"]},
+  {group:"评估", name:"gen_ai.evaluation.score.value", type:"double", level:"适用时条件必填", example:"4.0", note:"评估器返回的分数。", lines:["model/gen-ai/registry.yaml","1015-L1019"]},
+  {group:"评估", name:"gen_ai.evaluation.score.label", type:"string", level:"适用时条件必填", example:"relevant；pass；fail", note:"应当低基数。", lines:["model/gen-ai/registry.yaml","1020-L1029"]}
+];
+
+const lvClass = { "必填":"req", "条件必填":"cond", "建议":"rec", "选择加入":"opt" };
+function lv(text) {
+  const key = text.startsWith("条件") ? "条件必填" : (lvClass[text] ? text : "");
+  const cls = lvClass[key] || "";
+  return cls ? `<span class="lv ${cls}">${text}</span>` : text;
+}
+
+let mode = "op";
+let current = null;
+const q = document.getElementById("q");
+const list = document.getElementById("list");
+const detail = document.getElementById("detail");
+
+document.getElementById("bar").addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-mode]");
+  if (!btn) return;
+  mode = btn.dataset.mode;
+  current = null;
+  for (const b of document.querySelectorAll("button[data-mode]")) b.classList.toggle("on", b === btn);
+  render();
+});
+q.addEventListener("input", () => { current = null; render(); });
+
+function match(text) {
+  const s = q.value.trim().toLowerCase();
+  return !s || text.toLowerCase().includes(s);
+}
+
+function render() {
+  const rows = mode === "op" ? OPS.filter((o) => match(o.name + o.brief + o.group)) : ATTRS.filter((a) => match(a.name + a.note + a.group));
+  const groups = [];
+  for (const row of rows) {
+    let g = groups.find((x) => x.name === row.group);
+    if (!g) groups.push(g = {name: row.group, rows: []});
+    g.rows.push(row);
+  }
+  if (!groups.length) {
+    list.innerHTML = `<p class="note">没有匹配项。</p>`;
+  } else {
+    list.innerHTML = groups.map((g) => `<section class="group"><h2>${g.name}</h2>${g.rows.map((row) => {
+      const id = mode === "op" ? row.id : row.name;
+      const label = mode === "op" ? row.name : row.name;
+      const badge = mode === "op" ? row.kind.split("，")[0] : row.type;
+      return `<button type="button" class="item${current === id ? " active" : ""}" data-id="${id}"><span class="name">${label}</span><span class="badge">${badge}</span></button>`;
+    }).join("")}</section>`).join("");
+  }
+  if (!current) {
+    detail.innerHTML = `<p class="note">点左侧一项。这里给出 Span 名、种类、要求级别，并链到该提交的规范原文。</p>`;
+  }
+}
+
+list.addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-id]");
+  if (!btn) return;
+  current = btn.dataset.id;
+  const row = mode === "op" ? OPS.find((o) => o.id === current) : ATTRS.find((a) => a.name === current);
+  if (mode === "op") showOp(row); else showAttr(row);
+  render();
+});
+
+function showOp(op) {
+  const attrRows = op.attrs.map(([n, l]) => `<tr><td><code>${n}</code></td><td>${lv(l)}</td></tr>`).join("");
+  detail.innerHTML = `
+    <h3>${op.name}</h3>
+    <p>${op.brief}</p>
+    <dl class="meta">
+      <dt>Span 类型</dt><dd><code>${op.spanType}</code></dd>
+      <dt>Span 名</dt><dd><code>${op.span}</code></dd>
+      <dt>种类</dt><dd>${op.kind}</dd>
+      <dt>事件</dt><dd>${op.events.map((x) => `<div>${x}</div>`).join("")}</dd>
+      <dt>指标</dt><dd>${op.metrics.map((x) => `<div><code>${x}</code></div>`).join("")}</dd>
+    </dl>
+    <table><thead><tr><th>属性</th><th>要求级别</th></tr></thead><tbody>${attrRows}</tbody></table>
+    <div class="links">${op.links.map(([label, path, lines]) => `<a href="${blob(path, lines)}">${label}</a>`).join("")}</div>`;
+}
+
+function showAttr(a) {
+  detail.innerHTML = `
+    <h3>${a.name}</h3>
+    <p>${a.note}</p>
+    <dl class="meta">
+      <dt>类型</dt><dd>${a.type}</dd>
+      <dt>要求级别</dt><dd>${a.level}</dd>
+      <dt>示例</dt><dd><code>${a.example}</code></dd>
+      <dt>稳定级别</dt><dd>development</dd>
+    </dl>
+    <div class="links"><a href="${blob(a.lines[0], a.lines[1])}">${a.lines[0]} L${a.lines[1].replace("-L","–")}</a></div>`;
+}
+
+render();
+</script>
+</body>
+</html>

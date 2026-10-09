@@ -1,0 +1,13 @@
+{
+  "label": "可观测性",
+  "position": 3,
+  "description": "追踪、指标、日志和生成式 AI 语义约定。",
+  "link": {
+    "type": "generated-index",
+    "slug": "/learning/observability",
+    "description": "追踪、指标、日志和生成式 AI 语义约定。"
+  },
+  "customProps": {
+    "badge": "观"
+  }
+}
