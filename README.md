@@ -19,6 +19,7 @@
 | AI Infra | [提示词管理：coze-loop vs Langfuse](docs/research/ai-infra/prompt-management/index.md)：[功能设计](docs/research/ai-infra/prompt-management/feature-design/index.md) · [实现方式](docs/research/ai-infra/prompt-management/implementation/index.md) |
 | AI Infra | [评测功能设计：Coze Loop 与 Langfuse](docs/research/ai-infra/evaluation/index.md)：[Coze Loop](docs/research/ai-infra/evaluation/coze-loop.md) · [Langfuse](docs/research/ai-infra/evaluation/langfuse.md) · [对比](docs/research/ai-infra/evaluation/comparison.md) |
 | AI Infra | [Trace 设计：coze-loop vs Langfuse](docs/research/ai-infra/trace-design/index.md) |
+| AI Infra | [谁实现了 OpenTelemetry 生成式 AI 语义约定](docs/research/ai-infra/otel-genai-implementations/index.md) |
 
 已有学习：
 
