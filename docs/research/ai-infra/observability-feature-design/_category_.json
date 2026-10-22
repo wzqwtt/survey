@@ -1,0 +1,5 @@
+{
+  "label": "可观测功能设计",
+  "position": 2,
+  "description": "coze-loop 与 Langfuse 的可观测功能对照：模型、采集、存储、查询、评分、指标、告警、联动、治理与前端。"
+}
