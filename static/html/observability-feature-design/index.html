@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>可观测功能设计：coze-loop vs Langfuse</title>
+<meta name="description" content="coze-loop 与 Langfuse 可观测功能的交互式对照：12 组能力地图、并排对照、证据抽屉、数据路径、状态概览、修正与推断。每条结论带固定提交的源码链接。">
+<meta name="survey:doc" content="/research/ai-infra/observability-feature-design">
+<base target="_top">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f4f6fa; --surface: #ffffff; --surface2: #f0f3f8; --text: #1b2330; --muted: #5d6878; --border: #d7dde8; --border2: #e6eaf1;
+  --cz: #2563eb; --cz-soft: #e6eefe; --cz-ink: #1d4ed8;
+  --lf: #c2410c; --lf-soft: #fdeee3; --lf-ink: #b23a09;
+  --accent: #0f766e; --accent-soft: #e0f4f1;
+  --y: #15803d; --y-soft: #dcf5e4; --p: #a16207; --p-soft: #fdf1c7; --n: #b42318; --n-soft: #fde4e1; --x: #6b7280; --x-soft: #eceff3;
+  --warn-soft: #fff4d6; --warn-ink: #8a5a00;
+  --inf: #7e22ce; --inf-soft: #f2e8fd;
+  --hdr1: #14213d; --hdr2: #1f3a6b; --hdr-ink: #f4f7fd; --hdr-mut: #b8c4dc;
+  --l-data: #e8effd; --l-query: #e2f5f0; --l-feedback: #f1eafc; --l-govern: #eef0f4;
+  --shadow: 0 1px 2px rgba(20,33,61,.06), 0 4px 14px rgba(20,33,61,.05);
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f141c; --surface: #171e29; --surface2: #1e2735; --text: #e6ebf3; --muted: #9aa6b8; --border: #2c3748; --border2: #243041;
+  --cz: #6ea1ff; --cz-soft: #1a2a4a; --cz-ink: #9bbcff;
+  --lf: #ff9a63; --lf-soft: #3a2316; --lf-ink: #ffb589;
+  --accent: #4fd1c0; --accent-soft: #133631;
+  --y: #4ade80; --y-soft: #14321f; --p: #facc15; --p-soft: #3a3010; --n: #ff7b72; --n-soft: #3d1a18; --x: #98a2b3; --x-soft: #252d3a;
+  --warn-soft: #3a2e0e; --warn-ink: #f6c453;
+  --inf: #d2a8ff; --inf-soft: #2c1d44;
+  --hdr1: #0b1220; --hdr2: #16284a; --hdr-ink: #eef3fb; --hdr-mut: #93a3c0;
+  --l-data: #16213a; --l-query: #13302b; --l-feedback: #251c3b; --l-govern: #1c2330;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.25);
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; background: var(--bg); color: var(--text); }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: var(--accent); }
+code { font: 12.5px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--surface2); border: 1px solid var(--border2); padding: 0 4px; border-radius: 4px; word-break: break-word; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* header */
+header { background: linear-gradient(135deg, var(--hdr1), var(--hdr2)); color: var(--hdr-ink); padding: 20px 28px 0; }
+.hrow { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+header h1 { margin: 0 0 4px; font-size: 22px; line-height: 1.3; }
+.meta { color: var(--hdr-mut); font-size: 13px; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.meta a { color: #9cc4ff; }
+.theme-btn { border: 1px solid rgba(255,255,255,.28); background: rgba(255,255,255,.08); color: var(--hdr-ink); border-radius: 16px; padding: 3px 12px; font-size: 13px; }
+.theme-btn:hover { background: rgba(255,255,255,.16); }
+nav { display: flex; gap: 4px; margin-top: 14px; flex-wrap: wrap; }
+nav button { border: 0; background: transparent; color: var(--hdr-mut); padding: 9px 16px; font-size: 15px; border-radius: 8px 8px 0 0; }
+nav button:hover { color: #fff; }
+nav button[aria-selected="true"] { background: var(--bg); color: var(--text); font-weight: 600; }
+main { max-width: 1320px; margin: 0 auto; padding: 22px 28px 48px; }
+section.tab { display: none; }
+section.tab.on { display: block; }
+h2 { font-size: 18px; margin: 26px 0 10px; }
+h2:first-child { margin-top: 0; }
+h3 { margin: 0 0 8px; font-size: 15px; }
+.note { color: var(--muted); font-size: 13px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; box-shadow: var(--shadow); }
+
+/* tags and status */
+.tag { display: inline-block; font-size: 12px; line-height: 18px; padding: 0 8px; border-radius: 10px; font-weight: 600; white-space: nowrap; }
+.tag.cz { background: var(--cz-soft); color: var(--cz-ink); }
+.tag.lf { background: var(--lf-soft); color: var(--lf-ink); }
+.tag.inf { background: var(--inf-soft); color: var(--inf); }
+.tag.lyr { background: var(--surface2); color: var(--muted); border: 1px solid var(--border2); }
+.pill { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; line-height: 18px; padding: 0 8px 0 6px; border-radius: 10px; white-space: nowrap; }
+.pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.pill.y { background: var(--y-soft); color: var(--y); }
+.pill.p { background: var(--p-soft); color: var(--p); }
+.pill.p::before { background: linear-gradient(90deg, currentColor 50%, transparent 50%); box-shadow: inset 0 0 0 1.5px currentColor; }
+.pill.n { background: var(--n-soft); color: var(--n); }
+.pill.n::before { background: transparent; box-shadow: inset 0 0 0 1.5px currentColor; }
+.pill.x { background: var(--x-soft); color: var(--x); }
+.pill.x::before { background: transparent; width: 8px; height: 2px; border-radius: 1px; background: currentColor; }
+.dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; vertical-align: -1px; }
+.dot.y { background: var(--y); }
+.dot.p { background: linear-gradient(90deg, var(--p) 50%, transparent 50%); box-shadow: inset 0 0 0 1.5px var(--p); }
+.dot.n { box-shadow: inset 0 0 0 1.5px var(--n); }
+.dot.x { background: var(--x-soft); box-shadow: inset 0 0 0 1px var(--border); opacity: .8; }
+.dots { display: inline-flex; gap: 4px; align-items: center; flex: none; padding-left: 8px; }
+.dots .dot { position: relative; }
+
+/* filter bar */
+.fbar { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; margin-bottom: 12px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); }
+.fbar .grp { display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.fbar .lbl { font-size: 12px; color: var(--muted); margin-right: 2px; }
+.fbar input[type="search"] { border: 1px solid var(--border); background: var(--surface2); border-radius: 16px; padding: 4px 12px; min-width: 200px; flex: 1 1 200px; max-width: 320px; }
+.seg button, .fbar .tog { border: 1px solid var(--border); background: var(--surface2); border-radius: 14px; padding: 2px 11px; font-size: 13px; }
+.seg button[aria-pressed="true"], .fbar .tog[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+.fbar .count { margin-left: auto; font-size: 13px; color: var(--muted); }
+.fbar .reset { border: 0; background: transparent; color: var(--accent); font-size: 13px; text-decoration: underline; padding: 0 4px; }
+
+/* overview */
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.stat h3 { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.stat .big { font-size: 28px; font-weight: 700; line-height: 1.1; }
+.sbar { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: var(--x-soft); margin: 8px 0 6px; }
+.sbar i { display: block; height: 100%; }
+.sbar i.y { background: var(--y); } .sbar i.p { background: var(--p); } .sbar i.n { background: var(--n); } .sbar i.x { background: var(--x); opacity: .45; }
+.slegend { display: flex; gap: 4px 12px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.slegend b { color: var(--text); }
+.layerbars { display: grid; grid-template-columns: minmax(0,1fr); gap: 8px; margin-top: 12px; }
+.lb { display: grid; grid-template-columns: 92px minmax(0,1fr); gap: 8px; align-items: center; font-size: 13px; }
+.lb .sbar { margin: 0; height: 10px; }
+.keys { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
+.key { text-align: left; background: var(--surface); border: 1px solid var(--border); border-left-width: 4px; border-radius: 10px; padding: 10px 14px; box-shadow: var(--shadow); display: block; width: 100%; }
+.key.cz { border-left-color: var(--cz); } .key.lf { border-left-color: var(--lf); } .key.both { border-left-color: var(--accent); }
+.key:hover { border-color: var(--accent); }
+.key .t { font-weight: 650; margin-bottom: 3px; }
+.key .d { font-size: 13.5px; color: var(--muted); }
+.key .go { font-size: 12px; color: var(--accent); margin-top: 6px; display: flex; gap: 6px; align-items: center; }
+.howto { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px 18px; font-size: 13.5px; }
+.howto p { margin: 2px 0; }
+.heat { width: 100%; border-collapse: collapse; font-size: 14px; }
+.heat th, .heat td { padding: 6px 8px; border-bottom: 1px solid var(--border2); text-align: left; vertical-align: middle; }
+.heat th { font-size: 12px; color: var(--muted); font-weight: 600; }
+.heat tr.lyr td { background: var(--surface2); font-weight: 650; font-size: 13px; color: var(--muted); }
+.heat tbody tr.g { cursor: pointer; }
+.heat tbody tr.g:hover td { background: var(--surface2); }
+
+/* capability map */
+.mapwrap { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (min-width: 1100px) { .mapwrap.two { grid-template-columns: minmax(0, 1fr) minmax(400px, 470px); } }
+.layer { border-radius: 14px; padding: 10px 12px 12px; margin-bottom: 12px; border: 1px solid var(--border2); }
+.layer.data { background: var(--l-data); } .layer.query { background: var(--l-query); } .layer.feedback { background: var(--l-feedback); } .layer.govern { background: var(--l-govern); }
+.layer > h3 { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; margin: 0 0 8px; }
+.layer > h3 small { font-weight: 400; color: var(--muted); font-size: 13px; }
+.ggrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(255px, 1fr)); gap: 10px; }
+.gcard { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 9px 10px 8px; box-shadow: var(--shadow); min-width: 0; }
+.gcard.sel { outline: 2px solid var(--accent); }
+.ghead { width: 100%; text-align: left; background: transparent; border: 0; padding: 0; display: block; }
+.ghead .gn { font-weight: 650; font-size: 14.5px; display: flex; gap: 6px; align-items: baseline; }
+.ghead .gn em { font-style: normal; font-size: 12px; color: var(--muted); font-weight: 600; }
+.ghead .gq { font-size: 12.5px; color: var(--muted); margin: 1px 0 6px; }
+.gst { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+.gst .pill span { font-weight: 500; opacity: .9; }
+.chips { display: grid; gap: 3px; }
+.chip { display: flex; align-items: center; justify-content: space-between; gap: 6px; text-align: left; border: 1px solid var(--border2); background: var(--surface2); border-radius: 7px; padding: 3px 8px; font-size: 13px; min-width: 0; }
+.chip span.nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.chip span.nm em { font-style: normal; color: var(--muted); font-size: 11.5px; margin-right: 4px; }
+.chip:hover { border-color: var(--accent); }
+.chip.sel { border-color: var(--accent); background: var(--accent-soft); }
+.chip.dim { opacity: .28; }
+.gcard.hide, .layer.hide { display: none; }
+.drawer { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; }
+.drawer.empty { padding: 18px; color: var(--muted); font-size: 14px; }
+.mapwrap:not(.two) .drawer.empty { display: none; }
+.dhead { padding: 12px 16px 10px; border-bottom: 1px solid var(--border2); background: var(--surface2); display: flex; gap: 10px; align-items: flex-start; }
+.dhead h3 { font-size: 16px; margin: 0; }
+.dhead .gq { font-size: 13px; color: var(--muted); margin: 2px 0 6px; }
+.dhead .x { margin-left: auto; border: 1px solid var(--border); background: var(--surface); border-radius: 8px; width: 28px; height: 28px; line-height: 1; font-size: 16px; flex: none; }
+.dbody { padding: 12px 16px 16px; max-height: none; }
+@media (min-width: 1100px) { .dbody { max-height: 72vh; max-height: 640px; overflow: auto; } }
+.sumrow { display: grid; gap: 8px; margin-bottom: 12px; }
+.sumbox { border-left: 3px solid var(--border); padding: 4px 10px; font-size: 13.5px; background: var(--surface2); border-radius: 0 8px 8px 0; }
+.sumbox.cz { border-left-color: var(--cz); } .sumbox.lf { border-left-color: var(--lf); }
+.sumbox b { font-size: 12px; display: block; }
+.sumbox.cz b { color: var(--cz-ink); } .sumbox.lf b { color: var(--lf-ink); }
+.ilist { display: grid; gap: 6px; }
+.irow { border: 1px solid var(--border2); border-radius: 9px; background: var(--surface); }
+.irow.open { border-color: var(--accent); }
+.itop { width: 100%; display: flex; gap: 8px; align-items: center; background: transparent; border: 0; text-align: left; padding: 6px 10px; flex-wrap: wrap; }
+.itop .nm { font-weight: 600; flex: 1 1 140px; min-width: 0; }
+.itop .nm em { font-style: normal; color: var(--muted); font-size: 12px; margin-right: 4px; }
+.itop .car { color: var(--muted); font-size: 11px; width: 10px; }
+.ibody { padding: 0 10px 10px; }
+.sub { margin: 14px 0 6px; font-size: 13px; font-weight: 700; color: var(--muted); letter-spacing: .02em; }
+
+/* evidence */
+.ev { display: grid; gap: 8px; }
+.evsys { border: 1px solid var(--border2); border-left: 3px solid var(--border); border-radius: 0 8px 8px 0; padding: 7px 10px; background: var(--surface2); min-width: 0; }
+.evsys.cz { border-left-color: var(--cz); } .evsys.lf { border-left-color: var(--lf); }
+.evsys .h { display: flex; gap: 6px; align-items: center; margin-bottom: 3px; }
+.evsys p { margin: 0 0 4px; font-size: 14px; }
+.evsys.na p { color: var(--muted); }
+.lim { display: flex; gap: 6px; align-items: flex-start; font-size: 12.8px; background: var(--warn-soft); color: var(--warn-ink); border-radius: 6px; padding: 2px 8px; margin: 3px 0; }
+.lim::before { content: "⚠ 限定"; font-weight: 700; flex: none; font-size: 11.5px; padding-top: 1px; }
+.srcs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+a.src { font: 11.5px ui-monospace, SFMono-Regular, Menlo, monospace; text-decoration: none; background: var(--accent-soft); color: var(--accent); border-radius: 5px; padding: 0 6px; line-height: 18px; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+a.src:hover { text-decoration: underline; }
+.diff { font-size: 13.5px; background: var(--accent-soft); border-radius: 8px; padding: 5px 10px; }
+.diff b { color: var(--accent); }
+.fix { border: 1px solid var(--border2); border-radius: 9px; padding: 8px 10px; background: var(--surface2); margin-bottom: 8px; font-size: 13.5px; }
+.fix .old { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--n); margin: 2px 0; }
+.fix .now { margin: 2px 0; }
+.infer { border-left: 3px solid var(--inf); background: var(--inf-soft); border-radius: 0 8px 8px 0; padding: 5px 10px; margin-bottom: 6px; font-size: 13.5px; }
+
+/* compare */
+.cmp { display: grid; gap: 0; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--surface); box-shadow: var(--shadow); }
+.chead, .crow, .cgroup { display: grid; grid-template-columns: minmax(130px, .6fr) minmax(0, 1fr) minmax(0, 1fr); gap: 0; }
+.chead { background: var(--surface2); font-size: 13px; font-weight: 700; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 2; }
+.chead > div { padding: 8px 12px; }
+.chead .c1 { color: var(--cz-ink); } .chead .c2 { color: var(--lf-ink); }
+.cgroup { background: var(--surface2); border-top: 1px solid var(--border); cursor: pointer; }
+.cgroup > div { padding: 8px 12px; font-size: 13px; }
+.cgroup .gname { font-weight: 700; font-size: 14px; }
+.cgroup .gname em { font-style: normal; color: var(--muted); font-size: 12px; font-weight: 600; display: block; }
+.cgroup .sm { color: var(--muted); }
+.cgroup .sm .pill { margin-bottom: 3px; }
+.cgroup.dimg { opacity: .55; }
+.citem { border-top: 1px solid var(--border2); }
+.crow { width: 100%; text-align: left; background: transparent; border: 0; padding: 0; align-items: stretch; }
+.crow:hover { background: var(--surface2); }
+.crow > div { padding: 8px 12px; font-size: 13.5px; min-width: 0; }
+.crow .nm { font-weight: 600; }
+.crow .nm em { font-style: normal; color: var(--muted); font-size: 12px; margin-right: 4px; }
+.crow .nm .lead { display: block; font-weight: 500; font-size: 12px; color: var(--muted); margin-top: 2px; }
+.crow .nm .lead.cz { color: var(--cz-ink); } .crow .nm .lead.lf { color: var(--lf-ink); }
+.crow .snip { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-top: 3px; color: var(--text); }
+.crow .lab { display: none; font-size: 12px; font-weight: 700; margin-bottom: 2px; }
+.cxp { padding: 4px 12px 12px; display: none; background: var(--surface); }
+.citem.open .cxp { display: block; }
+.citem.open .crow { background: var(--surface2); }
+.cxp .ev { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.cxp .ev .diff { grid-column: 1 / -1; }
+.cmp .empty { padding: 30px; text-align: center; color: var(--muted); }
+
+/* paths */
+.pbar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-bottom: 12px; }
+.pbar .pdesc { flex: 1 1 260px; font-size: 13.5px; color: var(--muted); }
+.stepper { display: inline-flex; gap: 6px; align-items: center; }
+.stepper button { border: 1px solid var(--border); background: var(--surface); border-radius: 14px; padding: 2px 12px; font-size: 13px; }
+.stepper button:disabled { opacity: .4; cursor: default; }
+.stepper .pos { font-size: 13px; color: var(--muted); min-width: 64px; text-align: center; }
+.pwrap { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 1100px) { .pwrap { grid-template-columns: minmax(0, 1fr) 400px; } }
+.pdetail { position: relative; order: -1; }
+@media (min-width: 1100px) { .pdetail { order: 0; } }
+.pdetail .dhead { border-radius: 0; }
+.pdetail .bd { padding: 12px 16px 14px; }
+.pdetail .ph { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 4px; }
+.pdetail .nbadge, .tl .nbadge, .node .nbadge { display: inline-flex; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; align-items: center; justify-content: center; flex: none; }
+html[data-theme="dark"] .pdetail .nbadge, html[data-theme="dark"] .tl .nbadge, html[data-theme="dark"] .node .nbadge { color: #04201c; }
+.via { font-size: 13px; color: var(--muted); margin: 6px 0; }
+.via b { color: var(--text); }
+.lanes { position: relative; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow); overflow: hidden; }
+.lhead, .lrow { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); }
+.lhead > div { padding: 7px 8px; font-size: 12.5px; font-weight: 700; text-align: center; background: var(--surface2); border-bottom: 1px solid var(--border); border-left: 1px solid var(--border2); color: var(--muted); }
+.lhead > div:first-child { border-left: 0; }
+.phase { grid-column: 1 / -1; font-size: 12px; font-weight: 700; color: var(--accent); background: var(--accent-soft); padding: 3px 12px; letter-spacing: .04em; border-top: 1px solid var(--border2); border-bottom: 1px solid var(--border2); position: relative; z-index: 1; }
+.lrow > div { border-left: 1px solid var(--border2); padding: 7px 6px; min-height: 58px; display: flex; align-items: center; justify-content: center; }
+.lrow > div:first-child { border-left: 0; }
+.node { overflow-wrap: anywhere; position: relative; z-index: 1; width: 100%; text-align: left; border: 1px solid var(--border); background: var(--surface); border-radius: 9px; padding: 5px 7px; font-size: 12.5px; line-height: 1.35; display: flex; gap: 6px; align-items: flex-start; box-shadow: var(--shadow); }
+.node:hover { border-color: var(--accent); }
+.node.on { border-color: var(--accent); background: var(--accent-soft); outline: 2px solid var(--accent); }
+.node.done .nbadge { background: var(--muted); }
+.lanesvg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
+.lanesvg path { fill: none; stroke: var(--muted); stroke-width: 1.5; opacity: .55; }
+.lanesvg path.act { stroke: var(--accent); stroke-width: 2.4; opacity: 1; }
+.lanesvg path.dash { stroke-dasharray: 5 4; }
+.lanesvg marker path { fill: var(--muted); stroke: none; opacity: .8; }
+.tl { display: none; }
+.tl ol { list-style: none; margin: 0; padding: 0; }
+.tl li { position: relative; padding: 0 0 8px 34px; }
+.tl li::before { content: ""; position: absolute; left: 10px; top: 24px; bottom: -2px; width: 2px; background: var(--border); }
+.tl li:last-child::before { display: none; }
+.tl .nbadge { position: absolute; left: 0; top: 4px; }
+.tl .tbtn { width: 100%; text-align: left; border: 1px solid var(--border); background: var(--surface); border-radius: 9px; padding: 6px 10px; }
+.tl li.on .tbtn { border-color: var(--accent); background: var(--accent-soft); }
+.tl .tbtn .lane { font-size: 11.5px; color: var(--muted); display: block; }
+.tl .inl { display: none; margin-top: 6px; border: 1px solid var(--border2); border-radius: 9px; background: var(--surface); }
+.tl li.on .inl { display: block; }
+.tl .inl .bd { padding: 8px 12px 10px; }
+.tl .phase { margin: 6px 0 8px; border-radius: 6px; }
+.side { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.side .col { border: 1px solid var(--border); border-radius: 12px; background: var(--surface); padding: 10px 12px; box-shadow: var(--shadow); }
+.side .col h3 { font-size: 14px; }
+.side .mini { display: flex; gap: 8px; align-items: flex-start; width: 100%; text-align: left; background: transparent; border: 0; border-bottom: 1px dashed var(--border2); padding: 5px 2px; font-size: 13px; }
+.side .mini:hover { background: var(--surface2); }
+.side .mini .lane { color: var(--muted); font-size: 11.5px; display: block; }
+.side .mphase { font-size: 11.5px; font-weight: 700; color: var(--accent); margin: 8px 0 2px; }
+.side .cnt { font-size: 12.5px; color: var(--muted); }
+
+/* notes */
+.two-col { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.ncard { margin-bottom: 10px; }
+.ncard .ref { font-size: 12.5px; color: var(--muted); margin-top: 4px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.ncard .ref button { border: 0; background: transparent; color: var(--accent); text-decoration: underline; padding: 0; font-size: 12.5px; }
+.limits li { margin: 3px 0; }
+footer { text-align: center; color: var(--muted); font-size: 12px; padding: 12px 0 24px; }
+
+@media (max-width: 900px) {
+  header { padding: 16px 16px 0; } main { padding: 16px 14px 36px; }
+  .stats, .two-col, .side { grid-template-columns: minmax(0, 1fr); }
+  .cxp .ev { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 720px) {
+  header h1 { font-size: 19px; }
+  nav button { padding: 8px 11px; font-size: 14px; }
+  .chead { display: none; }
+  .crow, .cgroup { grid-template-columns: minmax(0, 1fr); }
+  .crow > div { padding: 3px 12px; }
+  .crow > div:first-child { padding-top: 8px; }
+  .crow > div:last-child { padding-bottom: 8px; }
+  .crow .lab { display: block; }
+  .crow .lab.cz { color: var(--cz-ink); } .crow .lab.lf { color: var(--lf-ink); }
+  .cgroup > div { padding: 3px 12px; }
+  .cgroup > div:first-child { padding-top: 8px; } .cgroup > div:last-child { padding-bottom: 8px; }
+  .lanes { display: none; }
+  .tl { display: block; }
+  .pdetail { display: none; }
+  .fbar input[type="search"] { max-width: none; }
+  .lb { grid-template-columns: 72px minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <div>
+      <h1>可观测功能设计：coze-loop vs Langfuse</h1>
+      <div class="meta" id="meta"></div>
+    </div>
+    <button class="theme-btn" id="themeBtn" type="button" aria-label="切换主题"></button>
+  </div>
+  <nav role="tablist" id="nav" aria-label="页面分区">
+    <button role="tab" data-tab="overview">总览</button>
+    <button role="tab" data-tab="map">能力地图</button>
+    <button role="tab" data-tab="cmp">并排对照</button>
+    <button role="tab" data-tab="path">数据路径</button>
+    <button role="tab" data-tab="notes">修正与推断</button>
+  </nav>
+</header>
+<main>
+  <section class="tab" id="tab-overview" role="tabpanel"></section>
+  <section class="tab" id="tab-map" role="tabpanel"></section>
+  <section class="tab" id="tab-cmp" role="tabpanel"></section>
+  <section class="tab" id="tab-path" role="tabpanel"></section>
+  <section class="tab" id="tab-notes" role="tabpanel"></section>
+  <footer>所有结论来自两个仓库在固定提交上的静态阅读。点任一「源码」标签可打开对应行。</footer>
+</main>
+
+<script id="data" type="application/json">{"meta":{"cz":{"name":"coze-loop","sha":"3a6a2bf07b057fec0c702e514e8345fb5684e83a","base":"https://github.com/wzqwtt/coze-loop/blob/3a6a2bf07b057fec0c702e514e8345fb5684e83a/","tree":"https://github.com/wzqwtt/coze-loop/tree/3a6a2bf07b057fec0c702e514e8345fb5684e83a"},"lf":{"name":"Langfuse","sha":"f75c661dbe8c6b85523c81486b39e8403ac2c141","base":"https://github.com/wzqwtt/langfuse/blob/f75c661dbe8c6b85523c81486b39e8403ac2c141/","tree":"https://github.com/wzqwtt/langfuse/tree/f75c661dbe8c6b85523c81486b39e8403ac2c141"}},"layers":[{"id":"data","name":"数据层","d":"数据怎么进来、长什么样、存在哪"},{"id":"query","name":"查询层","d":"数据怎么被查出来、分组、导出"},{"id":"feedback","name":"反馈层","d":"评分、指标、告警：数据变成决策"},{"id":"govern","name":"集成与治理","d":"和其他模块联动，权限，页面"}],"lanes":{"ingest":"接入","queue":"队列与处理","store":"存储","query":"查询服务","ui":"前端","eval":"评估"},"groups":[{"id":1,"name":"Trace / Span 模型与成本","short":"模型与成本","layer":"data","q":"一次调用在库里长什么样？Token 和钱怎么算？","sum":{"cz":"Span 是存储对象。Trace 是按 trace_id 聚合的查询视图。只统计 token，没有金额成本。","lf":"Trace 在 v4 里是 events_full 按 trace_id 聚合的视图。成本在采集时按模型价格表计算。"},"items":[{"id":"1.1","n":"对象模型与层级","cz":{"s":"y","t":"存储和查询的主对象是 Span，TraceID 只是字段。没有独立 Trace 表。IDL 的 Trace 只有 trace_id、tokens、size 三个可选字段。父子靠 parent_id，前端组树。","src":["backend/modules/observability/domain/trace/entity/loop_span/span.go#L156-L162","idl/thrift/coze/loop/observability/domain/trace.thrift#L3-L11","release/deployment/docker-compose/bootstrap/clickhouse-init/init-sql/observability_spans.sql#L1-L36","frontend/packages/loop-components/observation-components/src/features/trace-detail/utils/span.tsx#L18-L70"],"lim":["parent_id 为 \"0\" 或空串的 span 当 root","父节点不在当前集合时，该 span 在前端成为根"]},"lf":{"s":"y","t":"TraceDomain 带 id、IO、user、session、tags、public 等。Observation 用可空 traceId 和 parentObservationId。v4 的 Trace 由 events_full 按 trace_id 聚合。","src":["packages/shared/src/domain/traces.ts#L12-L30","packages/shared/src/domain/observations.ts#L55-L65","packages/shared/clickhouse/migrations/canonical/0039_create_events_full.up.sql#L4-L6","packages/shared/src/server/queries/clickhouse-sql/query-fragments.ts#L103-L128"],"lim":["旧 traces 表仍独立存在","聚合 Trace 的做法在源码注释里被称为迁到只用 events 表之前的临时做法"]},"d":"两边都没有「Trace 即一行」。coze-loop 以 span 表为准，Langfuse v4 以 events_full 为准。旧版 Langfuse 另有独立 traces 表。"},{"id":"1.2","n":"类型与状态","cz":{"s":"y","t":"16 个 span 类型常量。状态只有 success 和 error，status_code 为 0 即 success。","src":["backend/modules/observability/domain/trace/entity/loop_span/span.go#L65-L80","backend/modules/observability/domain/trace/entity/loop_span/span.go#L82-L83","backend/modules/observability/domain/trace/entity/loop_span/span.go#L386-L390"],"lim":["IDL 的状态枚举另有 broken"]},"lf":{"s":"y","t":"10 种 ObservationType。Observation 带 level 和 statusMessage。Trace 级 level 按 ERROR、WARNING、DEFAULT、DEBUG 取最高。","src":["packages/shared/src/domain/observations.ts#L5-L17","packages/shared/src/domain/observations.ts#L66-L100","packages/shared/src/server/queries/clickhouse-sql/event-query-builder.ts#L566-L567"],"lim":[]},"d":"Langfuse 的状态是四级 level，coze-loop 只有成功和失败。"},{"id":"1.3","n":"Token 用量","cz":{"s":"y","t":"只统计 span_type 为 LLMCall 或 model 的 span，读 input_tokens 和 output_tokens 标签。Trace 级汇总只有 input 和 output 两项。","src":["backend/modules/observability/domain/trace/entity/loop_span/span.go#L885-L929","idl/thrift/coze/loop/observability/coze.loop.observability.trace.thrift#L55-L63","backend/modules/observability/lib/otel/otel_convert.go#L463-L469"],"lim":[]},"lf":{"s":"y","t":"用量按 usage 键存储。用户没给 usage 时，满足条件才本地 tokenize，有 openai 和 claude 两种 tokenizer。events 路径按 span 聚合成 Trace 总量。","src":["worker/src/services/IngestionService/index.ts#L1491-L1497","worker/src/features/tokenisation/usage.ts#L51-L57","packages/shared/src/server/queries/clickhouse-sql/event-query-builder.ts#L549-L565"],"lim":["本地 tokenize 仅在：无 usage、无 cost、模型已匹配、level 非 ERROR、非 AI Gateway 生成时执行"]},"d":"coze-loop 只收 SDK 上报的 token。Langfuse 可在缺失时本地补算。"},{"id":"1.4","n":"金额成本与价格表","cz":{"s":"n","t":"只有 token 数量，没有单价和金额。已搜索 price、usd、currency、money、cost，只命中 TokenCost 和日志耗时。","src":["idl/thrift/coze/loop/observability/domain/trace.thrift#L8-L11"],"lim":["搜索范围：backend/modules/observability、idl/thrift/coze/loop/observability、conf/observability.yaml"]},"lf":{"s":"y","t":"Model 表带 matchPattern、单价、tokenizer。价格拆成 Price 和 PricingTier。Worker 选价格档再算成本。有模型管理页和公共 models API。","src":["packages/shared/prisma/schema.prisma#L912-L932","packages/shared/prisma/schema.prisma#L955-L969","worker/src/services/IngestionService/index.ts#L1411","web/src/pages/project/%5BprojectId%5D/models.tsx#L1"],"lim":["用户给了任一成本点后，不再计算其他成本点"]},"d":"最大的单项差距。coze-loop 要做金额统计，必须新增单价配置和计价逻辑。"}],"fix":[],"infer":[{"sys":"cz","t":"产品里的一条 Trace 是同一 trace_id 下 span 的查询视图，存储层没有独立 Trace 行。依据：DDL 和 GetTrace。"},{"sys":"cz","t":"要做金额成本统计，需要新增模型单价配置和计价逻辑。依据：现有只有 token 汇总，没有金额字段。"},{"sys":"lf","t":"「Trace」在 v4 里是 events_full 行按 trace_id 聚合出来的视图，不是一张表。依据：Postgres 无 Trace 表，is_app_root 和 trace_name 在 events_full。"}]},{"id":2,"name":"采集","short":"采集","layer":"data","q":"数据怎么进来？有没有队列、鉴权、限流？","sum":{"cz":"OpenAPI JSON 和 OTLP 两个入口，RocketMQ 加 collector 批量写 ClickHouse。写入没有限流。","lf":"默认 OTLP 直写 events_full。旧 SDK 走 S3 加队列，但默认模式下只收 score-create。"},"items":[{"id":"2.1","n":"JSON 写入入口","cz":{"s":"y","t":"POST /v1/loop/traces/ingest，PAT 鉴权。要求同批 span 的 workspace_id 相同。进程内入口 IngestTracesInner 没有 HTTP 路由。","src":["idl/thrift/coze/loop/observability/coze.loop.observability.openapi.thrift#L232","backend/modules/observability/application/openapi.go#L229-L242","idl/thrift/coze/loop/observability/coze.loop.observability.trace.thrift#L631"],"lim":["平台自身用 cozeloop-go 加自定义 MultiSpaceSpanExporter，经 IngestTracesInner 上报"]},"lf":{"s":"y","t":"POST /api/public/ingestion 接收 batch。legacy REST 另有 traces、spans、events、generations，包成事件走同一管线。请求体上限 4.5mb。","src":["web/src/pages/api/public/ingestion.ts#L56-L70","web/src/pages/api/public/ingestion.ts#L48-L54","web/src/pages/api/public/traces/index.ts#L39-L64"],"lim":["默认 events_only 下该端点只接受 score-create","被拒的非 score 事件返回 400，提示改用 v4 SDK、OTLP，或临时设 dual","legacy 写接口在 events_only 下被拒绝"]},"d":"默认配置下，Langfuse 的 JSON 写入口已不收 Trace 事件。coze-loop 的 JSON 入口默认可用。"},{"id":"2.2","n":"OTLP 写入","cz":{"s":"y","t":"POST /v1/loop/opentelemetry/v1/traces。按 Content-Encoding 解压，支持 protobuf 与 JSON。用 PartialSuccess.RejectedSpans 报告被拒数量。映射 cozeloop.*、gen_ai.*、openinference、litellm 等语义约定，session.id 写成 thread_id 标签。","src":["idl/thrift/coze/loop/observability/coze.loop.observability.openapi.thrift#L233","backend/modules/observability/application/openapi.go#L263-L353","backend/modules/observability/lib/otel/otel_convert.go#L31-L40","backend/modules/observability/lib/otel/consts.go#L133-L145","backend/modules/observability/lib/otel/otel_convert.go#L44-L48"],"lim":["Content-Type 只接受含 application/json 或 application/x-protobuf 的值","OTLP 入口没有 span 数量检查"]},"lf":{"s":"y","t":"POST /api/public/otel/v1/traces，权限 traces:create。自行读 body，支持 gzip。读 x-langfuse-ingestion-version 头。Python SDK ≥ 4.0.0 或 JS SDK ≥ 5.0.0 等规则决定是否直写 events 表。","src":["web/src/pages/api/public/otel/v1/traces/index.ts#L26-L33","web/src/pages/api/public/otel/v1/traces/index.ts#L20-L24","worker/src/queues/otelIngestionQueue.ts#L310-L322","worker/src/queues/otelIngestionQueue.ts#L65-L66"],"lim":["OTLP metrics 端点 POST /api/public/otel/v1/metrics 的处理函数是空函数"]},"d":"两边都接 OTLP traces。coze-loop 的映射表更偏 GenAI 语义约定。Langfuse 的 metrics 端点是空实现。"},{"id":"2.3","n":"异步管线与批量写入","cz":{"s":"y","t":"producer 压缩后发到 RocketMQ topic trace_ingestion_event。collector 的队列处理器按 1000 条或 1 秒成批，exporter 按 TTL 和 workspace 分组写入 ClickHouse。","src":["backend/modules/observability/infra/mq/producer/trace_producer.go#L42-L74","release/deployment/docker-compose/conf/observability.yaml#L330-L355","backend/modules/observability/domain/trace/service/collector/exporter/clickhouseexporter/clickhouse_exporter.go#L30-L54"],"lim":["单条消息超过 10MB 且含多个 span 时拆开重发","插入失败重试 3 次，网络重试可能重复写入"]},"lf":{"s":"y","t":"事件先写 S3，再按 projectId-eventBodyId 分片入队。Worker 合并后交给 ClickhouseWriter，批大小 1000、间隔 1000 ms、重试 3 次。events 路径还有 48 小时 TTL 的暂存表和传播队列。","src":["packages/shared/src/server/ingestion/processEventBatch.ts#L276-L332","worker/src/services/ClickhouseWriter/index.ts#L61-L63","worker/src/env.ts#L181-L192","packages/shared/clickhouse/migrations/canonical/0038_create_observations_batch_staging.up.sql#L50"],"lim":["S3 失败则中止，不再入队","入队延迟默认 15 秒"]},"d":"两边都是「先落队列或对象存储，再批量写 ClickHouse」。Langfuse 多了一份 S3 原始事件。"},{"id":"2.4","n":"校验与保护","cz":{"s":"y","t":"trace_id 须为 32 位小写十六进制，span_id 须为 16 位，且都不能全 0。start_time 须在当前时间前 24 小时到后 1 小时之间。过长字段被裁剪，裁剪字段名写入 clip_fields。单批 span 数上限按租户配置。","src":["backend/modules/observability/domain/trace/entity/loop_span/span.go#L537-L556","backend/modules/observability/domain/trace/entity/loop_span/span.go#L557-L559","backend/modules/observability/domain/trace/entity/loop_span/span.go#L850-L882","backend/modules/observability/application/trace.go#L44-L51"],"lim":["单批上限：默认配置 100，缺配置时常量 500","RMQ receiver 丢弃校验失败的 span"]},"lf":{"s":"y","t":"ingestion 按 schema 校验，用量超阈值时拒绝。promptName 与 promptVersion 须同时出现或同时为空。环境名会被规范化。","src":["packages/shared/src/server/ingestion/processEventBatch.ts#L168-L200","web/src/pages/api/public/ingestion.ts#L127","packages/shared/src/server/ingestion/types.ts#L535-L539","packages/shared/src/server/ingestion/types.ts#L304-L317"],"lim":[]},"d":"coze-loop 对 ID 格式和时间窗校验更严。Langfuse 更偏 schema 和用量校验。"},{"id":"2.5","n":"写入鉴权","cz":{"s":"y","t":"/v1/loop 路由组挂 PatTokenVerifyMW，校验 Bearer PAT。写入前调 CheckIngestPermission，动作名 ingestLoopTrace。","src":["backend/api/router/coze/loop/apis/middleware.go#L26-L34","backend/api/router/coze/loop/apis/middleware/pat_verify.go#L20-L69","backend/modules/observability/application/openapi.go#L121-L124"],"lim":[]},"lf":{"s":"y","t":"Basic（公钥加私钥，完整 scope）与 Bearer（只有公钥，受限 scope）。API Key 有 PROJECT 和 ORGANIZATION 两种 scope。score 事件要 scores:create，其余要 traces:create。","src":["web/src/features/public-api/server/apiAuth.ts#L92","web/src/features/public-api/server/apiAuth.ts#L215","web/src/features/public-api/server/apiAuth.ts#L183","web/src/pages/api/public/ingestion.ts#L384-L390"],"lim":[]},"d":""},{"id":"2.6","n":"写入限流","cz":{"s":"n","t":"写入没有限流。IngestTraces 与 OtelIngestTraces 函数体内没有调用限流方法。限流只用于查询和标注。","src":["backend/modules/observability/application/openapi.go#L108-L176","backend/modules/observability/application/openapi.go#L263-L353","backend/modules/observability/application/openapi.go#L1147-L1209"],"lim":["查询限流默认每 key 10 QPS（只限查询和标注）"]},"lf":{"s":"y","t":"RateLimiterRedis 按「组织、套餐、资源」分桶。资源含 ingestion、media-upload、public-api 等。","src":["web/src/features/public-api/server/RateLimitService.ts#L47-L50","packages/shared/src/interfaces/rate-limits.ts#L4"],"lim":["自托管和没有 Redis 时不限流","限流出错时 ingestion 选择放行（fail open）"]},"d":"coze-loop 写入侧无保护。Langfuse 有限流，但自托管默认不生效。"}],"fix":[{"sys":"cz","old":"旧笔记：内部 IngestTracesInner 没有 HTTP 路由。","now":"该点成立。补充：平台自身用 cozeloop-go 加自定义 exporter，经该入口上报。","src":["backend/infra/looptracer/exporter.go#L34-L86","backend/cmd/main.go#L148-L165"]}],"infer":[{"sys":"cz","t":"外部 SDK 上报的 span，call_type 恒为 Custom，所以只在 cozeloop 平台列表可见。依据：GetCallType 恒返回 \"Custom\"。"},{"sys":"lf","t":"默认 events_only 下，v4 之前的 SDK 不能再用 legacy 写接口上报 Trace。依据：/api/public/ingestion 只收 score-create，legacy 写端点被拒绝。"}],"note":"两个仓库都不含外部 SDK 源码。SDK 侧的批量、重试、限流行为未核实。"},{"id":3,"name":"存储、保留与大字段","short":"存储与保留","layer":"data","q":"数据存在哪？保留多久？大字段放哪？","sum":{"cz":"ClickHouse 两张表。有 TTL 档位但 DDL 没有 TTL 子句，也没有清理任务。大字段靠 SDK 或 file 服务上传。","lf":"ClickHouse 存观测数据，Postgres 存配置，S3 存原始事件和媒体。保留由 Worker 清理，但属企业能力。"},"items":[{"id":"3.1","n":"主存储与表结构","cz":{"s":"y","t":"observability_spans：MergeTree，按 toDate(start_time/1000000) 分区，排序键 start_time。trace_id、space_id、span_type、span_name 有 bloom 索引，input、output 有 tokenbf_v1。标注在 observability_annotations（ReplacingMergeTree）。","src":["release/deployment/docker-compose/bootstrap/clickhouse-init/init-sql/observability_spans.sql#L1-L36","release/deployment/docker-compose/bootstrap/clickhouse-init/init-sql/observability_annotations.sql#L1-L32"],"lim":["表里没有 thread_id 列，过滤落到 tags_string['thread_id']","自定义字段映射到 tags_string、tags_long、tags_float、tags_bool"]},"lf":{"s":"y","t":"events_full：ReplacingMergeTree，主键 project_id、分钟级 start_time、xxHash32(trace_id)，带 input、output、metadata 全文索引。events_core 由物化视图填充并把 input、output 截到 200 字符。旧 traces、observations、scores 表仍在。","src":["packages/shared/clickhouse/migrations/canonical/0039_create_events_full.up.sql#L112-L115","packages/shared/clickhouse/migrations/canonical/0039_create_events_full.up.sql#L108-L110","packages/shared/clickhouse/migrations/canonical/0041_create_events_core_mv.up.sql#L39-L42","packages/shared/clickhouse/migrations/canonical/0001_traces.up.sql#L1-L23"],"lim":["读取时 truncated 为 true 读 events_core，否则读 events_full","events_full 按月分区且没有表级 TTL"]},"d":"coze-loop 一张宽表加标签 Map。Langfuse 在迁移中，新旧两套表并存。"},{"id":"3.2","n":"保留与物理清理","cz":{"s":"p","t":"有 TTL 档位（3、7、30、90、180、365 天）和 logic_delete_date 字段。查询窗口被 trace_max_duration_day 限制，开源默认 180 天。读到空结果时，过期处理器返回过期错误码。","src":["backend/modules/observability/domain/trace/entity/loop_span/span.go#L95-L102","backend/modules/observability/infra/repo/dao/converter/span.go#L69-L83","release/deployment/docker-compose/conf/observability.yaml#L74-L79","backend/modules/observability/domain/trace/service/trace/span_processor/expire_error_processor.go#L29-L48"],"lim":["建表语句里没有 TTL 子句","没有清理任务；查询 SQL 不按 logic_delete_date 过滤","默认配置只给 cozeloop 租户的 365d 配了表"]},"lf":{"s":"y","t":"Project.retentionDays（最小 3 天）。DataRetentionQueue 调度，处理任务按截止日期删除 traces、observations、scores 并删媒体。批量清理器覆盖 traces、observations、scores、events_full、events_core 五张表。Trace 删除先写 PendingDeletion，延迟后再删 ClickHouse。","src":["packages/shared/prisma/schema.prisma#L139","worker/src/ee/dataRetention/handleDataRetentionProcessingJob.ts#L154","worker/src/features/batch-data-retention-cleaner/index.ts#L23-L30","packages/shared/src/server/traceDeletionProcessor.ts#L55","web/src/features/projects/server/projectsRouter.ts#L147"],"lim":["数据保留属企业能力，设置接口要求 data-retention 权益"]},"d":"coze-loop 只记录了保留意图，默认部署的数据会一直增长。Langfuse 真正会删，但需要企业权益。"},{"id":"3.3","n":"大字段与对象存储","cz":{"s":"p","t":"span 表有 object_storage 列（JSON，含 input_tos_key、output_tos_key 和附件）。查询时 AttrTosProcessor 换成签名下载 URL，TTL 5 小时。上传走 POST /v1/loop/files/upload。","src":["backend/modules/observability/domain/trace/entity/loop_span/span.go#L195-L213","backend/modules/observability/domain/trace/service/trace/span_processor/attr_tos_processor.go#L23-L72","backend/modules/observability/infra/rpc/file/file.go#L26-L49","idl/thrift/coze/loop/foundation/coze.loop.foundation.openapi.thrift#L29"],"lim":["observability 模块自己不写对象存储；上传由 SDK 或 looptracer 调 file 服务完成","已搜索 UploadFile、PutObject、SignUpload，无命中"]},"lf":{"s":"y","t":"原始事件先写 S3。OTLP 的 resourceSpans 以 JSON 文件写入 otel/<projectId>/。Media 表按 sha256Hash 去重，TraceMedia 与 ObservationMedia 做关联。BlobStorageIntegration 可把数据导出到客户自己的桶。","src":["packages/shared/src/server/ingestion/processEventBatch.ts#L276-L332","packages/shared/src/server/otel/OtelIngestionProcessor.ts#L331","packages/shared/prisma/schema.prisma#L1488-L1507","packages/shared/prisma/schema.prisma#L1516-L1528","packages/shared/prisma/schema.prisma#L1335-L1365"],"lim":[]},"d":"Langfuse 的对象存储是采集管线的一部分。coze-loop 把它留给 SDK 和 file 服务。"},{"id":"3.4","n":"多租户字段","cz":{"s":"y","t":"写入时 space_id 是 workspace。租户决定落哪张表。开源默认单租户 cozeloop，读出后把 system_tags_string.tenant 设为 cozeloop。","src":["backend/modules/observability/infra/repo/ck/spans.go#L83-L88","backend/modules/observability/infra/repo/trace.go#L184-L201","release/deployment/docker-compose/conf/observability.yaml#L85-L93"],"lim":["开源版存储名固定为 ck"]},"lf":{"s":"y","t":"events_full 与 traces 的排序键都以 project_id 开头。多数 Postgres 业务表带 projectId 并级联删除。","src":["packages/shared/clickhouse/migrations/canonical/0039_create_events_full.up.sql#L112-L115","packages/shared/clickhouse/migrations/canonical/0001_traces.up.sql#L28-L29","packages/shared/prisma/schema.prisma#L516-L523"],"lim":[]},"d":""}],"fix":[],"infer":[{"sys":"cz","t":"logic_delete_date 是给外部清理或运维用的标记，开源仓库本身不会据此删除数据。因此默认部署的数据会一直增长，直到运维自行配置 ClickHouse TTL 或清理。依据：DDL 无 TTL，没有清理任务，查询不按该字段过滤。"},{"sys":"cz","t":"数据保留的「生效」主要体现在查询窗口上限和空结果时的过期报错，而不是物理删除。"}]},{"id":4,"name":"查询：列表、详情、过滤与分页","short":"查询","layer":"query","q":"怎么找到一条 Trace？能怎么筛、怎么排、怎么翻页？","sum":{"cz":"列表、详情、树、批量 token 接口齐全，过滤语法强。排序只有一种，列表没有聚合。","lf":"tRPC 有 v3 与 v4 成对过程。详情有树、时间线和图。聚合走统一查询引擎。"},"items":[{"id":"4.1","n":"列表与详情接口","cz":{"s":"y","t":"列表 POST /api/observability/v1/spans/list。详情 GET /traces/:trace_id。树 POST /traces/search_tree，上限 10 万 span。批量 token 用 batch_get_advance_info。OpenAPI 另有 traces/search、traces/search_tree、spans/search、pre_span/search、traces/list、traces/trajectory。","src":["idl/thrift/coze/loop/observability/coze.loop.observability.trace.thrift#L626-L632","idl/thrift/coze/loop/observability/coze.loop.observability.openapi.thrift#L234-L239","backend/modules/observability/domain/trace/service/trace_service.go#L1350-L1390"],"lim":["OpenAPI 的 traces/list 按给定 trace_ids 返回 token 和 size，不返回 span 树"]},"lf":{"s":"y","t":"v4 主入口是 events 路由：all、listCursor、countAll、filterOptions、byTraceId、getAgentGraphData 等。v3 有 traces.all。公共 API v2 observations 支持 cursor 与 fields 字段组。","src":["web/src/features/events/server/eventsRouter.ts#L134","web/src/features/events/server/eventsRouter.ts#L215","web/src/pages/api/public/v2/observations/index.ts#L60","packages/shared/src/server/repositories/traces.ts#L1512-L1516","web/src/pages/api/public/traces/index.ts#L88","web/src/pages/api/public/observations/index.ts#L36","web/src/features/public-api/server/createAuthedProjectAPIRoute.ts#L166"],"lim":["events_only 下公共 v1 读接口返回 404（traces、observations、scores v1 与 v2、sessions、metrics v1、dataset-run-items 的路由都设置了 rejectInEventsOnlyMode）","events_only 下可用的读接口：v2 observations、v3 scores、v2 metrics"]},"d":"两边的读取面都很全。Langfuse 的读路径分 v3 和 v4 两套，有迁移成本。"},{"id":"4.2","n":"树、时间线与图","cz":{"s":"p","t":"详情有 Run Tree。前端按 span_id 去重、按开始时间排序，再用 parent_id 组树。span 详情固定页签是 Run 和 Metadata。图表面板枚举目前只有 runTree。","src":["frontend/packages/loop-components/observation-components/src/features/trace-detail/utils/span.tsx#L18-L70","frontend/packages/loop-components/observation-components/src/features/trace-detail/constants/tab.ts#L2-L4","frontend/packages/loop-components/observation-components/src/features/trace-detail/components/span-detail/index.tsx#L38-L41"],"lim":["没有时间线视图和图视图"]},"lf":{"s":"y","t":"树用 react-virtual 做虚拟滚动。有 Timeline、Graph、Log、Messages 视图。Graph 用 ELK 布局并支持 LangGraph 元数据。移动端 tab 是 Tree、Timeline、Graph、Info。","src":["web/src/features/traces/components/VirtualizedTree.tsx#L87","web/src/features/traces/components/Trace.tsx#L305","web/src/features/trace-graph-view/README.md#L3","web/src/features/trace-graph-view/README.md#L13"],"lim":["Graph 视图不可用时回退到 tree"]},"d":"详情页的表达力差距明显：coze-loop 只有树。"},{"id":"4.3","n":"过滤语法","cz":{"s":"y","t":"FilterFields 带 query_and_or 和 filter_fields，可嵌套。QueryType 有 12 种，FieldType 有 string、long、double、bool。字段分自定义、系统和超级列。可过滤字段由配置 trace_field_meta_info 描述。","src":["idl/thrift/coze/loop/observability/domain/filter.thrift#L5-L54","backend/modules/observability/infra/repo/ck/spans.go#L488-L528","release/deployment/docker-compose/conf/observability.yaml#L96-L208"],"lim":["按标注过滤用子查询并加 SETTINGS final = 1"]},"lf":{"s":"y","t":"FilterState 是类型化条件列表，类型含 datetime、string、number、stringOptions、arrayOptions、stringObject 等。有全文匹配操作符 matches，只支持 input、output、metadata。过滤条件可编码进 URL。","src":["packages/shared/src/interfaces/filters.ts#L4-L29","packages/shared/src/interfaces/filters.ts#L34","packages/shared/src/features/filters/filterQueryEncoding.ts#L26"],"lim":["自然语言过滤在自托管部署里不可用"]},"d":"两边都支持组合过滤。Langfuse 多全文匹配和 URL 编码，coze-loop 多嵌套 and/or 和按标注过滤。"},{"id":"4.4","n":"排序","cz":{"s":"p","t":"请求允许 0 或 1 个 order_bys。后端只看是否非空，非空时固定按 start_time DESC, span_id DESC 排序，不读 field 和 is_asc。","src":["backend/modules/observability/application/trace.go#L217-L225","backend/modules/observability/infra/repo/ck/spans.go#L251-L256"],"lim":["没有 order_bys 时单表 SQL 不加 ORDER BY"]},"lf":{"s":"y","t":"排序状态是 {column, order}，ASC 或 DESC。","src":["packages/shared/src/interfaces/orderBy.ts#L3"],"lim":["v4 listCursor 固定按 startTime DESC 排序"]},"d":"coze-loop 的 order_bys 在开源实现里等价于「是否倒序」开关。"},{"id":"4.5","n":"分页","cz":{"s":"y","t":"游标式：多取 1 条判断 has_more，游标编码最后一条的 start_time 和 span_id。页大小上限 1000，默认 100，OpenAPI 上限 200。","src":["backend/modules/observability/infra/repo/trace.go#L215-L221","backend/modules/observability/infra/repo/trace.go#L268-L277","backend/modules/observability/application/trace.go#L44-L51"],"lim":[]},"lf":{"s":"y","t":"v3 用 page 加 limit。v4 有 listCursor。公共 API v2 observations 与 v3 scores 用 cursor。","src":["web/src/features/events/server/eventsRouter.ts#L215","web/src/pages/api/public/v2/observations/index.ts#L60","web/src/pages/api/public/v3/scores/index.ts#L8"],"lim":[]},"d":""},{"id":"4.6","n":"聚合与分组","cz":{"s":"n","t":"列表接口没有 group by 或聚合参数。聚合只出现在指标接口、GetThreadStat 和 ListMetadata 三处。","src":["backend/modules/observability/domain/trace/service/trace_service.go#L3370-L3427","backend/modules/observability/domain/trace/service/trace_service.go#L1800-L1830"],"lim":[]},"lf":{"s":"y","t":"聚合走统一查询引擎。函数有 sum、avg、count、max、min、p50、p75、p90、p95、p99、histogram、uniq。粒度含 auto、minute、hour、day、week、month。","src":["packages/shared/src/features/query/types.ts#L4-L18","packages/shared/src/features/query/types.ts#L194-L211"],"lim":[]},"d":"Langfuse 的聚合是平台级查询引擎，列表、大盘和告警共用。"}],"fix":[{"sys":"cz","old":"旧笔记：OpenAPI 还有 search、search_tree、list（L234-L238）。","now":"这是概括。精确为 L234 traces/search、L235 traces/search_tree、L236 spans/search、L237 pre_span/search、L238 traces/list、L239 traces/trajectory。","src":["idl/thrift/coze/loop/observability/coze.loop.observability.openapi.thrift#L234-L239"]},{"sys":"lf","old":"旧笔记：v4 读路径只在数据库 flag v4BetaEnabled 为 true 时启用。","now":"登录时 session 的 v4BetaEnabled 由写入模式推出。events_only 下恒为 true。dual 下才要求 Cloud 或开启预览，且用户库 flag 为 true。","src":["web/src/server/auth.ts#L844-L847"]}],"infer":[{"sys":"cz","t":"order_bys 在开源实现里等价于一个「是否倒序」开关。依据：只判断是否非空，不读字段名。"},{"sys":"lf","t":"events_only 下公共 v1 读接口（traces、observations、scores v1 与 v2、sessions、metrics v1、dataset-run-items）全部 404。客户要读数据只能用 v2 observations、v3 scores、v2 metrics。依据：这些路由都设置了 rejectInEventsOnlyMode。"}]},{"id":5,"name":"视图预设、列配置与导出","short":"视图与导出","layer":"query","q":"筛选条件能保存吗？列能自定义吗？数据能导出吗？","sum":{"cz":"保存的视图有，列配置只在浏览器，导出到数据集后端有但前端无入口，没有文件导出。","lf":"视图预设存 Postgres，批量导出支持 CSV、JSON、JSONL，批量操作有 9 种动作。"},"items":[{"id":"5.1","n":"保存的视图 / 预设","cz":{"s":"y","t":"MySQL 表 observability_view，按创建人隔离，最多返回 100 条。scope：1 列表、2 详情树、3 详情对话。开源默认有 Exceptions（status = error）和 High-latency（duration >= 10000）两个系统视图。前端有创建、更新、删除交互。","src":["release/deployment/docker-compose/bootstrap/mysql-init/init-sql/observability_view.sql#L1-L22","backend/modules/observability/infra/repo/mysql/view.go#L59-L74","release/deployment/docker-compose/conf/observability.yaml#L44-L50","frontend/packages/loop-components/observation-components/src/shared/components/filter-bar/custom-view.tsx#L154-L182"],"lim":[]},"lf":{"s":"y","t":"TableViewPreset 存 filters、columnOrder、columnVisibility、searchQuery、orderBy。DefaultView 区分项目级和用户级默认。系统预设以 __langfuse_ 开头。覆盖 traces、observations、sessions 等多种表。","src":["packages/shared/prisma/schema.prisma#L1704-L1727","packages/shared/prisma/schema.prisma#L1731-L1753","packages/shared/src/domain/table-view-presets.ts#L5-L18","web/src/server/api/routers/tableViewPresets.ts#L28"],"lim":[]},"d":"两边都支持，覆盖面接近。Langfuse 的预设还保存列顺序和排序。"},{"id":"5.2","n":"列配置","cz":{"s":"p","t":"前端列显示状态存在浏览器 localStorage。后端有 column_extract_config（按 workspace、平台、列表类型、agent 名保存列提取规则），但前端没有调用。","src":["frontend/packages/loop-components/observation-components/src/features/trace-list/hooks/use-column.ts#L27-L36","release/deployment/docker-compose/bootstrap/mysql-init/init-sql/observability_column_extract_config.sql#L1-L22","backend/modules/observability/application/trace.go#L1585-L1643"],"lim":["已搜索 ColumnExtract、column_extract，前端业务源码无命中"]},"lf":{"s":"y","t":"useColumnVisibility 基于 localStorage。预设里另存 columnVisibility 和 columnOrder。","src":["web/src/features/column-visibility/hooks/useColumnVisibility.ts#L3","packages/shared/prisma/schema.prisma#L1704-L1727"],"lim":[]},"d":""},{"id":"5.3","n":"导出","cz":{"s":"p","t":"后端有导出到数据集：POST /traces/export_to_dataset 与 preview_export_to_dataset，要求 exportLoopTrace 权限。成功后异步给 span 回写标注。前端没有入口。没有 CSV、Excel、JSON 文件导出。","src":["idl/thrift/coze/loop/observability/coze.loop.observability.trace.thrift#L642-L643","backend/modules/observability/application/trace.go#L1095-L1130","backend/modules/observability/domain/trace/service/trace_export_service.go#L136-L201"],"lim":["已搜索 ExportTracesToDataset，前端 frontend/packages、frontend/apps（排除 api-schema）无命中","查看大字段时有 fileDownload，但那不是列表导出"]},"lf":{"s":"y","t":"BatchExport 记录任务，状态 QUEUED、PROCESSING、COMPLETED、FAILED、CANCELLED。格式 JSON、CSV、JSONL。可导出 scores、sessions、traces、observations、events、datasets、audit_logs 等表。Worker 流式上传到对象存储。","src":["packages/shared/prisma/schema.prisma#L1435-L1457","packages/shared/src/features/batchExport/types.ts#L14-L26","packages/shared/src/interfaces/tableNames.ts#L6-L16","worker/src/features/batchExport/handleBatchExportJob.ts#L295-L298"],"lim":["公共 API 没有批量导出端点（已搜索 web/src/pages/api/public/ 顶层目录）","下载链接过期后不可用"]},"d":"Langfuse 能把任意表导成文件。coze-loop 只能导到数据集，且页面上看不到入口。"},{"id":"5.4","n":"批量操作","cz":null,"lf":{"s":"y","t":"BatchAction 有 create 和 delete 两种类型，9 个动作：trace-delete、score-delete、dataset-delete、三种加入标注队列、observation-add-to-dataset、observation-run-batched-evaluation、experiment-compare。状态含 PARTIAL。","src":["packages/shared/prisma/schema.prisma#L1459-L1484","packages/shared/src/features/batchAction/types.ts#L11-L35","worker/src/features/batchAction/handleBatchActionJob.ts#L187"],"lim":[]},"d":"调研未覆盖 coze-loop 的批量操作。"}],"fix":[],"infer":[]},{"id":6,"name":"Session、thread 与 User 视图","short":"会话视图","layer":"query","q":"多轮对话和终端用户能按会话看吗？","sum":{"cz":"后端有 thread 与 chat 四个接口，靠 thread_id 标签聚合。前端没有接入。","lf":"Session 与 User 都靠列聚合，有页面、tRPC 和公共 API。公共 sessions API 在 events_only 下返回 404。"},"items":[{"id":"6.1","n":"会话聚合（后端）","cz":{"s":"y","t":"thread_id 是 span 字段名，OTel 的 session.id 写成 thread_id 标签。ListThreadChat 按 thread_id 取 model span。GetThreadStat 汇总开始时间、时长、user、token 和模型。GetAdjacentTrace 在同一 thread 内取相邻 trace，窗口前后各 7 天。ListTraceChat 把 model 与 tool span 拆成对话消息。","src":["backend/modules/observability/lib/otel/otel_convert.go#L44-L48","backend/modules/observability/domain/trace/service/trace_service.go#L3016-L3093","backend/modules/observability/domain/trace/service/trace_service.go#L3102-L3207","backend/modules/observability/domain/trace/service/trace_service.go#L3370-L3427","backend/modules/observability/domain/trace/service/trace_service.go#L3297-L3367"],"lim":["没有独立的 session 表或 thread 表","IDL 的 Session 只有 user_id，不是 thread 对象","视图 scope 里预留了 trace_detail_chat"]},"lf":{"s":"y","t":"Session 不是独立实体，由行上的 session_id 聚合。Postgres 的 TraceSession 只存 bookmarked、public、environment。tRPC sessions 路由有列表、计数、指标、详情、收藏和公开。公共 API 有 GET /api/public/sessions。","src":["packages/shared/clickhouse/migrations/canonical/0039_create_events_full.up.sql#L19","packages/shared/prisma/schema.prisma#L501-L514","web/src/server/api/routers/sessions.ts#L197","web/src/pages/api/public/sessions/index.ts#L13"],"lim":["公共 sessions 两个端点在 events_only 下返回 404"]},"d":"两边都「靠列聚合，无独立会话实体」。"},{"id":"6.2","n":"会话界面（前端）","cz":{"s":"n","t":"前端业务源码没有 ListTraceChat、ListThreadChat、GetThreadStat、GetAdjacentTrace 的调用，只在生成的 API 客户端出现。观测页面只有 Trace 一个。","src":["frontend/packages/loop-pages/observation-pages/src/app.tsx#L9-L11","frontend/apps/cozeloop/src/components/navbar/menu-config.tsx#L87-L96"],"lim":["搜索范围：observation-components/src、observation-pages/src"]},"lf":{"s":"y","t":"页面 /project/[projectId]/sessions 与 /sessions/[sessionId]。详情组件有 SessionDetailPage、ModernSession、SessionReviewWorkspace。相邻 Trace 间隔超过 5 分钟算「空闲间隔」。评论与标注共用评审面板。","src":["web/src/pages/project/%5BprojectId%5D/sessions/index.tsx#L1","web/src/features/sessions/SessionDetailPage.tsx#L1","web/src/features/sessions/sessionIdleGap.ts#L1","web/src/features/sessions/README.md#L3"],"lim":[]},"d":"这是 coze-loop「后端先行、前端未接」的典型例子。"},{"id":"6.3","n":"User 视图","cz":null,"lf":{"s":"p","t":"User 来自 user_id 列。有 /users 与 /users/[userId] 页面，tRPC 有 hasAny、all、metrics、byId 及 FromEvents 版本。没有公共 users API。","src":["web/src/pages/project/%5BprojectId%5D/users/index.tsx#L1","web/src/server/api/routers/users.ts#L43","packages/shared/src/server/repositories/events.ts#L3038"],"lim":["Postgres 里没有终端用户业务表","已搜索 web/src/pages/api/public/ 顶层目录和 api/public/users，无 users 端点"]},"d":"调研未覆盖 coze-loop 的 User 视图。"}],"fix":[],"infer":[{"sys":"lf","t":"Session 与 User 视图没有专门存储，靠 session_id、user_id 列做聚合。所以对没有设置这两个字段的数据，这两个页面是空的。"}]},{"id":7,"name":"评分、标注与自动评估","short":"评分与标注","layer":"feedback","q":"怎么给 Trace 打分？能人工标注吗？能自动评估吗？","sum":{"cz":"后端标注和自动评估任务齐全，标注面板组件也有。Trace 页没挂 Feedback，任务无前端入口，数据回流只有空实现。","lf":"Score 有 5 种数据类型和 3 种来源。标注队列带分配与锁。评估器有 4 种类型，页面和公共 API 都有。"},"items":[{"id":"7.1","n":"评分 / 标注模型","cz":{"s":"y","t":"Annotation 同时带 span_id 与 trace_id。类型有 auto_evaluate、manual_evaluation_set、manual_feedback、coze_feedback、openapi_feedback。自动评估结果含 score、correction、reasoning。手工反馈含 tag key 和 tag value。","src":["idl/thrift/coze/loop/observability/domain/annotation.thrift#L5-L10","idl/thrift/coze/loop/observability/domain/annotation.thrift#L26-L48","idl/thrift/coze/loop/observability/domain/annotation.thrift#L50-L53","backend/modules/observability/domain/trace/entity/loop_span/span.go#L946-L957"],"lim":[]},"lf":{"s":"y","t":"Score 来源有 API、EVAL、ANNOTATION。数据类型有 NUMERIC、CATEGORICAL、BOOLEAN、CORRECTION、TEXT。ScoreConfig 定义取值范围和类别。Score 可挂在 Trace、Observation、Session 或 Dataset Run 上。","src":["packages/shared/src/domain/scores.ts#L4","packages/shared/src/domain/scores.ts#L46-L52","packages/shared/prisma/schema.prisma#L516-L528","packages/shared/clickhouse/migrations/canonical/0003_scores.up.sql#L6-L15"],"lim":["公共创建接口只允许 API 与 ANNOTATION，EVAL 保留给内部评估器","来源为 ANNOTATION 时必须带 configId，CORRECTION 例外"]},"d":"Langfuse 的 Score 是独立实体，可挂四类对象。coze-loop 的标注挂在 span 上。"},{"id":"7.2","n":"手工标注界面","cz":{"s":"p","t":"后端 CRUD 路由在 /api/observability/v1/annotations。前端有手工标注面板（调用 CreateManualAnnotation）和 Feedback 页签（TraceFeedBack）。但 Trace 页没有把 Feedback 页签挂进 span 详情，列表加详情面板默认传空的额外页签。","src":["idl/thrift/coze/loop/observability/coze.loop.observability.trace.thrift#L637-L641","frontend/packages/loop-components/tag-components/src/components/annotation-panel/label-item.tsx#L82","frontend/packages/loop-components/observation-components/src/features/trace-detail/components/feedback/tab.tsx#L9-L20","frontend/packages/loop-components/observation-components/src/trace-list-with-detail-panel.tsx#L390"],"lim":[]},"lf":{"s":"y","t":"Trace 详情页自带评审面板 TraceReviewPanel。Session 详情页的评论与标注共用评审面板。Comment 可挂在 TRACE、OBSERVATION、SESSION、PROMPT 上。","src":["web/src/features/traces/components/TraceReviewPanel.tsx#L1","web/src/features/sessions/README.md#L3","packages/shared/prisma/schema.prisma#L751-L756"],"lim":[]},"d":"组件已写好但没接上，是 coze-loop 的第二个典型例子。"},{"id":"7.3","n":"标注 API","cz":{"s":"y","t":"POST 与 DELETE /v1/loop/annotations，可按 trace 与 key 创建和删除反馈。有单独的 QPS 限流。改评估分走 POST /traces/change_eval_score。标注写入后向 observability_span_queue 发事件。","src":["idl/thrift/coze/loop/observability/coze.loop.observability.openapi.thrift#L240-L241","backend/modules/observability/application/openapi.go#L463-L556","backend/modules/observability/application/openapi.go#L1189-L1209","backend/modules/observability/application/trace.go#L1171-L1212"],"lim":[]},"lf":{"s":"y","t":"POST /api/public/scores，权限 scores:create。读取有 v1、v2、v3。另有 /api/public/comments。","src":["web/src/pages/api/public/scores/index.ts#L22","web/src/pages/api/public/v3/scores/index.ts#L8","web/src/pages/api/public/comments/index.ts#L1"],"lim":["v1 与 v2 在 events_only 下返回 404；v3 没有这个开关"]},"d":""},{"id":"7.4","n":"标注队列","cz":null,"lf":{"s":"y","t":"AnnotationQueue 绑定一组 scoreConfigIds。队列项对象类型 TRACE、OBSERVATION、SESSION，状态 PENDING、COMPLETED，带锁字段。可分配给用户。公共 API 有 queues、assignments、items。页面 /annotation-queues。","src":["packages/shared/prisma/schema.prisma#L547-L560","packages/shared/prisma/schema.prisma#L565-L582","packages/shared/prisma/schema.prisma#L602-L614","web/src/pages/api/public/annotation-queues/index.ts#L1"],"lim":[]},"d":"调研未覆盖 coze-loop 的标注队列。"},{"id":"7.5","n":"自动评估（LLM-as-judge）","cz":{"s":"p","t":"任务类型 auto_evaluate，含过滤规则、采样器、生效时间窗和回填时间窗。AutoEvaluateProcessor 创建实验并逐 span 评测，结果作为 auto_evaluate 标注写回 span。任务 API 有创建、更新、列表、详情，没有删除。","src":["idl/thrift/coze/loop/observability/domain/task.thrift#L13-L15","idl/thrift/coze/loop/observability/domain/task.thrift#L56-L75","backend/modules/observability/domain/task/service/taskexe/processor/auto_evaluate.go#L57-L82","backend/modules/observability/domain/task/service/task_callback.go#L115-L145","idl/thrift/coze/loop/observability/coze.loop.observability.task.thrift#L80-L84"],"lim":["前端业务源码没有任务相关接口的调用","实时触发依赖的 trace_to_task topic 在仓库里没有生产者","SpanTrigger 先读配置键 consumer_listening，默认 observability.yaml 里没有这个键"]},"lf":{"s":"y","t":"评估器类型有 LLM_AS_JUDGE、CODE、DECISION_MODEL、FACET。EvaluationRule 带 targetObject（trace、dataset、event、experiment）、filter、sampling、delay。observation 目标由 scheduleObservationEvals 在写入 span 后调度，用 span_id 做确定性采样。页面 /evals，公共 API 有 evaluators 与 evaluation-rules。","src":["packages/shared/prisma/schema.prisma#L1089-L1094","packages/shared/prisma/schema.prisma#L1156-L1176","packages/shared/src/features/evals/types.ts#L116-L121","worker/src/features/otel-ingestion/processOtelEvents.ts#L134","worker/src/features/evaluation/observationEval/scheduleObservationEvals.ts#L148"],"lim":["评估器自己产生的 trace 用内部环境排除，避免评估器评估自己"]},"d":"最大的完成度差距之一。Langfuse 有页面、API 和队列；coze-loop 只有后端，且实时触发缺链路。"},{"id":"7.6","n":"数据回流任务","cz":{"s":"n","t":"只有 IDL 类型（数据集 id、schema、字段映射）和 Noop 处理器。处理器工厂只注册了 auto_evaluate。","src":["idl/thrift/coze/loop/observability/domain/task.thrift#L99-L105","backend/modules/observability/domain/task/service/taskexe/processor/noop.go#L12-L30","backend/modules/observability/application/wire.go#L396-L404"],"lim":[]},"lf":null,"d":"Langfuse 没有同名能力，调研未做对照。"}],"fix":[],"infer":[{"sys":"cz","t":"默认开源配置下，自动评估任务的实时触发很可能不会运行。依据：trace_to_task 在仓库里没有生产者，且 SpanTrigger 先读配置键 consumer_listening，默认配置里没有这个键。这一条没有实际运行验证。"},{"sys":"cz","t":"另一条触发路径是「给 span 写入标注后，带标注的 span 事件触发任务匹配」。它不依赖 trace_to_task，但同样受 consumer_listening 影响。"},{"sys":"cz","t":"Feedback 页签和标注面板是为 Trace 详情预留的，开源 Trace 页没有挂载。"},{"sys":"lf","t":"评估器自己产生的 Trace 用「内部环境」隔离，是为了避免评估循环。依据：isInternalEvalEnvironment 守卫与 execution_trace_id。"}]},{"id":8,"name":"指标与大盘","short":"指标与大盘","layer":"feedback","q":"能看延迟、成本、错误率的趋势吗？","sum":{"cz":"指标后端约 55 个，支持粒度、对比和下钻。离线指标是空实现。前端没有大盘页面。","lf":"自定义 Widget、9 种图表、公共 metrics API。Dashboard、Monitor 和公共 API 共用同一个查询引擎。"},"items":[{"id":"8.1","n":"指标查询接口","cz":{"s":"p","t":"POST /api/observability/v1/metrics/list 与 drill_down_values。请求含 metric_names、granularity、filters、platform_type、drill_down_fields、compare。响应有 summary、pie、time_series 三种形态。同比 yoy 与环比 mom。只配了 cozeloop 与 prompt 两个平台。","src":["idl/thrift/coze/loop/observability/coze.loop.observability.metric.thrift#L76-L77","idl/thrift/coze/loop/observability/coze.loop.observability.metric.thrift#L9-L21","idl/thrift/coze/loop/observability/domain/metric.thrift#L15-L29","release/deployment/docker-compose/conf/observability.yaml#L64-L69"],"lim":["前端业务源码里没有指标接口的调用","指标权限动作是 readLoopIndictor","已搜索 observabilityMetric、metrics/list，仅在生成的 API 客户端出现"]},"lf":{"s":"y","t":"公共 GET /api/public/metrics（v1）与 /api/public/v2/metrics，均调用 executeQuery。另有 /metrics/daily 和不稳定的 dashboards API。成本、延迟、用量都是 observation 上的度量。","src":["web/src/pages/api/public/metrics/index.ts#L11","web/src/pages/api/public/v2/metrics.ts#L10","web/src/pages/api/public/metrics/daily.ts#L20","packages/shared/src/features/query/dataModel.ts#L82"],"lim":["v1 metrics 在 events_only 下返回 404"]},"d":"coze-loop 的指标更细（约 55 个），Langfuse 的更通用（自定义维度加度量）。"},{"id":"8.2","n":"聚合、分位与时延","cz":{"s":"y","t":"指标分 general、model、tool、service、agent、feedback 五组加反馈，共约 55 个。同一指标可套 avg、max、min、pct50、pct90、pct99、sum、time_series。延迟有 model_duration、model_ttft、model_tpot、tool_duration、service_duration。吞吐有 QPS、QPM、TPS、TPM。","src":["backend/modules/observability/domain/metric/entity/metric.go#L41-L114","backend/modules/observability/domain/metric/service/metric/model/model_duration_metric.go#L55-L57","backend/modules/observability/domain/metric/entity/metric.go#L57-L65"],"lim":["时间粒度 1min、1hour、1day、1week","下钻维度 model_name、tool_name、inner_model_name、annotation_key、feedback_source"]},"lf":{"s":"y","t":"聚合函数 sum、avg、count、max、min、p50、p75、p90、p95、p99、histogram、uniq。views 有 traces、observations、scores-numeric、scores-categorical、scores-boolean。v2 视图声明为 events_*。","src":["packages/shared/src/features/query/types.ts#L4-L18","packages/shared/src/features/query/types.ts#L123-L131","packages/shared/src/features/query/types.ts#L164"],"lim":[]},"d":"两边的统计能力都够用。coze-loop 内置 TTFT 与 TPOT。"},{"id":"8.3","n":"离线指标","cz":{"s":"n","t":"OfflineMetricDaoImpl.GetMetrics 返回 nil, nil，是空实现。开关 support_offline 默认 false，配置读取失败时也返回 false。","src":["backend/modules/observability/infra/repo/ck/metric.go#L13-L25","release/deployment/docker-compose/conf/observability.yaml#L71-L72","backend/modules/observability/infra/config/trace.go#L235-L244"],"lim":[]},"lf":null,"d":"Langfuse 无同名概念，调研未做对照。"},{"id":"8.4","n":"大盘页面与自定义图表","cz":{"s":"n","t":"前端业务源码里没有指标接口的调用，也没有图表页面。路由和菜单里观测只有一个 observation/traces 入口。","src":["frontend/apps/cozeloop/src/components/navbar/menu-config.tsx#L87-L96","frontend/packages/loop-pages/observation-pages/src/app.tsx#L9-L11"],"lim":["搜索范围：frontend/packages/loop-pages、observation-components/src、frontend/apps/cozeloop/src"]},"lf":{"s":"y","t":"Dashboard 存 definition 与 filters。DashboardWidget 存 view、dimensions、metrics、chartType 等。9 种图表：折线、面积、柱状、横向与纵向条形、饼图、数字、直方图、透视表。项目首页有延迟、模型成本、模型用量、用户预设图表。","src":["packages/shared/prisma/schema.prisma#L1630-L1652","packages/shared/prisma/schema.prisma#L1675-L1703","packages/shared/prisma/schema.prisma#L1663-L1674","web/src/features/dashboard/components/home-preset-registry.tsx#L1"],"lim":[]},"d":"最直观的差距：Langfuse 有大盘，coze-loop 开源版没有。"}],"fix":[{"sys":"cz","old":"旧笔记没有覆盖指标、任务、告警、数据保留和权限。","now":"新调研补齐：指标（本组）、任务（第 7 组）、告警（第 9 组）、数据保留（第 3 组）、权限（第 11 组）。","src":[]}],"infer":[{"sys":"lf","t":"Dashboard、Monitor、公共 metrics API 共用同一个查询引擎。自定义图表能画的指标，就是 Monitor 能告警的指标（去掉 traces 视图）。依据：三者都调用 executeQuery。"}]},{"id":9,"name":"告警与通知","short":"告警与通知","layer":"feedback","q":"指标超阈值时会通知人吗？","sum":{"cz":"观测模块、IDL、部署配置、前端均无告警。","lf":"有指标告警 Monitor 加 Webhook、Slack、GitHub dispatch。没有 Trace 或 Score 创建这类事件源。"},"items":[{"id":"9.1","n":"指标告警","cz":{"s":"n","t":"无。已搜索 backend/modules/observability、idl/thrift/coze/loop/observability、conf、bootstrap、observation-pages、observation-components/src。搜索词：alert、webhook、notif、告警、报警。","src":["release/deployment/docker-compose/conf/evaluation.yaml#L80-L84"],"lim":["唯一相关命中是评测配置里的 expt_webhook_notify_event 队列，与 Trace 无关","其余命中是 signal.Notify、UI 通知样式和代码注释"]},"lf":{"s":"y","t":"Monitor 对一个指标做窗口聚合并与阈值比较：view、filters、metric、windowMs、cadenceMs、thresholdOperator、alertThreshold、warningThreshold。严重度 PAUSED、UNKNOWN、NO_DATA、OK、WARNING、ALERT。页面 /alerts。","src":["packages/shared/prisma/schema.prisma#L1892-L1922","packages/shared/prisma/schema.prisma#L1876-L1883","packages/shared/src/features/monitors/processor/processor.ts#L17","web/src/pages/project/%5BprojectId%5D/alerts/index.tsx#L1"],"lim":["Monitor 的 view 只有 OBSERVATIONS 与三种 SCORES，没有 TRACES"]},"d":"最清晰的差距：coze-loop 完全没有告警。"},{"id":"9.2","n":"事件触发（Trace / Score 创建）","cz":{"s":"n","t":"无，见 9.1 的搜索清单。","src":[],"lim":[]},"lf":{"s":"n","t":"Trigger 的 eventSource 只有 prompt、monitor、project-notification 三种。没有「Trace 创建」或「Score 创建」事件源。","src":["packages/shared/src/domain/automations.ts#L5-L13"],"lim":["已搜索 automations.ts 的枚举、automation-repository.ts 与 processor.ts 的 eventSource 用法"]},"d":"Langfuse 的告警偏「指标告警」，不是「事件告警」。"},{"id":"9.3","n":"通知渠道","cz":{"s":"n","t":"无，见 9.1 的搜索清单。","src":[],"lim":[]},"lf":{"s":"y","t":"Action 类型有 WEBHOOK、SLACK、GITHUB_DISPATCH。Webhook 默认最多重试 5 次，指数退避，初始 5 秒。请求头 x-langfuse-signature 带签名。SlackIntegration 存加密 bot token。ProjectNotification 路由平台出错事件。","src":["packages/shared/prisma/schema.prisma#L1815-L1820","packages/shared/src/server/redis/webhookQueue.ts#L27-L31","worker/src/queues/webhooks.ts#L686","packages/shared/prisma/schema.prisma#L1945-L1957","packages/shared/src/domain/automations.ts#L30-L34"],"lim":["ProjectNotification 事件类型目前有 blob-export-failed、posthog-export-failed、evaluator-blocked"]},"d":""}],"fix":[],"infer":[{"sys":"lf","t":"Langfuse 的告警能力偏「指标告警」，不是「事件告警」。依据：Monitor 只支持 observation 与 score 视图，Trigger 事件源里没有 trace 或 score 创建。"}]},{"id":10,"name":"与 Prompt、评测、数据集联动","short":"联动","layer":"govern","q":"Trace 能跳到 Prompt、评测、数据集吗？","sum":{"cz":"Prompt 联动完整。评测联动在后端和实验页，Trace 页没有入口。Trace 到数据集后端齐全，前端无入口。","lf":"Observation 带 prompt 名与版本。数据集运行项关联 Trace。events_full 带实验字段。"},"items":[{"id":"10.1","n":"链接 Prompt","cz":{"s":"y","t":"Prompt 调试按场景给 span 设 call_type：PromptPlayground、PromptDebug、PTaaS。执行时把 prompt_key 和版本记到 span，放进 baggage。观测列表有 prompt_key 列。Prompt 页内嵌 Trace 详情。","src":["backend/modules/prompt/application/debug.go#L66-L96","backend/modules/prompt/domain/service/execute.go#L338-L379","backend/modules/observability/domain/trace/service/trace/span_filter/prompt_filter.go#L20-L33","frontend/packages/loop-pages/prompt-pages/src/components/trace-tabs/index.tsx#L60-L62"],"lim":[]},"lf":{"s":"y","t":"Observation 记录 prompt_id、prompt_name、prompt_version。OTLP 属性 langfuse.observation.prompt.name 与 .version 带入。Trace 详情有 PromptBadge。Prompt 指标页。Prompt 变更先进入 EntityChangeQueue 再触发自动化。","src":["packages/shared/clickhouse/migrations/canonical/0039_create_events_full.up.sql#L31-L33","packages/shared/src/server/otel/attributes.ts#L28","web/src/features/traces/components/PromptBadge.tsx#L1","web/src/features/prompts/PromptMetricsPage.tsx#L1"],"lim":[]},"d":"两边都有。coze-loop 靠 call_type 区分平台，Langfuse 靠 observation 上的列。"},{"id":"10.2","n":"评测 / 实验","cz":{"s":"p","t":"评估器平台只看 call_type = Evaluator，评测对象平台只看 EvalTarget。实验详情用 actual-output-with-trace 按 traceID 打开 Trace。后端 AutoEvaluateProcessor 创建实验并逐 span 评测。评测目标类型里有 Trace。","src":["backend/modules/observability/domain/trace/service/trace/span_filter/evaluator_filter.go#L16-L29","frontend/packages/loop-modules/evaluate/src/components/experiment/actual-output-with-trace.tsx#L62-L69","backend/modules/observability/domain/task/service/taskexe/processor/auto_evaluate.go#L120-L206","idl/thrift/coze/loop/evaluation/domain/eval_target.thrift#L91"],"lim":["Trace 页没有评测入口"]},"lf":{"s":"y","t":"数据集运行项在 ClickHouse dataset_run_items_rmt，带 trace_id 与可空 observation_id。events_full 带 experiment_id、experiment_name、experiment_dataset_id 等字段。实验由 ExperimentCreate 队列创建，页面 /experiments。","src":["packages/shared/clickhouse/migrations/canonical/0024_dataset_run_items.up.sql#L8-L9","packages/shared/clickhouse/migrations/canonical/0039_create_events_full.up.sql#L69-L74","worker/src/app.ts#L532","web/src/pages/project/%5BprojectId%5D/experiments/index.tsx#L1"],"lim":["公共 dataset-run-items 端点在 events_only 下返回 404"]},"d":""},{"id":"10.3","n":"Trace 到数据集","cz":{"s":"p","t":"后端导出与预览齐全，成功后给 span 回写标注。评测集业务分类 from_online_trace 表示数据来自在线 trace。前端没有入口。","src":["idl/thrift/coze/loop/observability/coze.loop.observability.trace.thrift#L642-L643","backend/modules/observability/domain/trace/service/trace_export_service.go#L136-L201","idl/thrift/coze/loop/evaluation/domain/eval_set.thrift#L177"],"lim":["数据回流任务只有配置结构，没有处理器（见 7.6）"]},"lf":{"s":"y","t":"批量操作 observation-add-to-dataset 把 observation 批量加入数据集。","src":["packages/shared/src/features/batchAction/types.ts#L24-L35"],"lim":[]},"d":""}],"fix":[],"infer":[{"sys":"cz","t":"Prompt 调试、Evaluator、评测对象和用户 SDK 的 span 都落在同一张 observability_spans 表，靠 call_type 区分平台。依据：默认配置把四个平台都映射到租户 cozeloop，各平台过滤器只比较 call_type。"}]},{"id":11,"name":"权限、隔离与公开分享","short":"权限与隔离","layer":"govern","q":"谁能看？项目之间隔离吗？能公开分享吗？","sum":{"cz":"动作名齐全，但开源版只检查空间成员，不区分角色。查询带 workspace 条件。","lf":"5 个角色加 scope，Trace 和 Session 可公开，有审计日志。项目隔离主要靠手写 SQL 里的 project_id。"},"items":[{"id":"11.1","n":"权限模型","cz":{"s":"p","t":"动作名有 readLoopTrace、ingestLoopTrace、createLoopTraceView、exportLoopTrace、readLoopIndictor 等。但开源版 MCheckPermission 只检查「用户是否属于该 space」，不看 Action 名。","src":["backend/modules/observability/domain/component/rpc/auth.go#L8-L23","backend/modules/foundation/application/auth.go#L30-L70","backend/modules/observability/infra/rpc/auth/auth.go#L26-L70"],"lim":["所以上面的动作名在开源版里不区分角色"]},"lf":{"s":"y","t":"角色有 OWNER、ADMIN、MEMBER、VIEWER、NONE。权限用 scope 字符串表达，如 traces:read、scores:CUD、dashboards:CUD。服务端用 throwIfNoProjectAccess 检查。公开与收藏有独立 scope。API Key 有项目级与组织级。","src":["packages/shared/prisma/schema.prisma#L493-L499","packages/shared/src/features/rbac/projectAccessRights.ts#L105","web/src/features/rbac/utils/checkProjectAccess.ts#L25","web/src/features/rbac/constants/apiKeyAccessRights.ts#L1"],"lim":[]},"d":"开源 coze-loop 没有角色级权限。"},{"id":"11.2","n":"空间 / 项目隔离","cz":{"s":"y","t":"所有列表和详情都带 workspace 条件。视图按创建人隔离。租户与空间是两层：租户决定落哪张表，空间是 space_id 字段。","src":["backend/modules/observability/domain/trace/service/trace/span_filter/cozeloop_filter.go#L16-L30","backend/modules/observability/infra/repo/mysql/view.go#L59-L74"],"lim":["开源版 ClipTableByWorkspace 原样返回表列表，没有按空间裁剪表"]},"lf":{"s":"y","t":"排序键以 project_id 开头。Postgres 业务表带 projectId 并级联删除。公共 API 的项目由 API Key 决定。query-ast 编译器强制注入 project_id 条件。","src":["packages/shared/clickhouse/migrations/canonical/0039_create_events_full.up.sql#L112-L115","web/src/pages/api/public/sessions/index.ts#L30","packages/shared/src/server/query-ast/tenancy.ts#L67"],"lim":["query-ast 目前只有 environments.ts 调用，其他仓储仍用手写 SQL"]},"d":"两边都隔离。Langfuse 的强制注入还没推广。"},{"id":"11.3","n":"公开分享","cz":null,"lf":{"s":"y","t":"Trace 与 Session 有 public 标志，由 traces.publish 修改。未登录或非项目成员访问时，只要 Trace 公开或其 Session 公开就放行。公开页面路由 /trace/[traceId] 与 /public/traces/[traceId]。","src":["web/src/server/api/routers/traces.ts#L625","web/src/server/api/trpc.ts#L630-L640","web/src/pages/trace/%5BtraceId%5D.tsx#L1"],"lim":["实例管理员读取非自己项目的 Trace 时，会发送管理员访问 webhook"]},"d":"调研未覆盖 coze-loop 的公开分享。"},{"id":"11.4","n":"审计日志","cz":null,"lf":{"s":"y","t":"Trace 的收藏、公开、删除等写操作调用 auditLog。AuditLog 的 resourceType 是字符串，不建外键，保证审计记录保留。审计日志也能批量导出。","src":["web/src/server/api/routers/traces.ts#L580","packages/shared/prisma/schema.prisma#L980-L1003"],"lim":[]},"d":"调研未覆盖 coze-loop 的审计日志。"}],"fix":[],"infer":[{"sys":"cz","t":"开源版没有角色级权限。依据：MCheckPermission 只看空间成员关系，不看 Action。"},{"sys":"lf","t":"租户隔离主要靠手写 SQL 里的 project_id 条件，query-ast 的强制注入还没推广。依据：仅 environments.ts 调用 compileClickhouseQuery。"}]},{"id":12,"name":"前端页面与组件","short":"前端页面","layer":"govern","q":"界面上到底能点出什么？","sum":{"cz":"只有一个 Trace 页。组件包含列表、详情、选择器、span 渲染。其余后端能力没有页面。","lf":"Trace、Observation、Session、User、Score、Dashboard、Monitor 等页面齐全。"},"items":[{"id":"12.1","n":"Trace 列表与详情页","cz":{"s":"y","t":"控制台路由 observation/*，导航文案 Trace。页面渲染 CozeloopTraceListWithDetailPanel，列表数据来自 ListSpans，详情来自 GetTrace。时间范围预设从 5 分钟到 90 天。默认平台 Cozeloop，默认 span 类型 RootSpan。","src":["frontend/apps/cozeloop/src/routes/index.tsx#L77","frontend/packages/loop-pages/observation-pages/src/pages/trace/trace-render.tsx#L69-L111","frontend/packages/loop-components/observation-components/src/features/trace-list/constants/time.ts#L22-L40","frontend/packages/loop-components/observation-components/src/features/trace-selector/index.tsx#L290-L298"],"lim":["只有 root_span 列表会再请求 BatchGetTracesAdvanceInfo 补 token"]},"lf":{"s":"y","t":"Trace 列表页按 isV4 选表：v4 用 ObservationsEventsTable，否则 TracesTable。详情页 TracePage 由 TraceDetailBody、TraceDetailActions 组成。v4 详情 hook 调 events.byTraceId、batchIO、scoresForTrace。","src":["web/src/features/traces/TracesPage.tsx#L97-L107","web/src/features/traces/TracePage.tsx#L7","web/src/features/events/hooks/useEventsTraceData.ts#L62"],"lim":[]},"d":"两边都有完整的列表加详情。"},{"id":"12.2","n":"其他观测页面","cz":{"s":"n","t":"observation-pages 只有 app.tsx、index.ts、pages/trace 三类源文件。没有 dashboard、task、session 页面。","src":["frontend/packages/loop-pages/observation-pages/src/app.tsx#L9-L11"],"lim":["后端有而前端没有调用的：指标、任务、导出到数据集、thread 与 chat、column_extract_config、trajectory、SearchTraceTree"]},"lf":{"s":"y","t":"页面路由含 traces、observations、sessions、users、scores、dashboards、widgets、alerts、automations、annotation-queues、datasets、experiments、evals、prompts、models、playground。","src":["web/src/pages/project/%5BprojectId%5D/traces/index.tsx#L1","web/src/pages/project/%5BprojectId%5D/dashboards/index.tsx#L1","web/src/pages/project/%5BprojectId%5D/models.tsx#L1"],"lim":["另有 v4 迁移引导页 /v4-migration"]},"d":"全文最醒目的差距：coze-loop 后端先行，开源前端只露出 Trace。"},{"id":"12.3","n":"可复用组件包","cz":{"s":"y","t":"observation-components 共 281 个文件，导出 CozeloopTraceList、CozeloopTraceDetail、CozeloopTraceDetailPanel、TraceSelector、CozeloopTraceListWithDetailPanel 等。适配接口在 adapter-interfaces，实现在 observation-adapter。span 详情按类型渲染：default、model、prompt、query-span、retriever、user-input。","src":["frontend/packages/loop-components/observation-components/src/index.ts#L4-L26","frontend/packages/loop-components/adapter-interfaces/src/observation/trace.ts#L1-L40","frontend/packages/loop-components/observation-adapter/src/components/trace-detail.tsx#L1-L40"],"lim":[]},"lf":null,"d":"调研未覆盖 Langfuse 的组件复用方式。"}],"fix":[],"infer":[{"sys":"cz","t":"指标与任务后端已实现但开源前端未接入，可能是商业版 UI 使用这些接口。依据：生成的 API 客户端有，前端业务源码没有调用。"}]}],"paths":[{"id":"cz","sys":"cz","name":"coze-loop","d":"SDK 上报，经 MQ 与 collector 写 ClickHouse，再由控制台读出。","steps":[{"lane":"ingest","t":"客户端带 PAT 调写入口","d":"调 POST /v1/loop/traces/ingest 或 OTLP 入口。","via":"Hertz 路由、PatTokenVerifyMW","src":["backend/api/router/coze/loop/apis/coze.loop.apis.go#L490","backend/api/router/coze/loop/apis/middleware.go#L32-L34","backend/api/router/coze/loop/apis/middleware/pat_verify.go#L20-L69"],"lim":[]},{"lane":"ingest","t":"（可选）先上传大字段","d":"有大字段时，先 POST /v1/loop/files/upload，再在 span 的 object_storage 里引用 key。","via":"foundation 文件服务","src":["idl/thrift/coze/loop/foundation/coze.loop.foundation.openapi.thrift#L29","backend/api/router/coze/loop/apis/coze.loop.apis.go#L622-L623"],"lim":[]},{"lane":"ingest","t":"application 层校验与分组","d":"OpenAPIApplication.IngestTraces 校验 workspace 一致、检查写入权限、设 call_type、查权益、按租户分组、检查批量上限。","via":"application 层、AuthProvider、SpanContextExtractor、BenefitService","src":["backend/modules/observability/application/openapi.go#L108-L176","backend/modules/observability/application/openapi.go#L244-L261"],"lim":[]},{"lane":"queue","t":"TraceService 打包","d":"TraceService.IngestTraces 跑 ingest processor，打成 TraceData，交给 producer。","via":"domain 层 service、trace_producer","src":["backend/modules/observability/domain/trace/service/trace_service.go#L1627-L1655"],"lim":[]},{"lane":"queue","t":"发到 RocketMQ","d":"producer 压缩消息后发到 topic trace_ingestion_event。","via":"RocketMQ","src":["backend/modules/observability/infra/mq/producer/trace_producer.go#L42-L74","release/deployment/docker-compose/conf/observability.yaml#L1-L10"],"lim":[]},{"lane":"queue","t":"collector 消费并成批","d":"RMQ receiver 消费、校验并丢弃非法 span。queue processor 按 1000 条或 1 秒成批。","via":"collector 的 receiver 与 processor","src":["backend/modules/observability/domain/trace/service/collector/receiver/rmqreceiver/rmq_receiver.go#L60-L86","release/deployment/docker-compose/conf/observability.yaml#L330-L355"],"lim":[]},{"lane":"store","t":"写入 ClickHouse","d":"exporter 按 TTL 与 workspace 分组，写入 observability_spans。","via":"exporter、TraceRepo、ck DAO","src":["backend/modules/observability/domain/trace/service/collector/exporter/clickhouseexporter/clickhouse_exporter.go#L30-L54","backend/modules/observability/infra/repo/trace.go#L184-L201"],"lim":[]},{"lane":"ui","t":"控制台打开 Trace 页","d":"前端调 POST /api/observability/v1/spans/list。后端校验、检查 readLoopTrace 权限、校正时间窗。","via":"SessionMW、TraceApplication.ListSpans","src":["backend/api/router/coze/loop/apis/coze.loop.apis.go#L22","backend/modules/observability/application/trace.go#L163-L173","frontend/packages/loop-pages/observation-pages/src/pages/trace/trace-render.tsx#L69-L77"],"lim":[]},{"lane":"query","t":"合并过滤并查 ClickHouse","d":"TraceService.ListSpans 合并平台内置过滤（call_type = Custom、root span、workspace）和用户过滤，查 ClickHouse，挂标注，跑平台与过期处理器，返回游标。","via":"domain service、span_filter、TraceRepo、SpansCkDao、span_processor","src":["backend/modules/observability/domain/trace/service/trace_service.go#L1392-L1459","backend/modules/observability/domain/trace/service/trace/span_filter/cozeloop_filter.go#L16-L41","backend/modules/observability/infra/repo/trace.go#L215-L277"],"lim":[]},{"lane":"ui","t":"渲染列表并补 token","d":"前端渲染列表。对 root span 再批量请求 token 汇总。","via":"observation-components 的 trace-list","src":["frontend/packages/loop-components/observation-components/src/features/trace-list/components/queries/table/hooks/use-fetch-traces.tsx#L59-L88","backend/modules/observability/domain/trace/service/trace_service.go#L1657-L1740"],"lim":[]},{"lane":"query","t":"点一行取整条 Trace","d":"前端调 GET /api/observability/v1/traces/:trace_id。后端取该 trace 的全部 span。AttrTosProcessor 把大字段 key 换成签名 URL。","via":"TraceApplication.GetTrace、TraceService.GetTrace、span_processor、file RPC","src":["backend/modules/observability/application/trace.go#L254-L291","backend/modules/observability/domain/trace/service/trace_service.go#L1255-L1344","backend/modules/observability/domain/trace/service/trace/span_processor/attr_tos_processor.go#L23-L72"],"lim":[]},{"lane":"ui","t":"前端组树并渲染详情","d":"前端用 parent_id 组成树，按 span 类型渲染 Run 和 Metadata 页签。","via":"trace-detail、trace-data","src":["frontend/packages/loop-components/observation-components/src/features/trace-detail/utils/span.tsx#L18-L70","frontend/packages/loop-components/observation-components/src/features/trace-detail/components/span-detail/index.tsx#L38-L41"],"lim":[]}]},{"id":"lf-otlp","sys":"lf","name":"Langfuse · OTLP（默认）","d":"默认 events_only 模式。SDK 走 OTLP，直写 events_full。","steps":[{"lane":"ingest","t":"SDK 发 OTLP 请求","d":"调 POST /api/public/otel/v1/traces，要求 traces:create 权限。","via":"Next.js 公共 API 路由","src":["web/src/pages/api/public/otel/v1/traces/index.ts#L26-L33"],"lim":[]},{"lane":"ingest","t":"认证并限流","d":"路由认证（Basic 或 Bearer）并限流。","via":"apiAuth、RateLimitService","src":["web/src/features/public-api/server/apiAuth.ts#L92","web/src/features/public-api/server/RateLimitService.ts#L47-L50"],"lim":["自托管和没有 Redis 时不限流"]},{"lane":"queue","t":"先落 S3，再入 OTLP 队列","d":"请求体先上传到 S3，再进 OtelIngestionQueue。","via":"OtelIngestionProcessor、S3、BullMQ","src":["packages/shared/src/server/otel/OtelIngestionProcessor.ts#L330-L342"],"lim":[]},{"lane":"queue","t":"Worker 判断是否直写 events 表","d":"Worker 按 SDK 版本等规则判断是否直写 events 表。","via":"otelIngestionQueue","src":["worker/src/queues/otelIngestionQueue.ts#L310-L322"],"lim":[]},{"lane":"queue","t":"为每个 span 建事件记录","d":"processOtelEvents 为每个 span 建事件记录，写入 events_full 的写队列。","via":"processOtelEvents","src":["worker/src/features/otel-ingestion/processOtelEvents.ts#L154"],"lim":[]},{"lane":"store","t":"批量落 ClickHouse","d":"ClickhouseWriter 批量落库。events_core 由物化视图填充。","via":"ClickhouseWriter、events_core 物化视图","src":["worker/src/services/ClickhouseWriter/index.ts#L61-L63","packages/shared/clickhouse/migrations/canonical/0041_create_events_core_mv.up.sql#L39-L42"],"lim":[]},{"lane":"eval","t":"（并行）排队评估","d":"若有匹配的评估规则，scheduleObservationEvals 把评估排入队列。","via":"scheduleObservationEvals","src":["worker/src/features/otel-ingestion/processOtelEvents.ts#L134"],"lim":[],"par":true,"from":4},{"lane":"ui","t":"打开 Trace 列表页","d":"页面根据 isV4 选择 ObservationsEventsTable。","via":"TracesPage","src":["web/src/features/traces/TracesPage.tsx#L97-L107"],"lim":[]},{"lane":"query","t":"tRPC 查事件列表","d":"表调 api.events.all。服务端是 events.all 到 getEventList。","via":"useEventsTableData、eventsRouter","src":["web/src/features/events/hooks/useEventsTableData.ts#L106","web/src/features/events/server/eventsRouter.ts#L159-L168"],"lim":[]},{"lane":"store","t":"读 events_core 或 events_full","d":"列表读 events_core（截断版）或 events_full。","via":"query-fragments","src":["packages/shared/src/server/queries/clickhouse-sql/query-fragments.ts#L97"],"lim":[]},{"lane":"ui","t":"点一行进入详情页","d":"进入 /project/[projectId]/traces/[traceId]。","via":"Next.js 页面路由","src":["web/src/pages/project/%5BprojectId%5D/traces/%5BtraceId%5D.tsx#L9"],"lim":[]},{"lane":"ui","t":"详情取全部 span 并建树","d":"详情 hook 调 events.byTraceId 取全部 span。前端建树与时间线。","via":"useEventsTraceData、VirtualizedTree","src":["web/src/features/events/hooks/useEventsTraceData.ts#L62","web/src/features/traces/components/VirtualizedTree.tsx#L87"],"lim":[]}]},{"id":"lf-legacy","sys":"lf","name":"Langfuse · legacy（旧 SDK）","d":"需把 WRITE_MODE 设成 legacy 或 dual。默认 events_only 下，该写入口只收 score-create。","steps":[{"lane":"ingest","t":"SDK 发 batch","d":"调 POST /api/public/ingestion。","via":"Next.js 公共 API 路由","src":["web/src/pages/api/public/ingestion.ts#L56-L70"],"lim":["默认 events_only 下只接受 score-create，其余事件返回 400"]},{"lane":"queue","t":"先落 S3，再入分片队列","d":"事件上传 S3 后，按分片进入 IngestionQueue。","via":"processEventBatch、S3、IngestionQueue","src":["packages/shared/src/server/ingestion/processEventBatch.ts#L276-L332","packages/shared/src/server/ingestion/processEventBatch.ts#L328-L346"],"lim":[]},{"lane":"store","t":"Worker 合并并写旧表","d":"mergeAndWrite 合并事件，写 traces、observations、scores。","via":"IngestionService","src":["worker/src/services/IngestionService/index.ts#L238-L268"],"lim":[]},{"lane":"ui","t":"列表页读 traces 表","d":"TracesTable 调 api.traces.all。","via":"TracesTable","src":["web/src/features/traces/TracesTable.tsx#L525"],"lim":[]},{"lane":"query","t":"详情读 Trace 与 Observation","d":"详情用 traces.byIdWithObservationsAndScores。","via":"traces tRPC router","src":["web/src/server/api/routers/traces.ts#L384"],"lim":[]}]}],"key":[{"ref":"12.2","tone":"cz","t":"后端先行，开源前端只露出 Trace","d":"指标、任务、导出到数据集、thread 与 chat、trajectory 等后端能力，前端业务源码没有调用。"},{"ref":"1.4","tone":"cz","t":"只有 token，没有金额成本","d":"coze-loop 没有单价和计价逻辑。Langfuse 在采集时按模型价格表计算成本。"},{"ref":"2.6","tone":"cz","t":"写入没有限流","d":"coze-loop 的写入入口没有限流，限流只用于查询和标注。Langfuse 有限流，但自托管默认不生效。"},{"ref":"9.1","tone":"both","t":"告警：coze-loop 无，Langfuse 部分","d":"Langfuse 有 Monitor、Webhook、Slack、GitHub dispatch。事件源里没有 Trace 或 Score 创建。"},{"ref":"7.5","tone":"cz","t":"自动评估只有后端","d":"coze-loop 的任务没有前端入口，实时触发缺少生产者【推断】。Langfuse 有页面、公共 API 和队列。"},{"ref":"3.2","tone":"cz","t":"保留策略：一个只记录，一个要授权","d":"coze-loop 建表语句没有 TTL，也没有清理任务。Langfuse 会物理清理，但需要企业权益。"},{"ref":"2.1","tone":"lf","t":"Langfuse 默认 events_only","d":"旧的 JSON 写入口只收 score-create。旧 SDK 要改用 OTLP，或把模式切到 dual。"},{"ref":"4.1","tone":"lf","t":"events_only 下公共 v1 读接口返回 404","d":"只有 v2 observations、v3 scores、v2 metrics 可读。"},{"ref":"6.2","tone":"cz","t":"Session：后端有，前端没接","d":"coze-loop 有 thread 与 chat 接口。Langfuse 有页面和公共 API，但 events_only 下公共 sessions API 返回 404。"}],"limits":["没有运行服务。所有结论来自静态阅读源码。","两个仓库都不含外部 SDK 源码。SDK 侧的批量、重试、限流行为未核实。","coze-loop 没有逐条阅读 trace_field_meta_info 里每个字段的过滤类型，只列了字段名。","商业版（闭源）可能有开源仓库里看不到的前端和后端能力。","状态「–」表示调研没有覆盖该项。它不计入统计，也不代表「无」。"]}</script>
+<script>
+(function () {
+'use strict';
+var D = JSON.parse(document.getElementById('data').textContent);
+var G = D.groups, SYS = D.meta;
+var ST = { y: '有', p: '部分', n: '无', x: '未覆盖' };
+var RANK = { y: 2, p: 1, n: 0 };
+var SYSNAME = { cz: 'coze-loop', lf: 'Langfuse' };
+
+function $(s, r) { return (r || document).querySelector(s); }
+function $$(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
+function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+function safeGet(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } }
+function safeSet(k, v) { try { window.localStorage.setItem(k, v); } catch (e) { /* ignore */ } }
+
+/* ---------- text helpers ---------- */
+function rich(t) {
+  return esc(t).replace(/[A-Za-z0-9_.\/:\[\]@\-]+/g, function (tok) {
+    var m = tok.match(/^(.*?)([.:\-]*)$/), core = m[1], tail = m[2];
+    if (core.length < 2 || !/[A-Za-z]/.test(core)) return tok;
+    if (/[_.\/\[\]@]/.test(core) || /[a-z][A-Z]/.test(core) || /^[A-Z][a-z]+[A-Z]/.test(core) || /:/.test(core)) return '<code>' + core + '</code>' + tail;
+    return tok;
+  });
+}
+function srcLink(sys, src) {
+  var path = src.split('#')[0], frag = src.split('#')[1] || '';
+  var base = path.split('/').pop().replace(/%5B/g, '[').replace(/%5D/g, ']');
+  var label = base + (frag ? ' ' + frag : '');
+  return '<a class="src" target="_blank" rel="noopener" href="' + esc(SYS[sys].base + src) + '" title="' + esc(decodeURIComponent(path) + (frag ? ' ' + frag : '')) + '">' + esc(label) + '</a>';
+}
+function srcs(sys, list) {
+  return list && list.length ? '<div class="srcs">' + list.map(function (s) { return srcLink(sys, s); }).join('') + '</div>' : '';
+}
+function pill(st, extra) { st = st || 'x'; return '<span class="pill ' + st + '">' + ST[st] + (extra || '') + '</span>'; }
+function dot(st) { return '<span class="dot ' + (st || 'x') + '"></span>'; }
+function tag(sys) { return '<span class="tag ' + sys + '">' + SYSNAME[sys] + '</span>'; }
+
+/* ---------- data model ---------- */
+function groupStatus(g, sys) {
+  var v = g.items.map(function (i) { return i[sys] && i[sys].s; }).filter(Boolean);
+  if (!v.length) return null;
+  if (v.every(function (x) { return x === 'y'; })) return 'y';
+  if (v.every(function (x) { return x === 'n'; })) return 'n';
+  return 'p';
+}
+function itemStatus(i, sys) { return i[sys] ? i[sys].s : null; }
+var ITEMS = {};
+G.forEach(function (g) { g.gs = { cz: groupStatus(g, 'cz'), lf: groupStatus(g, 'lf') }; g.items.forEach(function (i) { ITEMS[i.id] = { g: g, i: i }; }); });
+var LAYER = {}; D.layers.forEach(function (l) { LAYER[l.id] = l; });
+function lead(i) {
+  var a = itemStatus(i, 'cz'), b = itemStatus(i, 'lf');
+  if (!a || !b) return { k: 'na', t: '单侧调研' };
+  if (RANK[a] === RANK[b]) return { k: 'eq', t: '持平' };
+  return RANK[a] > RANK[b] ? { k: 'cz', t: 'coze-loop 领先' } : { k: 'lf', t: 'Langfuse 领先' };
+}
+function counts(items, sys) {
+  var c = { y: 0, p: 0, n: 0, x: 0 };
+  items.forEach(function (i) { c[itemStatus(i, sys) || 'x']++; });
+  return c;
+}
+function allItems() { var a = []; G.forEach(function (g) { a = a.concat(g.items); }); return a; }
+function nsrc() {
+  var n = 0;
+  G.forEach(function (g) { g.items.forEach(function (i) { ['cz', 'lf'].forEach(function (s) { if (i[s]) n += i[s].src.length; }); }); g.fix.forEach(function (f) { n += f.src.length; }); });
+  D.paths.forEach(function (p) { p.steps.forEach(function (s) { n += s.src.length; }); });
+  return n;
+}
+
+/* ---------- state ---------- */
+var S = { tab: 'overview', q: '', st: 'all', sys: 'any', diff: false, layer: 'all', selG: null, selI: null, openMap: {}, openCmp: {}, path: 'cz', step: 0, pmode: 'one' };
+function matches(i, g) {
+  var a = itemStatus(i, 'cz'), b = itemStatus(i, 'lf');
+  if (S.layer !== 'all' && g.layer !== S.layer) return false;
+  if (S.st !== 'all') {
+    var want = S.st === 'x' ? null : S.st;
+    var ca = a === want, cb = b === want;
+    if (S.sys === 'cz' ? !ca : S.sys === 'lf' ? !cb : !(ca || cb)) return false;
+  }
+  if (S.diff && !(a && b && RANK[a] !== RANK[b])) return false;
+  if (S.q) {
+    var hay = [g.name, g.q, i.id, i.n, i.d];
+    ['cz', 'lf'].forEach(function (s) { if (i[s]) hay.push(i[s].t, i[s].lim.join(' ')); });
+    hay = hay.join(' ').toLowerCase();
+    var toks = S.q.toLowerCase().split(/\s+/).filter(Boolean);
+    for (var k = 0; k < toks.length; k++) if (hay.indexOf(toks[k]) < 0) return false;
+  }
+  return true;
+}
+function filtered() { return S.q || S.st !== 'all' || S.diff || S.layer !== 'all'; }
+
+/* ---------- theme ---------- */
+var theme = { pref: 'auto' };
+function parentTheme() {
+  try { var p = window.parent && window.parent !== window ? window.parent.document.documentElement.getAttribute('data-theme') : null; if (p) return p; } catch (e) { /* cross-origin */ }
+  return null;
+}
+function resolveTheme() {
+  if (theme.pref === 'light' || theme.pref === 'dark') return theme.pref;
+  var p = parentTheme(); if (p) return p;
+  var s = safeGet('theme'); if (s === 'dark' || s === 'light') return s;
+  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', resolveTheme());
+  var b = $('#themeBtn');
+  b.textContent = { auto: '◐ 主题：自动', light: '☀ 主题：浅色', dark: '☾ 主题：深色' }[theme.pref];
+}
+function initTheme() {
+  var q = (location.search.match(/[?&]theme=(light|dark|auto)/) || [])[1];
+  theme.pref = q || safeGet('obs-theme') || 'auto';
+  applyTheme();
+  $('#themeBtn').addEventListener('click', function () {
+    theme.pref = { auto: 'light', light: 'dark', dark: 'auto' }[theme.pref];
+    safeSet('obs-theme', theme.pref); applyTheme(); redrawLanes();
+  });
+  try {
+    if (window.parent && window.parent !== window) {
+      new MutationObserver(function () { if (theme.pref === 'auto') { applyTheme(); redrawLanes(); } }).observe(window.parent.document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    }
+  } catch (e) { /* ignore */ }
+  if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () { if (theme.pref === 'auto') { applyTheme(); redrawLanes(); } });
+}
+
+/* ---------- shared evidence ---------- */
+function sysEvidence(sys, v, i) {
+  if (!v) return '<div class="evsys na ' + sys + '"><div class="h">' + tag(sys) + pill(null) + '</div><p>调研未覆盖此项，不计入统计。</p></div>';
+  return '<div class="evsys ' + sys + '"><div class="h">' + tag(sys) + pill(v.s) + '</div><p>' + rich(v.t) + '</p>' +
+    v.lim.map(function (l) { return '<div class="lim"><span>' + rich(l) + '</span></div>'; }).join('') + srcs(sys, v.src) + '</div>';
+}
+function evidence(i) {
+  var L = lead(i);
+  return '<div class="ev">' + sysEvidence('cz', i.cz, i) + sysEvidence('lf', i.lf, i) +
+    (i.d ? '<div class="diff"><b>差异</b>　' + rich(i.d) + (L.k === 'na' ? '' : ' <span class="note">（' + L.t + '）</span>') + '</div>' : '') + '</div>';
+}
+
+/* ---------- overview ---------- */
+function sbar(c) {
+  var tot = c.y + c.p + c.n + c.x;
+  return '<div class="sbar" role="img" aria-label="有 ' + c.y + '，部分 ' + c.p + '，无 ' + c.n + '，未覆盖 ' + c.x + '">' + ['y', 'p', 'n', 'x'].map(function (k) { return c[k] ? '<i class="' + k + '" style="width:' + (c[k] * 100 / tot) + '%"></i>' : ''; }).join('') + '</div>';
+}
+function slegend(c) { return '<div class="slegend">' + ['y', 'p', 'n', 'x'].map(function (k) { return '<span>' + dot(k) + ' ' + ST[k] + ' <b>' + c[k] + '</b></span>'; }).join('') + '</div>'; }
+function renderOverview() {
+  var items = allItems(), h = '';
+  h += '<h2>状态概览</h2><div class="stats">';
+  ['cz', 'lf'].forEach(function (s) {
+    var c = counts(items, s), tot = c.y + c.p + c.n;
+    h += '<div class="card stat"><h3>' + tag(s) + '<span class="note">已调研 ' + tot + ' 项</span></h3><div class="big">' + c.y + '<span class="note"> / ' + tot + ' 项「有」</span></div>' + sbar(c) + slegend(c);
+    h += '<div class="layerbars">' + D.layers.map(function (l) {
+      var its = []; G.forEach(function (g) { if (g.layer === l.id) its = its.concat(g.items); });
+      return '<div class="lb"><span>' + esc(l.name) + '</span>' + sbar(counts(its, s)) + '</div>';
+    }).join('') + '</div></div>';
+  });
+  h += '</div>';
+  h += '<h2>12 组能力速览</h2><div class="card"><table class="heat"><thead><tr><th>能力组</th><th>coze-loop</th><th>Langfuse</th><th>一句话</th></tr></thead><tbody>';
+  D.layers.forEach(function (l) {
+    h += '<tr class="lyr"><td colspan="4">' + esc(l.name) + '　<span class="note">' + esc(l.d) + '</span></td></tr>';
+    G.filter(function (g) { return g.layer === l.id; }).forEach(function (g) {
+      h += '<tr class="g" data-g="' + g.id + '" tabindex="0"><td><b>' + g.id + '. ' + esc(g.short) + '</b></td><td>' + pill(g.gs.cz) + '</td><td>' + pill(g.gs.lf) + '</td><td class="note">' + esc(g.q) + '</td></tr>';
+    });
+  });
+  h += '</tbody></table></div>';
+  h += '<h2>关键发现</h2><div class="keys">' + D.key.map(function (k) {
+    var it = ITEMS[k.ref];
+    return '<button class="key ' + k.tone + '" data-ref="' + k.ref + '"><div class="t">' + esc(k.t) + '</div><div class="d">' + rich(k.d) + '</div><div class="go">' + dot(itemStatus(it.i, 'cz')) + dot(itemStatus(it.i, 'lf')) + ' 看证据：' + k.ref + ' ' + esc(it.i.n) + ' →</div></button>';
+  }).join('') + '</div>';
+  h += '<h2>怎么读</h2><div class="card howto">' +
+    '<div><h3>状态</h3><p>' + pill('y') + ' 源码里有完整实现。</p><p>' + pill('p') + ' 有实现，但缺一环，或有限定条件。</p><p>' + pill('n') + ' 已搜索，未找到。</p><p>' + pill('x') + ' 调研没有覆盖，不计入统计。</p></div>' +
+    '<div><h3>组状态怎么来</h3><p>由组内各项推出。全部「有」是「有」，全部「无」是「无」，其余是「部分」。未覆盖的项不参与。</p><p>⚠ 限定只补充说明，不改变状态。</p></div>' +
+    '<div><h3>怎么用</h3><p>「能力地图」按层看 12 组，点任一项打开证据抽屉。</p><p>「并排对照」逐项对比。「数据路径」逐步看数据怎么流。</p><p>共 ' + nsrc() + ' 条源码链接，都指向固定提交。</p></div>' +
+    '</div>';
+  var el = $('#tab-overview'); el.innerHTML = h;
+  $$('.heat tr.g', el).forEach(function (r) {
+    function go() { openGroup(+r.getAttribute('data-g')); }
+    r.addEventListener('click', go); r.addEventListener('keydown', function (e) { if (e.key === 'Enter') go(); });
+  });
+  $$('.key', el).forEach(function (b) { b.addEventListener('click', function () { openItem(b.getAttribute('data-ref')); }); });
+}
+
+/* ---------- filter bar ---------- */
+function fbar(ctx) {
+  var stBtns = [['all', '全部'], ['y', '有'], ['p', '部分'], ['n', '无'], ['x', '未覆盖']].map(function (p) { return '<button type="button" data-st="' + p[0] + '" aria-pressed="' + (S.st === p[0]) + '">' + p[1] + '</button>'; }).join('');
+  var sysBtns = [['any', '任一'], ['cz', 'coze-loop'], ['lf', 'Langfuse']].map(function (p) { return '<button type="button" data-sys="' + p[0] + '" aria-pressed="' + (S.sys === p[0]) + '">' + p[1] + '</button>'; }).join('');
+  var lyBtns = [['all', '全部']].concat(D.layers.map(function (l) { return [l.id, l.name]; })).map(function (p) { return '<button type="button" data-layer="' + p[0] + '" aria-pressed="' + (S.layer === p[0]) + '">' + p[1] + '</button>'; }).join('');
+  return '<div class="fbar" data-ctx="' + ctx + '"><input type="search" placeholder="搜索能力、接口、字段…" aria-label="搜索" value="' + esc(S.q) + '">' +
+    '<span class="grp seg"><span class="lbl">状态</span>' + stBtns + '</span><span class="grp seg"><span class="lbl">系统</span>' + sysBtns + '</span>' +
+    '<span class="grp seg"><span class="lbl">层</span>' + lyBtns + '</span>' +
+    '<button type="button" class="tog" data-diff aria-pressed="' + S.diff + '">只看有差异</button>' +
+    (filtered() ? '<button type="button" class="reset">清除筛选</button>' : '') + '<span class="count" aria-live="polite"></span></div>';
+}
+function bindFbar(root, rerender) {
+  var bar = $('.fbar', root);
+  var inp = $('input', bar);
+  inp.addEventListener('input', function () { S.q = inp.value.trim(); rerender(true); });
+  $$('[data-st]', bar).forEach(function (b) { b.addEventListener('click', function () { S.st = b.getAttribute('data-st'); rerender(); }); });
+  $$('[data-sys]', bar).forEach(function (b) { b.addEventListener('click', function () { S.sys = b.getAttribute('data-sys'); rerender(); }); });
+  $$('[data-layer]', bar).forEach(function (b) { b.addEventListener('click', function () { S.layer = b.getAttribute('data-layer'); rerender(); }); });
+  $('[data-diff]', bar).addEventListener('click', function () { S.diff = !S.diff; rerender(); });
+  var r = $('.reset', bar); if (r) r.addEventListener('click', function () { S.q = ''; S.st = 'all'; S.sys = 'any'; S.diff = false; S.layer = 'all'; rerender(); });
+}
+
+/* ---------- capability map ---------- */
+function renderMap(keepFocus) {
+  var el = $('#tab-map');
+  var focusSearch = keepFocus && document.activeElement && document.activeElement.type === 'search';
+  var caret = focusSearch ? document.activeElement.selectionStart : 0;
+  var total = 0, shown = 0;
+  var h = fbar('map') + '<div class="mapwrap two" id="mapwrap"><div id="layers">';
+  D.layers.forEach(function (l) {
+    var gs = G.filter(function (g) { return g.layer === l.id; }), lyShown = 0, inner = '';
+    gs.forEach(function (g) {
+      var hit = 0;
+      var chips = g.items.map(function (i) {
+        total++; var m = matches(i, g); if (m) { hit++; shown++; }
+        var sel = S.selI === i.id;
+        return '<button type="button" class="chip' + (m ? '' : ' dim') + (sel ? ' sel' : '') + '" data-i="' + i.id + '" title="coze-loop：' + ST[itemStatus(i, 'cz') || 'x'] + ' / Langfuse：' + ST[itemStatus(i, 'lf') || 'x'] + '"><span class="nm"><em>' + i.id + '</em>' + esc(i.n) + '</span><span class="dots">' + dot(itemStatus(i, 'cz')) + dot(itemStatus(i, 'lf')) + '</span></button>';
+      }).join('');
+      lyShown += hit;
+      inner += '<div class="gcard' + (hit || !filtered() ? '' : ' hide') + (S.selG === g.id ? ' sel' : '') + '" data-g="' + g.id + '"><button type="button" class="ghead" data-gh="' + g.id + '"><div class="gn"><em>' + g.id + '</em>' + esc(g.name) + '</div><div class="gq">' + esc(g.q) + '</div><div class="gst"><span class="pill ' + (g.gs.cz || 'x') + '">coze-loop <span>' + ST[g.gs.cz || 'x'] + '</span></span><span class="pill ' + (g.gs.lf || 'x') + '">Langfuse <span>' + ST[g.gs.lf || 'x'] + '</span></span></div></button><div class="chips">' + chips + '</div></div>';
+    });
+    h += '<div class="layer ' + l.id + (lyShown || !filtered() ? '' : ' hide') + '"><h3>' + esc(l.name) + '<small>' + esc(l.d) + '</small></h3><div class="ggrid">' + inner + '</div></div>';
+  });
+  h += '</div><div class="drawer-slot" id="slot"><div class="drawer empty" id="drawer">点任一能力项或能力组，在这里查看结论、状态、源码链接、差异说明与修正。<br><br><span class="note">每个能力项右侧两个圆点：左 = coze-loop，右 = Langfuse。</span><div class="slegend" style="margin-top:8px">' + ['y', 'p', 'n', 'x'].map(function (k) { return '<span>' + dot(k) + ' ' + ST[k] + '</span>'; }).join('') + '</div></div></div></div>';
+  el.innerHTML = h;
+  $('.count', el).textContent = filtered() ? '匹配 ' + shown + ' / ' + total + ' 项' : '共 ' + total + ' 项';
+  bindFbar(el, function (typing) { renderMap(typing); });
+  $$('.chip', el).forEach(function (b) { b.addEventListener('click', function () { openItem(b.getAttribute('data-i')); }); });
+  $$('.ghead', el).forEach(function (b) { b.addEventListener('click', function () { selectGroup(+b.getAttribute('data-gh'), null, true); }); });
+  if (focusSearch) { var inp = $('.fbar input', el); inp.focus(); inp.setSelectionRange(caret, caret); }
+  fillDrawer();
+}
+function drawerHTML(g) {
+  var h = '<div class="dhead"><div><h3>' + g.id + '. ' + esc(g.name) + '</h3><div class="gq">' + esc(g.q) + '</div><div class="gst">' + tag('cz') + pill(g.gs.cz) + ' ' + tag('lf') + pill(g.gs.lf) + ' <span class="tag lyr">' + esc(LAYER[g.layer].name) + '</span></div></div><button class="x" type="button" aria-label="关闭" data-close>×</button></div><div class="dbody">';
+  h += '<div class="sumrow"><div class="sumbox cz"><b>coze-loop 结论</b>' + rich(g.sum.cz) + '</div><div class="sumbox lf"><b>Langfuse 结论</b>' + rich(g.sum.lf) + '</div></div>';
+  h += '<div class="sub">能力项（点开看证据；右侧两个标记依次是 coze-loop、Langfuse）</div><div class="ilist">' + g.items.map(function (i) {
+    var open = !!S.openMap[i.id];
+    return '<div class="irow' + (open ? ' open' : '') + '" data-ir="' + i.id + '"><button type="button" class="itop" aria-expanded="' + open + '"><span class="car">' + (open ? '▾' : '▸') + '</span><span class="nm"><em>' + i.id + '</em>' + esc(i.n) + '</span>' + pill(itemStatus(i, 'cz'), '') .replace('class="pill', 'title="coze-loop" class="pill') + pill(itemStatus(i, 'lf')).replace('class="pill', 'title="Langfuse" class="pill') + '</button>' + (open ? '<div class="ibody">' + evidence(i) + '</div>' : '') + '</div>';
+  }).join('') + '</div>';
+  if (g.fix.length) h += '<div class="sub">对旧笔记的修正</div>' + g.fix.map(fixHTML).join('');
+  if (g.infer.length) h += '<div class="sub">推断（不是源码直接写明的事实）</div>' + g.infer.map(function (x) { return '<div class="infer"><span class="tag inf">【推断】</span> ' + tag(x.sys) + ' ' + rich(x.t) + '</div>'; }).join('');
+  if (g.note) h += '<div class="sub">范围说明</div><div class="note">' + rich(g.note) + '</div>';
+  return h + '</div>';
+}
+function fixHTML(f) {
+  return '<div class="fix">' + tag(f.sys) + '<div class="old">' + rich(f.old) + '</div><div class="now">' + rich(f.now) + '</div>' + srcs(f.sys, f.src) + '</div>';
+}
+function placeDrawer(g) {
+  var wrap = $('#mapwrap'); if (!wrap) return;
+  var d = $('#drawer'), slot = $('#slot');
+  var wide = window.matchMedia('(min-width: 1100px)').matches;
+  wrap.classList.toggle('two', wide);
+  if (!g) { if (d.parentNode !== slot) slot.appendChild(d); slot.style.paddingTop = ''; return; }
+  slot.style.paddingTop = '';
+  if (wide) {
+    if (d.parentNode !== slot) slot.appendChild(d);
+    d.style.gridColumn = '';
+    var card0 = $('.gcard[data-g="' + g.id + '"]', wrap), lay = $('#layers');
+    var off = card0 ? card0.getBoundingClientRect().top - lay.getBoundingClientRect().top : 0;
+    slot.style.paddingTop = Math.max(0, Math.min(off, lay.offsetHeight - d.offsetHeight)) + 'px';
+    return;
+  }
+  var card = $('.gcard[data-g="' + g.id + '"]', wrap);
+  if (card && d.previousSibling !== card) card.parentNode.insertBefore(d, card.nextSibling);
+  d.style.gridColumn = '1 / -1';
+}
+function fillDrawer() {
+  var d = $('#drawer'); if (!d) return;
+  var g = S.selG ? G.filter(function (x) { return x.id === S.selG; })[0] : null;
+  if (!g) { d.className = 'drawer empty'; placeDrawer(null); return; }
+  var wide = window.matchMedia('(min-width: 1100px)').matches;
+  var scroll = wide && $('.dbody', d) ? $('.dbody', d).scrollTop : 0;
+  d.className = 'drawer'; d.innerHTML = drawerHTML(g);
+  placeDrawer(g);
+  if (wide && $('.dbody', d)) $('.dbody', d).scrollTop = scroll;
+  $('[data-close]', d).addEventListener('click', function () { S.selG = null; S.selI = null; syncHash(); renderMap(); });
+  $$('.irow', d).forEach(function (r) {
+    $('.itop', r).addEventListener('click', function () { var id = r.getAttribute('data-ir'); S.openMap[id] = !S.openMap[id]; S.selI = S.openMap[id] ? id : null; syncHash(); renderMap(); });
+  });
+  $$('.gcard', $('#layers')).forEach(function (c) { c.classList.toggle('sel', +c.getAttribute('data-g') === S.selG); });
+  $$('.chip', $('#layers')).forEach(function (c) { c.classList.toggle('sel', c.getAttribute('data-i') === S.selI); });
+}
+function selectGroup(gid, itemId, scroll) {
+  S.selG = gid; S.selI = itemId;
+  if (itemId) S.openMap[itemId] = true;
+  syncHash(); renderMap();
+  if (scroll) { var d = $('#drawer'); if (d && !window.matchMedia('(min-width: 1100px)').matches) d.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+}
+function openGroup(gid) { setTab('map'); selectGroup(gid, null, true); }
+function openItem(id) {
+  var it = ITEMS[id]; if (!it) return;
+  S.q = ''; S.st = 'all'; S.sys = 'any'; S.diff = false; S.layer = 'all';
+  setTab('map'); selectGroup(it.g.id, id, true);
+}
+
+/* ---------- compare ---------- */
+function renderCmp(keepFocus) {
+  var el = $('#tab-cmp');
+  var focusSearch = keepFocus && document.activeElement && document.activeElement.type === 'search';
+  var caret = focusSearch ? document.activeElement.selectionStart : 0;
+  var total = 0, shown = 0;
+  var h = fbar('cmp') + '<div class="cmp"><div class="chead"><div>能力项</div><div class="c1">coze-loop</div><div class="c2">Langfuse</div></div>';
+  var body = '';
+  G.forEach(function (g) {
+    var rows = g.items.filter(function (i) { total++; var m = matches(i, g); if (m) shown++; return m; });
+    if (!rows.length) return;
+    body += '<div class="cgroup" data-g="' + g.id + '" title="打开能力地图中的证据抽屉"><div class="gname"><em>' + esc(LAYER[g.layer].name) + '</em>' + g.id + '. ' + esc(g.name) + '</div><div class="sm">' + pill(g.gs.cz) + '<br>' + rich(g.sum.cz) + '</div><div class="sm">' + pill(g.gs.lf) + '<br>' + rich(g.sum.lf) + '</div></div>';
+    rows.forEach(function (i) {
+      var L = lead(i), open = !!S.openCmp[i.id];
+      function cell(sys) {
+        var v = i[sys];
+        return '<div><span class="lab ' + sys + '">' + SYSNAME[sys] + '</span>' + pill(v && v.s) + (v && v.lim.length ? ' <span class="note" title="' + esc(v.lim.join('；')) + '">⚠ ' + v.lim.length + ' 条限定</span>' : '') + '<div class="snip">' + (v ? rich(v.t.split('。')[0] + '。') : '<span class="note">调研未覆盖</span>') + '</div></div>';
+      }
+      body += '<div class="citem' + (open ? ' open' : '') + '" data-i="' + i.id + '"><button type="button" class="crow" aria-expanded="' + open + '"><div class="nm"><em>' + i.id + '</em>' + esc(i.n) + '<span class="lead ' + L.k + '">' + L.t + '</span></div>' + cell('cz') + cell('lf') + '</button><div class="cxp">' + (open ? evidence(i) : '') + '</div></div>';
+    });
+  });
+  h += (body || '<div class="empty">没有匹配的能力项。试试清除筛选。</div>') + '</div>';
+  el.innerHTML = h;
+  $('.count', el).textContent = filtered() ? '匹配 ' + shown + ' / ' + total + ' 项' : '共 ' + total + ' 项';
+  bindFbar(el, function (typing) { renderCmp(typing); });
+  $$('.cgroup', el).forEach(function (r) { r.addEventListener('click', function () { openGroup(+r.getAttribute('data-g')); }); });
+  $$('.citem', el).forEach(function (r) {
+    $('.crow', r).addEventListener('click', function () {
+      var id = r.getAttribute('data-i'); S.openCmp[id] = !S.openCmp[id]; r.classList.toggle('open', S.openCmp[id]);
+      $('.crow', r).setAttribute('aria-expanded', S.openCmp[id]);
+      $('.cxp', r).innerHTML = S.openCmp[id] ? evidence(ITEMS[id].i) : '';
+    });
+  });
+  if (focusSearch) { var inp = $('.fbar input', el); inp.focus(); inp.setSelectionRange(caret, caret); }
+}
+
+/* ---------- paths ---------- */
+var LANE_ORDER = ['ingest', 'queue', 'eval', 'store', 'query', 'ui'];
+function pathById(id) { return D.paths.filter(function (p) { return p.id === id; })[0]; }
+function parentOf(p, k, rs) {
+  var s = p.steps[k];
+  if (s.from !== undefined) return s.from;
+  var j;
+  if (k === rs) { for (j = k - 1; j >= 0; j--) if (p.steps[j].lane === 'store') return j; }
+  for (j = k - 1; j >= 0; j--) if (!p.steps[j].par) return j;
+  return 0;
+}
+function readStart(p) { for (var k = 0; k < p.steps.length; k++) if (p.steps[k].lane === 'ui') return k; return p.steps.length; }
+function stepDetail(p, k) {
+  var s = p.steps[k];
+  return '<div class="ph"><span class="nbadge">' + (k + 1) + '</span><b>' + esc(s.t) + '</b></div><div class="ph"><span class="tag lyr">' + esc(D.lanes[s.lane]) + '</span><span class="tag lyr">' + (k < readStart(p) ? '写入路径' : '读取路径') + '</span></div><p style="margin:6px 0">' + rich(s.d) + '</p><div class="via"><b>经过：</b>' + rich(s.via) + '</div>' +
+    s.lim.map(function (l) { return '<div class="lim"><span>' + rich(l) + '</span></div>'; }).join('') + srcs(p.sys, s.src);
+}
+function renderPath() {
+  var el = $('#tab-path');
+  var p = pathById(S.path);
+  var h = '<div class="pbar"><span class="seg">' + D.paths.map(function (x) { return '<button type="button" data-p="' + x.id + '" aria-pressed="' + (S.pmode === 'one' && S.path === x.id) + '">' + esc(x.name) + '</button>'; }).join('') + '<button type="button" data-p="side" aria-pressed="' + (S.pmode === 'side') + '">三条并排</button></span>';
+  if (S.pmode === 'one') {
+    h += '<span class="stepper"><button type="button" data-prev ' + (S.step === 0 ? 'disabled' : '') + '>‹ 上一步</button><span class="pos">' + (S.step + 1) + ' / ' + p.steps.length + '</span><button type="button" data-next ' + (S.step === p.steps.length - 1 ? 'disabled' : '') + '>下一步 ›</button></span><span class="pdesc">' + rich(p.d) + '</span>';
+  } else h += '<span class="pdesc">点任一步骤，跳到该路径的逐步视图。</span>';
+  h += '</div>';
+  if (S.pmode === 'side') {
+    h += '<div class="side">' + D.paths.map(function (x) {
+      var rs = readStart(x);
+      return '<div class="col"><h3>' + esc(x.name) + '</h3><div class="cnt">' + x.steps.length + ' 步　' + rich(x.d) + '</div>' + x.steps.map(function (s, k) {
+        return (k === 0 ? '<div class="mphase">写入路径</div>' : '') + (k === rs ? '<div class="mphase">读取路径</div>' : '') + '<button type="button" class="mini" data-p="' + x.id + '" data-k="' + k + '"><span class="nbadge">' + (k + 1) + '</span><span><span class="lane">' + esc(D.lanes[s.lane]) + '</span>' + esc(s.t) + '</span></button>';
+      }).join('') + '</div>';
+    }).join('') + '</div>';
+    el.innerHTML = h; bindPath(el); return;
+  }
+  var lanes = LANE_ORDER.filter(function (l) { return p.steps.some(function (s) { return s.lane === l; }); });
+  var rs = readStart(p);
+  h += '<div class="pwrap"><div><div class="lanes" id="lanes" style="--n:' + lanes.length + '"><div class="lhead">' + lanes.map(function (l) { return '<div>' + esc(D.lanes[l]) + '</div>'; }).join('') + '</div>';
+  p.steps.forEach(function (s, k) {
+    if (k === 0) h += '<div class="phase">写入路径：数据怎么进来</div>';
+    if (k === rs) h += '<div class="phase">读取路径：数据怎么显示</div>';
+    h += '<div class="lrow">' + lanes.map(function (l) {
+      return '<div>' + (l === s.lane ? '<button type="button" class="node' + (k === S.step ? ' on' : '') + (k < S.step ? ' done' : '') + '" data-k="' + k + '"><span class="nbadge">' + (k + 1) + '</span><span>' + esc(s.t) + '</span></button>' : '') + '</div>';
+    }).join('') + '</div>';
+  });
+  h += '<svg class="lanesvg" id="lsvg" aria-hidden="true"></svg></div>';
+  h += '<div class="tl"><ol>' + p.steps.map(function (s, k) {
+    return (k === 0 ? '<li style="padding:0"><div class="phase">写入路径</div></li>' : '') + (k === rs ? '<li style="padding:0"><div class="phase">读取路径</div></li>' : '') + '<li class="' + (k === S.step ? 'on' : '') + '" data-k="' + k + '"><span class="nbadge">' + (k + 1) + '</span><button type="button" class="tbtn" data-k="' + k + '"><span class="lane">' + esc(D.lanes[s.lane]) + '</span>' + esc(s.t) + '</button><div class="inl"><div class="bd">' + (k === S.step ? stepDetail(p, k) : '') + '</div></div></li>';
+  }).join('') + '</ol></div></div>';
+  h += '<div class="drawer pdetail"><div class="dhead"><div><h3>' + esc(p.name) + '</h3><div class="gq">步骤详情</div></div></div><div class="bd">' + stepDetail(p, S.step) + '</div></div></div>';
+  el.innerHTML = h; bindPath(el); redrawLanes();
+}
+function bindPath(el) {
+  $$('[data-p]', el).forEach(function (b) {
+    b.addEventListener('click', function () {
+      var id = b.getAttribute('data-p'), k = b.getAttribute('data-k');
+      if (id === 'side') { S.pmode = 'side'; } else { S.pmode = 'one'; S.path = id; S.step = k !== null ? +k : 0; }
+      syncHash(); renderPath();
+    });
+  });
+  $$('.node, .tbtn', el).forEach(function (b) { b.addEventListener('click', function () {
+    S.step = +b.getAttribute('data-k'); syncHash(); renderPath();
+    var wide = window.matchMedia('(min-width: 1100px)').matches, narrow = window.matchMedia('(max-width: 720px)').matches;
+    if (!wide && !narrow) { var d = $('.pdetail'); if (d && d.scrollIntoView) d.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+  }); });
+  var pv = $('[data-prev]', el), nx = $('[data-next]', el);
+  if (pv) pv.addEventListener('click', function () { if (S.step > 0) { S.step--; syncHash(); renderPath(); } });
+  if (nx) nx.addEventListener('click', function () { if (S.step < pathById(S.path).steps.length - 1) { S.step++; syncHash(); renderPath(); } });
+}
+function alignDetail() {
+  var det = $('.pdetail'), box = $('#lanes'), node = $('.node.on');
+  if (!det) return;
+  det.style.marginTop = '';
+  if (!box || box.offsetParent === null || !node || !window.matchMedia('(min-width: 1100px)').matches) return;
+  var off = node.getBoundingClientRect().top - box.getBoundingClientRect().top;
+  det.style.marginTop = Math.max(0, Math.min(off, box.offsetHeight - det.offsetHeight)) + 'px';
+}
+function redrawLanes() {
+  alignDetail();
+  var svg = $('#lsvg'), box = $('#lanes');
+  if (!svg || !box || box.offsetParent === null) return;
+  var rect = box.getBoundingClientRect(), nodes = $$('.node', box), css = getComputedStyle(document.documentElement);
+  var out = '<defs><marker id="arr" viewBox="0 0 8 8" refX="7" refY="4" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L8 4 L0 8 z"/></marker></defs>';
+  var p = pathById(S.path), rs = readStart(p);
+  for (var k = 1; k < nodes.length; k++) {
+    var par = parentOf(p, k, rs);
+    var a = nodes[par].getBoundingClientRect(), b = nodes[k].getBoundingClientRect();
+    var x1 = a.left + a.width / 2 - rect.left, y1 = a.bottom - rect.top, x2 = b.left + b.width / 2 - rect.left, y2 = b.top - rect.top, my = (y1 + y2) / 2;
+    var act = (k === S.step);
+    out += '<path class="' + (act ? 'act ' : '') + (k === rs ? 'dash' : '') + '" marker-end="url(#arr)" d="M' + x1 + ' ' + y1 + ' C' + x1 + ' ' + my + ' ' + x2 + ' ' + my + ' ' + x2 + ' ' + (y2 - 1) + '"/>';
+  }
+  svg.setAttribute('viewBox', '0 0 ' + rect.width + ' ' + rect.height);
+  svg.innerHTML = out;
+}
+
+/* ---------- notes ---------- */
+function renderNotes() {
+  var fixes = [], infers = [];
+  G.forEach(function (g) { g.fix.forEach(function (f) { fixes.push({ g: g, f: f }); }); g.infer.forEach(function (x) { infers.push({ g: g, x: x }); }); });
+  var h = '<h2>对旧笔记的修正（' + fixes.length + ' 条）</h2><div class="note" style="margin-bottom:8px">旧笔记指本次调研之前的 Trace 设计笔记。两者冲突时，以新调研为准。</div>';
+  h += fixes.map(function (e) {
+    return '<div class="card ncard">' + fixHTML(e.f) + '<div class="ref">来自能力组 <button type="button" data-g="' + e.g.id + '">' + e.g.id + '. ' + esc(e.g.short) + '</button></div></div>';
+  }).join('');
+  h += '<h2>推断（' + infers.length + ' 条）</h2><div class="note" style="margin-bottom:8px">推断不是源码直接写明的事实。每条都给出依据。</div>';
+  h += '<div class="two-col">' + ['cz', 'lf'].map(function (s) {
+    return '<div><h3>' + tag(s) + '</h3>' + infers.filter(function (e) { return e.x.sys === s; }).map(function (e) {
+      return '<div class="infer"><span class="tag inf">【推断】</span> ' + rich(e.x.t) + '<div class="ref" style="font-size:12.5px;margin-top:3px"><span class="note">能力组</span> <button type="button" data-g="' + e.g.id + '" style="border:0;background:transparent;color:var(--accent);text-decoration:underline;padding:0">' + e.g.id + '. ' + esc(e.g.short) + '</button></div></div>';
+    }).join('') + '</div>';
+  }).join('') + '</div>';
+  h += '<h2>范围与限制</h2><div class="card"><ul class="limits">' + D.limits.map(function (t) { return '<li>' + rich(t) + '</li>'; }).join('') + '</ul></div>';
+  var el = $('#tab-notes'); el.innerHTML = h;
+  $$('button[data-g]', el).forEach(function (b) { b.addEventListener('click', function () { openGroup(+b.getAttribute('data-g')); }); });
+}
+
+/* ---------- tabs and hash ---------- */
+var RENDER = { overview: renderOverview, map: renderMap, cmp: renderCmp, path: renderPath, notes: renderNotes };
+var rendered = {};
+function setTab(t) {
+  S.tab = t;
+  $$('#nav button').forEach(function (b) { b.setAttribute('aria-selected', b.getAttribute('data-tab') === t); });
+  $$('section.tab').forEach(function (s) { s.classList.toggle('on', s.id === 'tab-' + t); });
+  RENDER[t](); rendered[t] = true;
+  syncHash();
+}
+function syncHash() {
+  var h = '#' + S.tab;
+  if (S.tab === 'map' && S.selG) h += '/' + (S.selI || S.selG);
+  if (S.tab === 'path') h += '/' + (S.pmode === 'side' ? 'side' : S.path + '/' + (S.step + 1));
+  if (history.replaceState) { try { history.replaceState(null, '', location.pathname + location.search + h); } catch (e) { /* ignore */ } }
+}
+function readHash() {
+  var m = location.hash.replace(/^#/, '').split('/');
+  if (!RENDER[m[0]]) return;
+  S.tab = m[0];
+  if (m[0] === 'map' && m[1]) {
+    if (ITEMS[m[1]]) { S.selG = ITEMS[m[1]].g.id; S.selI = m[1]; S.openMap[m[1]] = true; } else if (+m[1]) S.selG = +m[1];
+  }
+  if (m[0] === 'path' && m[1]) {
+    if (m[1] === 'side') S.pmode = 'side';
+    else if (pathById(m[1])) { S.path = m[1]; S.step = Math.max(0, Math.min(pathById(m[1]).steps.length - 1, (+m[2] || 1) - 1)); }
+  }
+}
+
+function init() {
+  initTheme();
+  $('#meta').innerHTML = ['cz', 'lf'].map(function (s) { return '<span>' + SYSNAME[s] + ' @ <a target="_blank" rel="noopener" href="' + SYS[s].tree + '">' + SYS[s].sha.slice(0, 8) + '</a></span>'; }).join('') +
+    '<span>' + G.length + ' 组能力 · ' + allItems().length + ' 项 · ' + nsrc() + ' 条源码链接</span>' +
+    '<span>文档版：<a href="../../research/ai-infra/observability-feature-design/">总览</a> / <a href="../../research/ai-infra/observability-feature-design/comparison/">对照表</a></span>';
+  $$('#nav button').forEach(function (b) { b.addEventListener('click', function () { setTab(b.getAttribute('data-tab')); }); });
+  readHash();
+  setTab(S.tab);
+  var rt; window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { if (S.tab === 'map') fillDrawer(); if (S.tab === 'path') redrawLanes(); }, 80); });
+  window.addEventListener('hashchange', function () { readHash(); setTab(S.tab); });
+  document.addEventListener('keydown', function (e) {
+    if (S.tab !== 'path' || S.pmode !== 'one' || /input|textarea/i.test((e.target || {}).tagName || '')) return;
+    var n = pathById(S.path).steps.length;
+    if (e.key === 'ArrowRight' && S.step < n - 1) { S.step++; syncHash(); renderPath(); } else if (e.key === 'ArrowLeft' && S.step > 0) { S.step--; syncHash(); renderPath(); }
+  });
+}
+D.lanes = D.lanes || {};
+init();
+})();
+</script>
+</body>
+</html>
