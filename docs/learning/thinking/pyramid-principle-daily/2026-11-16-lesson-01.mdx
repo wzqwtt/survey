@@ -1,0 +1,148 @@
+---
+series: pyramid
+sidebar_position: 2
+sidebar_label: 第01课
+title: 第1课：先说结论，再给理由
+description: 先把结论说清楚，再给出支撑这个结论的理由。
+tags: [金字塔原理, 每日学习]
+date: 2026-11-16
+lesson: 1
+one_liner: 先把结论说清楚，再给出支撑这个结论的理由。
+---
+
+import PyramidSeriesRoot from '@site/src/components/pyramid-series/PyramidSeriesRoot';
+import LessonChrome from '@site/src/components/pyramid-series/LessonChrome';
+import CourseRoadmap from '@site/src/components/pyramid-series/CourseRoadmap';
+import LessonHero from '@site/src/components/pyramid-series/LessonHero';
+import PyramidDiagram from '@site/src/components/pyramid-series/PyramidDiagram';
+import CaseCompare from '@site/src/components/pyramid-series/CaseCompare';
+import MicroExercise from '@site/src/components/pyramid-series/MicroExercise';
+import CollapsiblePanel from '@site/src/components/pyramid-series/CollapsiblePanel';
+import ReviewPrompt from '@site/src/components/pyramid-series/ReviewPrompt';
+import diagram from '@site/src/data/pyramid-lesson-01-diagram.json';
+
+<PyramidSeriesRoot>
+
+<LessonChrome
+  seriesTitle="《金字塔原理》每日一小课"
+  lessonLabel="第1课：先说结论，再给理由"
+  designMinutes="3 到 5 分钟"
+  localeDate="2026-11-16"
+/>
+
+<CourseRoadmap currentLesson={1} />
+
+<LessonHero oneLiner="先把结论说清楚，再给出支撑这个结论的理由。" />
+
+## 为什么先说结论
+
+读者先想知道你的判断。  
+你先给出结论，读者才知道后面的理由要支撑什么。
+
+Barbara Minto 官网说明：把想法组织成一个金字塔，顶上只有一个总观点，读者更容易抓住思路。  
+向别人表达时，你要带读者从金字塔顶端往下走。
+
+思考的顺序常常相反。  
+你往往先看到事实，再抽出见解，最后形成总观点。  
+表达时不要按发现过程原样倒出。  
+先给顶端的结论，再给下层的理由，再按需要补底层事实。
+
+今天先练「先说结论」。  
+后面的课再练：如何收成一个总观点、如何回答读者的问题、如何检查分组。
+
+<PyramidDiagram data={diagram} />
+
+<CaseCompare
+  scene="场景：两位同事本来约好周末去商场吃饭逛街。其中一人建议改去看一个展览。"
+  verbose="今天下午地铁好挤。我想到时候商场门口可能又要排队。天气预报说周末会热，不过也不至于下大雨。前两天有人跟我提起一个展览，票好像不太贵，展厅旁边还有家面馆。我们其实也没有非买东西不可。上次去商场就是走得很累，最后也没决定买什么。你要是不想改也行，我就是随便说说。对了，展览好像要提前在网上预约。"
+  conclusion="这个周末我们改去看展，不按原计划只逛商场。"
+  reasons={[
+    {
+      title: '理由 1：这次见面更适合围绕看展，而不是以逛买为主。',
+      facts: ['我们其实也没有非买东西不可。', '前两天有人跟我提起一个展览。'],
+    },
+    {
+      title: '理由 2：逛商场那一路的体验可能比较折腾。',
+      facts: ['我想到时候商场门口可能又要排队。', '上次去商场就是走得很累，最后也没决定买什么。'],
+    },
+    {
+      title: '理由 3：看展前还要先核对预约等信息。',
+      facts: ['票好像不太贵。', '展厅旁边还有家面馆。', '展览好像要提前在网上预约。'],
+    },
+  ]}
+  compareNotes={[
+    '啰嗦版：先堆情况，建议藏在后面，还带一句「随便说说」。',
+    '结构版：先给结论，再给理由；事实各归其位，不补新情节。',
+    '两版只用同一组虚构细节；差别是表达顺序与分层，不是多出秘密信息。',
+  ]}
+/>
+
+<MicroExercise
+  prompt="下面哪一句更接近「先说结论，再给理由」？"
+  options={[
+    {
+      id: 'A',
+      text: '最近有点累，路上也可能堵车，餐厅周末不一定有位。我们要不要改期？如果改期，我再看哪天方便。',
+    },
+    {
+      id: 'B',
+      text: '我们把周五的聚餐改到下周三。周五下班后大家都容易迟到，下周三附近的餐厅也更好订位。',
+    },
+    {
+      id: 'C',
+      text: '周五晚上地铁更挤。上周有人迟到了二十分钟。那家餐厅周末评价还不错。下周三我要开会。附近还有另一家店。',
+    },
+  ]}
+  correctId="B"
+  explanation="B 先给出判断（改到下周三），再给理由。A 先堆担心，结论含糊。C 只罗列信息，没有先给出判断。"
+/>
+
+<ReviewPrompt
+  questions={[
+    '我刚才想表达的结论，是不是第一句就出现了？',
+    '后面的句子，是不是在支撑这个结论？',
+  ]}
+/>
+
+<CollapsiblePanel title="适用边界">
+  <p>这一课只教一个起点，不是完整方法。</p>
+  <ul>
+    <li>官网把该方法用于你向读者提供思考的文件，例如邮件、备忘录、报告和幻灯片。</li>
+    <li>先说结论，是为了让读者更容易抓住总观点。它不是让你在所有场合都显得生硬。</li>
+    <li>先说结论，不能代替可靠的理由和事实。顶层判断仍需要下层支撑。</li>
+    <li>完整方法还包括读者问题、分组检查、问题界定和行动建议等，留到后续课。</li>
+    <li>中文课文只借鉴 ASD-STE100 的简明写法，不是该标准的认证文本。</li>
+  </ul>
+</CollapsiblePanel>
+
+<CollapsiblePanel title="可靠来源">
+  <ul>
+    <li>
+      <a href="https://www.barbaraminto.com/">Barbara Minto 官网首页</a>：把想法组织成金字塔，顶上只有一个总观点，读者更容易抓住思路。
+    </li>
+    <li>
+      <a href="https://www.barbaraminto.com/concept">概念页</a>：整理思考时常从低层事实向上收拢；表达时带读者从顶端往下走。
+    </li>
+    <li>
+      <a href="https://www.barbaraminto.com/textbook">教材页</a>：说明为什么用金字塔，以及如何用规则发展思考。本课不引用页码。
+    </li>
+    <li>
+      <a href="https://www.barbaraminto.com/course">课程页</a>：完整方法还包括读者问题、分组检查、问题界定和行动建议。
+    </li>
+    <li>
+      <a href="https://www.pearson.com/en-gb/subject-catalog/p/the-pyramid-principle/P200000015259/9781292763255">
+        Pearson 书目页
+      </a>
+      ：公开介绍强调先组织思考，再用金字塔结构表达。该页目录不是本课程表。
+    </li>
+    <li>
+      <a href="https://www.asd-ste100.org/">ASD-STE100</a> 与{' '}
+      <a href="https://www.asd-europe.org/standards-specifications/simplified-technical-english/what-are-the-basics-of-simplified-technical-english/">
+        ASD 简介
+      </a>
+      ：只用于说明课文写法的借鉴来源。
+    </li>
+  </ul>
+</CollapsiblePanel>
+
+</PyramidSeriesRoot>

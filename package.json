@@ -10,7 +10,9 @@
     "serve": "docusaurus serve",
     "clear": "docusaurus clear",
     "swizzle": "docusaurus swizzle",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "test:pyramid-lesson": "node --test scripts/validate-pyramid-lesson.test.mjs",
+    "validate:pyramid-lesson": "node scripts/validate-pyramid-lesson.mjs"
   },
   "dependencies": {
     "@docusaurus/core": "3.10.2",

@@ -62,6 +62,9 @@ export type Article = {
   lastUpdatedAt: number | null;
   /** False for overview pages and docs with `reading_meta: false`. */
   showMeta: boolean;
+  /** Daily lesson number when `lesson` front matter is set. */
+  lesson: number | null;
+  oneLiner: string | null;
 };
 
 export type KnowledgeIndex = {

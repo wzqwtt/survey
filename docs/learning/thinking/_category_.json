@@ -1,0 +1,13 @@
+{
+  "label": "思维与表达",
+  "position": 4,
+  "description": "结构化思考与清晰表达的学习笔记。",
+  "link": {
+    "type": "generated-index",
+    "slug": "/learning/thinking",
+    "description": "结构化思考与清晰表达的学习笔记。"
+  },
+  "customProps": {
+    "badge": "思"
+  }
+}
