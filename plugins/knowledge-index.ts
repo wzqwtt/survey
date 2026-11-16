@@ -281,6 +281,16 @@ export default function knowledgeIndexPlugin(context: LoadContext, rawOptions: u
         const category = section?.categories.find((c) => c.key === categoryKey);
         const isSectionRoot = doc.sourceDirName === sectionKey && isIndexDoc(doc);
         const {words, minutes} = readingOf(doc);
+        const lessonRaw = doc.frontMatter.lesson;
+        const lesson =
+          typeof lessonRaw === 'number'
+            ? lessonRaw
+            : typeof lessonRaw === 'string' && lessonRaw.trim() !== ''
+              ? Number(lessonRaw)
+              : null;
+        const oneLiner =
+          typeof doc.frontMatter.one_liner === 'string' ? doc.frontMatter.one_liner : null;
+
         return {
           title: doc.title,
           permalink: withSlash(doc.permalink),
@@ -292,6 +302,8 @@ export default function knowledgeIndexPlugin(context: LoadContext, rawOptions: u
           readingMinutes: minutes,
           lastUpdatedAt: doc.lastUpdatedAt ?? null,
           showMeta: !isSectionRoot && doc.frontMatter.reading_meta !== false,
+          lesson: lesson != null && !Number.isNaN(lesson) ? lesson : null,
+          oneLiner,
         };
       });
 
