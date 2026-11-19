@@ -78,6 +78,10 @@ export function validateLessonFile(filePath, root = process.cwd()) {
     errors.push(...validateLesson02Content(text));
   }
 
+  if (fm?.lesson === '3') {
+    errors.push(...validateLesson03Content(text));
+  }
+
   return {ok: errors.length === 0, errors, rel};
 }
 
@@ -119,6 +123,66 @@ export function validateLesson02Content(text) {
     if (/id:\s*'B'[\s\S]*?周四我要外出半天/.test(microBlock)) {
       errors.push('MicroExercise B 选项正文含与改期冲突的「周四外出半天」');
     }
+  }
+
+  return errors;
+}
+
+/**
+ * Lesson 3 semantics: top-down walk, fictional cases, exercise B layered.
+ */
+export function validateLesson03Content(text) {
+  const errors = [];
+
+  if (!/原创虚构/.test(text)) {
+    errors.push('第3课正文应标明案例为原创虚构（非原书/非真实事件）');
+  }
+
+  if (!/啰嗦版已经先说了结论/.test(text)) {
+    errors.push('compareNotes 应点明啰嗦版已有结论但结论后堆细节');
+  }
+
+  if (/本课只教.*先说结论/.test(text) || /今天只练先说结论/.test(text)) {
+    errors.push('本课要点是带读者走下金字塔，不应把全文重心写成仅教「先说结论」');
+  }
+
+  const hedgeTokens = ['好像', '不确定', '有人说'];
+  for (const token of hedgeTokens) {
+    if (!text.includes(token)) {
+      errors.push(`CaseCompare/verbose 应保留「${token}」等原样措辞`);
+    }
+  }
+
+  if (/主管反对切换|主管坚持不换|主管不许切换/.test(text)) {
+    errors.push('理由 3 不能把「主管可以评估」升格为主管反对切换');
+  }
+
+  if (!/correctId="B"/.test(text)) {
+    errors.push('MicroExercise 正确答案应为 B');
+  }
+
+  const microBlock = text.includes('<MicroExercise')
+    ? text.slice(text.indexOf('<MicroExercise'), text.indexOf('/>', text.indexOf('<MicroExercise')) + 2)
+    : '';
+
+  if (microBlock && !/id:\s*'B'[\s\S]*?往返更轻松/.test(microBlock)) {
+    errors.push('MicroExercise B 应体现结论加分层理由与对应事实');
+  }
+
+  if (microBlock && /id:\s*'A'/.test(microBlock) && !/id:\s*'A'[\s\S]*?这次团建/.test(microBlock)) {
+    errors.push('MicroExercise A 应先给结论但细节未分层');
+  }
+
+  if (/p\.\s*\d+|第\s*\d+\s*页|页码\s*\d+/.test(text)) {
+    errors.push('第3课不应编造具体引语页码');
+  }
+
+  if (/本课已讲完读者问题|已掌握分组检查|今天讲完读者问题/.test(text)) {
+    errors.push('不要把读者问题、分组检查写成本课已讲完');
+  }
+
+  if (!/留到后续课/.test(text)) {
+    errors.push('读者问题、分组检查等应明确留到后续课');
   }
 
   return errors;
