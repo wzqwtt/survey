@@ -74,7 +74,54 @@ export function validateLessonFile(filePath, root = process.cwd()) {
     if (!text.includes(marker)) errors.push(`Missing block marker: ${marker}`);
   }
 
+  if (fm?.lesson === '2') {
+    errors.push(...validateLesson02Content(text));
+  }
+
   return {ok: errors.length === 0, errors, rel};
+}
+
+/**
+ * Lesson 2 semantics: fictional cases, coherent exercise options, unrelated side topics.
+ */
+export function validateLesson02Content(text) {
+  const errors = [];
+
+  if (!/原创虚构|虚构教学例子/.test(text)) {
+    errors.push('第2课正文应标明案例为原创虚构（非原书/非真实事件）');
+  }
+
+  if (text.includes('一篇表达只能有一个总观点')) {
+    errors.push('避免「一篇表达只能有一个总观点」的绝对表述，应限定为单次论证/表达单元');
+  }
+
+  if (text.includes('完全等量')) {
+    errors.push('compareNotes 不应使用「完全等量」类表述');
+  }
+
+  if (/并不支撑改期/.test(text) && /空调/.test(text)) {
+    errors.push('CaseCompare：空调与演示体验可能相关改期，不宜与「并不支撑改期」并用');
+  }
+
+  if (!/报销/.test(text)) {
+    errors.push('CaseCompare 旁支应使用与改期无关的报销截止类提醒');
+  }
+
+  const optionB = text.match(
+    /\{\s*id:\s*'B',\s*text:\s*'([^']*)'/,
+  )?.[1];
+  if (optionB && /改到周四/.test(optionB) && /周四我要外出半天/.test(optionB)) {
+    errors.push('MicroExercise B：「改到周四」不能与「周四外出半天」作为同日支撑');
+  }
+
+  if (text.includes('correctId="B"') && text.includes('周四我要外出半天')) {
+    const microBlock = text.slice(text.indexOf('<MicroExercise'), text.indexOf('/>', text.indexOf('<MicroExercise')) + 2);
+    if (/id:\s*'B'[\s\S]*?周四我要外出半天/.test(microBlock)) {
+      errors.push('MicroExercise B 选项正文含与改期冲突的「周四外出半天」');
+    }
+  }
+
+  return errors;
 }
 
 function main() {

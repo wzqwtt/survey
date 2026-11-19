@@ -1,0 +1,158 @@
+---
+series: pyramid
+sidebar_position: 3
+sidebar_label: 第02课
+title: 第2课：全篇只服务一个总观点
+description: 一篇表达只立一个总观点，其余句子都要为它服务。
+tags: [金字塔原理, 每日学习]
+date: 2026-11-18
+lesson: 2
+one_liner: 一篇表达只立一个总观点，其余句子都要为它服务。
+---
+
+import PyramidSeriesRoot from '@site/src/components/pyramid-series/PyramidSeriesRoot';
+import LessonChrome from '@site/src/components/pyramid-series/LessonChrome';
+import CourseRoadmap from '@site/src/components/pyramid-series/CourseRoadmap';
+import LessonHero from '@site/src/components/pyramid-series/LessonHero';
+import PyramidDiagram from '@site/src/components/pyramid-series/PyramidDiagram';
+import CaseCompare from '@site/src/components/pyramid-series/CaseCompare';
+import MicroExercise from '@site/src/components/pyramid-series/MicroExercise';
+import CollapsiblePanel from '@site/src/components/pyramid-series/CollapsiblePanel';
+import ReviewPrompt from '@site/src/components/pyramid-series/ReviewPrompt';
+import diagram from '@site/src/data/pyramid-lesson-02-diagram.json';
+
+<PyramidSeriesRoot>
+
+<LessonChrome
+  seriesTitle="《金字塔原理》每日一小课"
+  lessonLabel="第2课：全篇只服务一个总观点"
+  designMinutes="3 到 5 分钟"
+  localeDate="2026-11-18"
+/>
+
+<CourseRoadmap currentLesson={2} />
+
+<LessonHero oneLiner="一篇表达只立一个总观点，其余句子都要为它服务。" />
+
+上一课我们练习：先把结论说清楚，再给出支撑这个结论的理由。  
+今天再进一步：在同一轮表达里，只立一个总观点。
+
+本课的生活案例与练习均为原创虚构，不是原书案例，也不是真实事件。
+
+## 为什么只立一个总观点
+
+Barbara Minto 官网首页说明：把想法组织成一个金字塔，并且顶上只有一个总观点，读者更容易抓住思路。  
+向别人表达时，你要带读者从金字塔顶端往下走。
+
+概念页进一步说明：充分整理后，思考会收成一座金字塔，由一个总观点统领。  
+表达时带读者从顶端往下走即可。
+
+若一条消息里有两个互不相关的判断，读者就不知道要先接住哪一个总观点。  
+并列的理由可以有几条，但它们必须共同支撑同一个顶端判断。
+
+若两件事真的同属一个更高的判断，先写出那个真正的总观点，不要用「还有一件事」硬接。  
+若两件事互不相关，就分开写，不要捆在一座假金字塔下。
+
+今天只练「一个总观点」。  
+读者问题、分组检查等留到后续课。
+
+<PyramidDiagram data={diagram} />
+
+<CaseCompare
+  scene="场景：你给同事发一条消息。你想把周五下午的项目演示改到下周一，也想顺便提醒本季度报销周五截止。"
+  verbose="周五下午我可能要去另一栋楼开会，时间还没完全定。演示要用的那份样例我还在改，好像要到周日晚上才能改完。对了，本季度个人报销这周五就要截止，系统里好像还能看到待提交的条目。下周一上午他们应该都在，会议室也还没被占用。你要是觉得周五也行，我们就再看看。报销这件事你记得在周五前提交就行。"
+  conclusion="我们把周五下午的项目演示改到下周一上午。"
+  reasons={[
+    {
+      title: '理由 1：周五下午我这边的时间可能不稳。',
+      facts: ['周五下午我可能要去另一栋楼开会，时间还没完全定。'],
+    },
+    {
+      title: '理由 2：演示材料可能赶不上周五。',
+      facts: ['演示要用的那份样例我还在改，好像要到周日晚上才能改完。'],
+    },
+    {
+      title: '理由 3：下周一上午更可能凑齐人和场地。',
+      facts: ['下周一上午他们应该都在。', '会议室也还没被占用。'],
+    },
+  ]}
+  compareNotes={[
+    '啰嗦版把「改期演示」和「报销周五截止」混在一条消息里，读者不知道要先回应哪一个判断。',
+    '结构版只保留一个总观点：把演示改到下周一上午。相关事实归到对应理由下；「可能」「好像」「应该」保持原样。',
+    '「本季度个人报销这周五就要截止」「记得在周五前提交」与改期判断无关，所以不塞进这座金字塔。它们可以另写一条提醒，不是被删掉，也不是被改写成改期理由。',
+    '「你要是觉得周五也行，我们就再看看」让结论变含糊，结构版把它从总观点里拿掉。结构版也没有增添用来支撑改期的新事实。',
+  ]}
+/>
+
+<MicroExercise
+  prompt="下面哪一条更接近「全篇只服务一个总观点」？"
+  options={[
+    {
+      id: 'A',
+      text: '我们把评审改到周四。另外，本季度报销这周五截止，你有空的话也看一下。',
+    },
+    {
+      id: 'B',
+      text: '我们把评审改到周四。周五下午会议室已经被占用，周四上午关键同事都在。',
+    },
+    {
+      id: 'C',
+      text: '周五下午会议室已经被占用。本季度报销这周五截止。周四上午关键同事都在。你看看怎么安排吧。',
+    },
+  ]}
+  correctId="B"
+  explanation="B 只有一个总观点（把评审改到周四），后面两句分别说明周五不合适、周四更合适。A 把改期和报销截止两件互不相关的判断放在一起。C 只罗列情况，没有先立一个总观点。"
+/>
+
+<ReviewPrompt
+  questions={[
+    '这篇表达的总观点是不是只有一个？',
+    '有没有哪一句其实在说另一件事，需要另写？',
+  ]}
+/>
+
+<CollapsiblePanel title="适用边界">
+  <p>这一课只教「一个总观点」，不是完整方法。</p>
+  <ul>
+    <li>官网把该方法用于你向读者提供思考的文件，例如邮件、备忘录、报告和幻灯片。</li>
+    <li>「一个总观点」指这一轮论证或这一条消息里要读者先接住的那个判断，不是要求所有场合只能说一件事。</li>
+    <li>「一个总观点」不是禁止一篇里出现并列理由；并列理由必须共同支撑顶端那一个判断。</li>
+    <li>若两件事确实同属一个更高的判断，应该先写出那个真正的总观点，而不是用「还有一件事」硬接。</li>
+    <li>若两件事互不相关，分开写，不要为了省事绑在一座假金字塔下。</li>
+    <li>一个总观点不能代替可靠的理由和事实。</li>
+    <li>完整方法还包括读者问题、分组检查、问题界定和行动建议等，留到后续课。</li>
+    <li>中文课文只借鉴 ASD-STE100 的简明写法，不是该标准的认证文本。</li>
+  </ul>
+</CollapsiblePanel>
+
+<CollapsiblePanel title="可靠来源">
+  <ul>
+    <li>
+      <a href="https://www.barbaraminto.com/">Barbara Minto 官网首页</a>：把想法组织成一个金字塔，顶上只有一个总观点，读者更容易抓住思路。
+    </li>
+    <li>
+      <a href="https://www.barbaraminto.com/concept">概念页</a>：充分整理后，思考会收成一座由一个总观点统领的金字塔；表达时带读者从顶端往下走。
+    </li>
+    <li>
+      <a href="https://www.barbaraminto.com/textbook">教材页</a>：说明为什么用金字塔，以及如何用规则发展思考。本课不引用页码。该页提到 1996 年教材有 12 章，这不是本课系列的课表。
+    </li>
+    <li>
+      <a href="https://www.barbaraminto.com/course">课程页</a>：完整方法还包括读者问题、分组检查、问题界定和行动建议。
+    </li>
+    <li>
+      <a href="https://www.pearson.com/en-gb/subject-catalog/p/the-pyramid-principle/P200000015259/9781292763255">
+        Pearson 书目页
+      </a>
+      ：公开介绍强调先组织思考，再用金字塔结构表达。该页目录不是本课程表。
+    </li>
+    <li>
+      <a href="https://www.asd-ste100.org/">ASD-STE100</a> 与{' '}
+      <a href="https://www.asd-europe.org/standards-specifications/simplified-technical-english/what-are-the-basics-of-simplified-technical-english/">
+        ASD 简介
+      </a>
+      ：只用于说明课文写法的借鉴来源。
+    </li>
+  </ul>
+</CollapsiblePanel>
+
+</PyramidSeriesRoot>
