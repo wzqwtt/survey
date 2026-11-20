@@ -7,6 +7,7 @@ import {
   validateLessonFile,
   parseFrontMatter,
   validateLesson02Content,
+  validateLesson03Content,
 } from './validate-pyramid-lesson.mjs';
 
 test('parseFrontMatter reads keys', () => {
@@ -55,6 +56,34 @@ test('validateLessonFile accepts lesson 02 fixture', () => {
   const lesson = path.join(
     root,
     'docs/learning/thinking/pyramid-principle-daily/2026-11-18-lesson-02.mdx',
+  );
+  const r = validateLessonFile(lesson, root);
+  assert.equal(r.ok, true, r.errors?.join('; '));
+});
+
+test('validateLesson03Content rejects invented page refs and wrong exercise answer', () => {
+  const badSnippet = `
+原创虚构
+啰嗦版已经先说了结论
+好像 不确定 有人说
+留到后续课
+<MicroExercise correctId="A" options={[{ id: 'B', text: '往返更轻松' }]} />
+主管反对切换
+本课已讲完读者问题
+p. 42
+`;
+  const errors = validateLesson03Content(badSnippet);
+  assert.ok(errors.some((e) => e.includes('正确答案应为 B')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('主管反对')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('读者问题')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('页码')), errors.join('; '));
+});
+
+test('validateLessonFile accepts lesson 03 fixture', () => {
+  const root = path.resolve(import.meta.dirname, '..');
+  const lesson = path.join(
+    root,
+    'docs/learning/thinking/pyramid-principle-daily/2026-11-19-lesson-03.mdx',
   );
   const r = validateLessonFile(lesson, root);
   assert.equal(r.ok, true, r.errors?.join('; '));

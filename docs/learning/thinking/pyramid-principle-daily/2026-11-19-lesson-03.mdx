@@ -1,0 +1,166 @@
+---
+series: pyramid
+sidebar_position: 4
+sidebar_label: 第03课
+title: 第3课：从上往下讲：带读者走下金字塔
+description: 表达时从顶端出发，一层一层往下讲，不要让读者自己去爬金字塔。
+tags: [金字塔原理, 每日学习]
+date: 2026-11-19
+lesson: 3
+one_liner: 表达时从顶端出发，一层一层往下讲，不要让读者自己去爬金字塔。
+---
+
+import PyramidSeriesRoot from '@site/src/components/pyramid-series/PyramidSeriesRoot';
+import LessonChrome from '@site/src/components/pyramid-series/LessonChrome';
+import CourseRoadmap from '@site/src/components/pyramid-series/CourseRoadmap';
+import LessonHero from '@site/src/components/pyramid-series/LessonHero';
+import PyramidDiagram from '@site/src/components/pyramid-series/PyramidDiagram';
+import CaseCompare from '@site/src/components/pyramid-series/CaseCompare';
+import MicroExercise from '@site/src/components/pyramid-series/MicroExercise';
+import CollapsiblePanel from '@site/src/components/pyramid-series/CollapsiblePanel';
+import ReviewPrompt from '@site/src/components/pyramid-series/ReviewPrompt';
+import diagram from '@site/src/data/pyramid-lesson-03-diagram.json';
+
+<PyramidSeriesRoot>
+
+<LessonChrome
+  seriesTitle="《金字塔原理》每日一小课"
+  lessonLabel="第3课：从上往下讲：带读者走下金字塔"
+  designMinutes="3 到 5 分钟"
+  localeDate="2026-11-19"
+/>
+
+<CourseRoadmap currentLesson={3} />
+
+<LessonHero oneLiner="表达时从顶端出发，一层一层往下讲，不要让读者自己去爬金字塔。" />
+
+上一课我们练习：在同一轮表达里，只立一个总观点。  
+今天再进一步：有了总观点之后，还要带着读者从顶端一层一层往下走。
+
+本课的生活案例与练习均为原创虚构，不是原书案例，也不是真实事件。
+
+## 为什么要从上往下讲
+
+Barbara Minto 官网概念页说明：充分整理后，思考会收成一座由一个总观点统领的金字塔。  
+表达时，只需带读者从金字塔顶端往下走。
+
+首页也说明：把想法组织成一个金字塔，并且顶上只有一个总观点，读者更容易抓住思路。
+
+思考常常从下往上：先看到事实，再抽出见解，最后形成总观点。  
+表达时不要按发现过程原样倒出。
+
+上一课解决了「只立一个总观点」。  
+这一课要练行走顺序：先给顶端的结论，再给下一层理由，再按需要补上支撑该理由的事实。
+
+如果只先说结论，接着把细节一股脑倒出来，读者还是要自己把事实归到理由下面。  
+那就变成读者自己在爬金字塔。
+
+课程页提到，金字塔里的想法既有上下关系，也有左右关系。  
+今天只练上下关系：下一层用来解释上一层。  
+左右分组、读者问题等留到后续课。
+
+今天只练「从上往下讲」。  
+如何回答读者心里的问题、如何检查分组，留到后续课。
+
+<PyramidDiagram data={diagram} />
+
+<CaseCompare
+  scene="场景：你给同事发一条消息。你建议本周继续用现有共享表格跟进客户名单，先不要切到新工具。"
+  verbose="本周咱们先不要切到新工具，继续用现有共享表格跟进客户名单。你这周还要赶两份客户纪要。上周有人说导入时字段对不上。现有表格里这周要跟的名单已经列好了。新工具的权限申请你还没提交，审核要几天也不确定。新工具的培训好像要放到下周三。主管说可以评估一下，但不强制这周必须换。所以就先这样？"
+  conclusion="本周继续用现有共享表格跟进客户名单，先不要切到新工具。"
+  reasons={[
+    {
+      title: '理由 1：这周切换可能会打断正在进行的跟进。',
+      facts: ['现有表格里这周要跟的名单已经列好了。', '你这周还要赶两份客户纪要。'],
+    },
+    {
+      title: '理由 2：新工具这边还有几件没落实的事。',
+      facts: [
+        '新工具的培训好像要放到下周三。',
+        '新工具的权限申请你还没提交，审核要几天也不确定。',
+        '上周有人说导入时字段对不上。',
+      ],
+    },
+    {
+      title: '理由 3：现在也没有必须这周就换的要求。',
+      facts: ['主管说可以评估一下，但不强制这周必须换。'],
+    },
+  ]}
+  compareNotes={[
+    '啰嗦版已经先说了结论，但结论后面直接堆细节，读者还要自己把事实归到理由下面。',
+    '结构版先给结论，再给三条理由，每条理由下只放支撑它的事实；「好像」「不确定」「有人说」保持原样。',
+    '两版使用同一组虚构细节；差别是层次和顺序，不是多出新的支撑信息。',
+    '「所以就先这样？」让收束变含糊，结构版把它从总观点里拿掉，也没有增添用来支撑「先不切换」的新事实。',
+  ]}
+/>
+
+<MicroExercise
+  prompt="下面哪一条更接近「从上往下讲，带读者一层一层走下金字塔」？"
+  options={[
+    {
+      id: 'A',
+      text: '这次团建改在公司附近的公园。上周有人说开车两小时有点累。公园入口好像不用预约。露营地要自带帐篷。下午四点可能开始下雨。附近地铁站走十分钟就到。',
+    },
+    {
+      id: 'B',
+      text: '这次团建改在公司附近的公园。往返更轻松：附近地铁站走十分钟就到，上周有人说开车两小时有点累。当天安排也更省事：公园入口好像不用预约，露营地要自带帐篷。如果下雨更容易收束：下午四点可能开始下雨。',
+    },
+    {
+      id: 'C',
+      text: '附近地铁站走十分钟就到。上周有人说开车两小时有点累。公园入口好像不用预约。露营地要自带帐篷。下午四点可能开始下雨。这次团建要不要改在公司附近的公园？',
+    },
+  ]}
+  correctId="B"
+  explanation="B 先给结论，再按理由展开，每条理由后面紧跟支撑它的事实。A 虽然先说了结论，但随后把细节混在一起，读者还要自己分层。C 先堆情况，结论放在最后。"
+/>
+
+<ReviewPrompt
+  questions={[
+    '读者是不是先看到结论，再看到理由，最后才看到对应的事实？',
+    '有没有在给出理由之前，就先倒出一堆未归类的细节？',
+  ]}
+/>
+
+<CollapsiblePanel title="适用边界">
+  <p>这一课只教「从上往下讲」，不是完整方法。</p>
+  <ul>
+    <li>官网把该方法用于你向读者提供思考的文件，例如邮件、备忘录、报告和幻灯片。</li>
+    <li>「从上往下讲」不是要求所有场合都先给结论。讲故事、带人一起发现过程时，也可以从下往上。</li>
+    <li>先说结论还不够；结论后面仍要按层次展开，不能改成细节堆砌。</li>
+    <li>从上往下讲，不能代替可靠的理由和事实。</li>
+    <li>完整方法还包括读者问题、分组检查、问题界定和行动建议等，留到后续课。</li>
+    <li>中文课文只借鉴 ASD-STE100 的简明写法，不是该标准的认证文本。</li>
+  </ul>
+</CollapsiblePanel>
+
+<CollapsiblePanel title="可靠来源">
+  <ul>
+    <li>
+      <a href="https://www.barbaraminto.com/">Barbara Minto 官网首页</a>：把想法组织成一个金字塔，顶上只有一个总观点，读者更容易抓住思路。
+    </li>
+    <li>
+      <a href="https://www.barbaraminto.com/concept">概念页</a>：充分整理后，思考会收成一座由一个总观点统领的金字塔；表达时只需带读者从顶端往下走。
+    </li>
+    <li>
+      <a href="https://www.barbaraminto.com/textbook">教材页</a>：说明为什么用金字塔，以及如何用规则发展思考。本课不引用页码。该页提到 1996 年教材有 12 章，这不是本课系列的课表。
+    </li>
+    <li>
+      <a href="https://www.barbaraminto.com/course">课程页</a>：金字塔里的想法既有上下关系，也有左右关系。本课只教从上往下走；读者问题、分组检查等留到后续课。
+    </li>
+    <li>
+      <a href="https://www.pearson.com/en-gb/subject-catalog/p/the-pyramid-principle/P200000015259/9781292763255">
+        Pearson 书目页
+      </a>
+      ：公开介绍强调先组织思考，再用金字塔结构表达。该页目录不是本课程表。
+    </li>
+    <li>
+      <a href="https://www.asd-ste100.org/">ASD-STE100</a> 与{' '}
+      <a href="https://www.asd-europe.org/standards-specifications/simplified-technical-english/what-are-the-basics-of-simplified-technical-english/">
+        ASD 简介
+      </a>
+      ：只用于说明课文写法的借鉴来源。
+    </li>
+  </ul>
+</CollapsiblePanel>
+
+</PyramidSeriesRoot>
