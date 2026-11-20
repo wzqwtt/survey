@@ -1,0 +1,163 @@
+---
+series: pyramid
+sidebar_position: 5
+sidebar_label: 第04课
+title: 第4课：先弄清读者心里的问题
+description: 先想清楚读者此刻心里的问题，总观点要先回答这个问题。
+tags: [金字塔原理, 每日学习]
+date: 2026-11-20
+lesson: 4
+one_liner: 先想清楚读者此刻心里的问题，总观点要先回答这个问题。
+---
+
+import PyramidSeriesRoot from '@site/src/components/pyramid-series/PyramidSeriesRoot';
+import LessonChrome from '@site/src/components/pyramid-series/LessonChrome';
+import CourseRoadmap from '@site/src/components/pyramid-series/CourseRoadmap';
+import LessonHero from '@site/src/components/pyramid-series/LessonHero';
+import PyramidDiagram from '@site/src/components/pyramid-series/PyramidDiagram';
+import CaseCompare from '@site/src/components/pyramid-series/CaseCompare';
+import MicroExercise from '@site/src/components/pyramid-series/MicroExercise';
+import CollapsiblePanel from '@site/src/components/pyramid-series/CollapsiblePanel';
+import ReviewPrompt from '@site/src/components/pyramid-series/ReviewPrompt';
+import diagram from '@site/src/data/pyramid-lesson-04-diagram.json';
+
+<PyramidSeriesRoot>
+
+<LessonChrome
+  seriesTitle="《金字塔原理》每日一小课"
+  lessonLabel="第4课：先弄清读者心里的问题"
+  designMinutes="3 到 5 分钟"
+  localeDate="2026-11-20"
+/>
+
+<CourseRoadmap currentLesson={4} />
+
+<LessonHero oneLiner="先想清楚读者此刻心里的问题，总观点要先回答这个问题。" />
+
+上一课我们练习：表达时从顶端一层一层往下讲。  
+今天再进一步：层次清楚还不够。若不知道读者在问什么，就可能答非所问。
+
+本课的生活案例与练习均为原创虚构，不是原书案例，也不是真实事件。
+
+## 为什么要先弄清读者心里的问题
+
+Barbara Minto 官网课程页说明：搭建金字塔时，要先弄清读者的 question，再用金字塔规则找出并组织回答这个问题所需的要点。
+
+首页也提到：SCQ Framework 可用于识别读者心里的 question。  
+今天只练「先回答读者心里的问题」，不展开 SCQ 的步骤。
+
+课程页还讲到分组检查、用情景把读者带到问题前、行动建议，以及复杂情境里如何界定问题等。  
+分组检查留到第 5–7 课，情景与 SCQ 相关步骤留到第 8 课，行动建议留到第 9 课，复杂情境界定问题留到第 11 课。
+
+读者收到你的消息时，心里往往已经有一个问题。  
+顶端的总观点，应该先接住这个问题，而不是你随手想到的另一个话题。
+
+金字塔可以从上往下讲，结论也可以分层展开。  
+但若顶端在回答「这场培训值不值得参加」，而读者其实在问「周五要交方案，周四那场可选培训我去不去」，读者仍会觉得没得到答复。
+
+今天只练「先弄清并回答读者心里的问题」。  
+用情景把读者带到问题前留到第 8 课，复杂情境界定问题留到第 11 课，分组检查留到第 5–7 课。
+
+<PyramidDiagram data={diagram} />
+
+<CaseCompare
+  scene="场景：同事私信你：「周五中午前要交方案初稿，周四公司可选培训还去不去？」"
+  verbose="周四那场培训听说讲师在业内口碑不错，内容偏项目汇报技巧。培训场地离咱们楼有点远，来回可能要一小时。有人说上完会发结业证书，对履历也许有点用。周五中午前要交方案初稿，你周三晚上还在改第三章。培训是可选的，不去也不会记缺席。如果以后还有同主题场次，好像下季度还会开一次。总体来说这种培训质量一般都还不错，我觉得值得学习。"
+  conclusion="周四那场可选培训我建议先不去，这周先集中精力把周五要交的方案初稿赶出来。"
+  reasons={[
+    {
+      title: '理由 1：周五交稿在即，这周时间更紧。',
+      facts: ['周五中午前要交方案初稿。', '你周三晚上还在改第三章。'],
+    },
+    {
+      title: '理由 2：周四去培训会占去一块能改稿的时间。',
+      facts: ['培训场地离咱们楼有点远，来回可能要一小时。'],
+    },
+    {
+      title: '理由 3：这次不去不记缺席，后面好像还有同主题场次。',
+      facts: [
+        '培训是可选的，不去也不会记缺席。',
+        '如果以后还有同主题场次，好像下季度还会开一次。',
+      ],
+    },
+  ]}
+  compareNotes={[
+    '啰嗦版主要在评价这场培训好不好、值不值得学，读者其实在问：周五要交方案时，周四那场可选培训去不去。',
+    '结构版先回答读者心里的问题，再按理由往下展开；「好像」「有人说」保持原样。',
+    '结构版从同一场景细节里筛选直接支撑判断的事实，没有凭空新增事实；口语里的不确定性保持原样。',
+    '「讲师口碑不错」「结业证书」等是在答「培训值不值得学」，不硬塞进这座支撑「先不去」的金字塔；需要权衡时，读者仍可自己掂量这些好处。',
+    '两版差别在顶端是否对准读者问题，以及哪些细节进入分层论证，而不是换了一组虚构事实。',
+  ]}
+/>
+
+<MicroExercise
+  prompt="同事问：「客户材料周五前要定稿，周三下午的协调会我们还开吗？」下面哪一条更接近「先回答读者心里的问题」？"
+  options={[
+    {
+      id: 'A',
+      text: '周三那场协调会流程设计得挺规范，上次有人还说主持节奏清楚。协调会一般会发纪要模板。整体来说这种会值得开。',
+    },
+    {
+      id: 'B',
+      text: '周三下午的协调会我建议先改到线上短会，这周先集中核对客户材料，争取周五前定稿。客户材料清单里还有两处没人确认。周五中午是定稿节点。协调会可以压缩到半小时，只过未确认项。',
+    },
+    {
+      id: 'C',
+      text: '客户材料清单里还有两处没人确认。周五中午是定稿节点。协调会一般会发纪要模板。上次有人还说主持节奏清楚。你看看怎么安排吧。',
+    },
+  ]}
+  correctId="B"
+  explanation="B 先回答「周三协调会还开吗」：建议改开法并说明目的。A 在评价协调会好不好，没有回应要不要开。C 只罗列情况，读者还是要自己猜你的判断。"
+/>
+
+<ReviewPrompt
+  questions={[
+    '读者心里最想得到答复的问题是什么？',
+    '顶端的总观点有没有先回答这个问题，而不是另一个你更想聊的话题？',
+  ]}
+/>
+
+<CollapsiblePanel title="适用边界">
+  <p>这一课只教「先弄清并回答读者心里的问题」，不是完整方法。</p>
+  <ul>
+    <li>官网把该方法用于你向读者提供思考的文件，例如邮件、备忘录、报告和幻灯片。</li>
+    <li>知道读者的问题，不能代替可靠的理由和事实；答对了问题，仍要有层次地展开。</li>
+    <li>官网课程用 SCQ Framework 识别读者心里的 question；本课不教 SCQ 的完整步骤，留到第 8 课及以后。</li>
+    <li>复杂情境里如何界定问题，留到第 11 课。</li>
+    <li>如何检查分组是否合理，留到第 5–7 课。</li>
+    <li>读者问题有时会变；动笔前不妨再核对一次读者此刻最关心什么。</li>
+    <li>中文课文只借鉴 ASD-STE100 的简明写法，不是该标准的认证文本。</li>
+  </ul>
+</CollapsiblePanel>
+
+<CollapsiblePanel title="可靠来源">
+  <ul>
+    <li>
+      <a href="https://www.barbaraminto.com/">Barbara Minto 官网首页</a>：Minto Pyramid Principle 说明，把想法组织成金字塔、顶上只有一个总观点，读者更容易抓住思路；课程介绍提到 SCQ Framework 用于 identifying the question in your reader&apos;s mind。
+    </li>
+    <li>
+      <a href="https://www.barbaraminto.com/concept">概念页</a>：把思考组织成由一个总观点统领的金字塔，表达时带读者从顶端往下走。
+    </li>
+    <li>
+      <a href="https://www.barbaraminto.com/course">课程页</a>：How to Build a Pyramid — how to identify the reader&apos;s question, and then use the pyramid rules to discover and organize the points needed to answer that question。分组检查、问题界定、行动建议等本系列分课展开，不是本课课表。
+    </li>
+    <li>
+      <a href="https://www.barbaraminto.com/textbook">教材页</a>：说明为什么用金字塔、如何用规则发展思考，以及如何让自己的思考对受众更有说服力。本课不引用页码。该页提到 1996 年教材有 12 章，这不是本课系列的课表。
+    </li>
+    <li>
+      <a href="https://www.pearson.com/en-gb/subject-catalog/p/the-pyramid-principle/P200000015259/9781292763255">
+        Pearson 书目页
+      </a>
+      ：公开介绍强调先组织思考，再用金字塔结构表达。该页目录不是本课程表。
+    </li>
+    <li>
+      <a href="https://www.asd-ste100.org/">ASD-STE100</a> 与{' '}
+      <a href="https://www.asd-europe.org/standards-specifications/simplified-technical-english/what-are-the-basics-of-simplified-technical-english/">
+        ASD 简介
+      </a>
+      ：只用于说明课文写法的借鉴来源。
+    </li>
+  </ul>
+</CollapsiblePanel>
+
+</PyramidSeriesRoot>

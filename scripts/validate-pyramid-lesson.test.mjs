@@ -8,6 +8,8 @@ import {
   parseFrontMatter,
   validateLesson02Content,
   validateLesson03Content,
+  validateLesson04Content,
+  validateLesson04Diagram,
 } from './validate-pyramid-lesson.mjs';
 
 test('parseFrontMatter reads keys', () => {
@@ -84,6 +86,66 @@ test('validateLessonFile accepts lesson 03 fixture', () => {
   const lesson = path.join(
     root,
     'docs/learning/thinking/pyramid-principle-daily/2026-11-19-lesson-03.mdx',
+  );
+  const r = validateLessonFile(lesson, root);
+  assert.equal(r.ok, true, r.errors?.join('; '));
+});
+
+test('validateLesson04Content rejects wrong-question case and false scope claims', () => {
+  const badSnippet = `
+原创虚构
+好像 有人说
+结业证书 讲师在业内口碑
+<CaseCompare verbose="培训很好" compareNotes={['两版一样', '与去不去周四这场无关']} />
+<MicroExercise correctId="A" options={[{ id: 'B', text: '别的' }]} />
+本课已讲完 SCQ 步骤
+今天讲完问题界定
+课程页还讲到分组检查、复杂情境里如何界定问题、行动建议等。
+这些分别留到第 5–7 课、第 8 课和第 11 课。
+p. 88
+完全等量
+title: '理由 3：这场培训是可选的，错过也不影响考核。',
+`;
+  const root = path.resolve(import.meta.dirname, '..');
+  const errors = validateLesson04Content(badSnippet, root);
+  assert.ok(errors.some((e) => e.includes('啰嗦版') || e.includes('答非所问')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('正确答案应为 B')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('SCQ')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('页码')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('完全等量')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('完全无关') || e.includes('周四')), errors.join('; '));
+  assert.ok(
+    errors.some((e) => e.includes('roadmap') || e.includes('第 9 课') || e.includes('行动建议')),
+    errors.join('; '),
+  );
+  assert.ok(errors.some((e) => e.includes('考核')), errors.join('; '));
+  assert.ok(errors.length >= 6, `expected multiple errors, got ${errors.length}`);
+});
+
+test('validateLesson04Diagram rejects reason 3 with 考核 elevation', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pyr-04-'));
+  const diagramPath = path.join(root, 'src/data');
+  fs.mkdirSync(diagramPath, {recursive: true});
+  fs.writeFileSync(
+    path.join(diagramPath, 'pyramid-lesson-04-diagram.json'),
+    JSON.stringify({
+      levels: [
+        {
+          id: 'reasons',
+          items: [{id: 'r3', text: '这场培训是可选的，错过也不影响考核。'}],
+        },
+      ],
+    }),
+  );
+  const errors = validateLesson04Diagram(root);
+  assert.ok(errors.some((e) => e.includes('考核')), errors.join('; '));
+});
+
+test('validateLessonFile accepts lesson 04 fixture', () => {
+  const root = path.resolve(import.meta.dirname, '..');
+  const lesson = path.join(
+    root,
+    'docs/learning/thinking/pyramid-principle-daily/2026-11-20-lesson-04.mdx',
   );
   const r = validateLessonFile(lesson, root);
   assert.equal(r.ok, true, r.errors?.join('; '));

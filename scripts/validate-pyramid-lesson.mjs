@@ -82,6 +82,10 @@ export function validateLessonFile(filePath, root = process.cwd()) {
     errors.push(...validateLesson03Content(text));
   }
 
+  if (fm?.lesson === '4') {
+    errors.push(...validateLesson04Content(text, root));
+  }
+
   return {ok: errors.length === 0, errors, rel};
 }
 
@@ -183,6 +187,130 @@ export function validateLesson03Content(text) {
 
   if (!/留到后续课/.test(text)) {
     errors.push('读者问题、分组检查等应明确留到后续课');
+  }
+
+  return errors;
+}
+
+/**
+ * Lesson 4 semantics: reader's question first, wrong-question verbose, SCQ not taught here.
+ */
+export function validateLesson04Content(text, root = process.cwd()) {
+  const errors = [];
+
+  if (!/原创虚构/.test(text)) {
+    errors.push('第4课正文应标明案例为原创虚构（非原书/非真实事件）');
+  }
+
+  if (!/啰嗦版主要在评价/.test(text) && !/答非所问/.test(text)) {
+    errors.push('compareNotes 应点明啰嗦版在答另一个问题（或答非所问）');
+  }
+
+  if (text.includes('完全等量')) {
+    errors.push('compareNotes 不应使用「完全等量」类表述');
+  }
+
+  const hedgeTokens = ['好像', '有人说'];
+  for (const token of hedgeTokens) {
+    if (!text.includes(token)) {
+      errors.push(`CaseCompare/verbose 应保留「${token}」等原样措辞`);
+    }
+  }
+
+  if (!/结业证书|讲师在业内口碑/.test(text)) {
+    errors.push('啰嗦版应含与读者问题无关、但结构版不借用的旁支事实（如培训评价类措辞）');
+  }
+
+  if (/与去不去周四这场无关/.test(text)) {
+    errors.push('compareNotes 不宜把口碑、证书说成与培训「完全无关」，应区分「培训好不好」与「周四去不去」');
+  }
+
+  if (/第\s*5–7\s*课、第\s*8\s*课和第\s*11\s*课/.test(text)) {
+    errors.push('课程页前瞻课号应与 roadmap 一致（行动建议→第 9 课，情景/SCQ→第 8 课，界定问题→第 11 课）');
+  }
+
+  if (/行动建议[\s\S]{0,80}第\s*8\s*课/.test(text) && !/行动建议[\s\S]{0,80}第\s*9\s*课/.test(text)) {
+    errors.push('行动建议应明确留到第 9 课（与 pyramid-roadmap.json 一致）');
+  }
+
+  if (/title:\s*'理由 3[^']*考核/.test(text)) {
+    errors.push('理由 3 不得把「不记缺席」升格为「考核」等原文没有的概念');
+  }
+
+  errors.push(...validateLesson04Diagram(root));
+
+  if (!/correctId="B"/.test(text)) {
+    errors.push('MicroExercise 正确答案应为 B');
+  }
+
+  const microBlock = text.includes('<MicroExercise')
+    ? text.slice(text.indexOf('<MicroExercise'), text.indexOf('/>', text.indexOf('<MicroExercise')) + 2)
+    : '';
+
+  if (microBlock && !/id:\s*'B'[\s\S]*?我建议/.test(microBlock)) {
+    errors.push('MicroExercise B 应先回答读者问题（含明确建议或判断）');
+  }
+
+  if (microBlock && /id:\s*'A'/.test(microBlock) && !/id:\s*'A'[\s\S]*?值得/.test(microBlock)) {
+    errors.push('MicroExercise A 应体现答非所问（评价会议/培训好坏而非是否召开）');
+  }
+
+  if (/p\.\s*\d+|第\s*\d+\s*页|页码\s*\d+/.test(text)) {
+    errors.push('第4课不应编造具体引语页码');
+  }
+
+  if (/本课已讲完.*SCQ|今天教完.*SCQ|已掌握.*SCQ 步骤/.test(text)) {
+    errors.push('不要把 SCQ 完整步骤写成本课已教完');
+  }
+
+  if (/本课已讲完分组|今天讲完问题界定|已掌握分组检查/.test(text)) {
+    errors.push('不要把分组检查、问题界定写成本课已讲完');
+  }
+
+  if (!/留到.*课|留到后续课/.test(text)) {
+    errors.push('SCQ 步骤、分组检查、问题界定等应明确留到后续课');
+  }
+
+  if (!/周五.*方案|方案初稿/.test(text)) {
+    errors.push('案例应围绕「周五交方案、周四培训去不去」类读者问题');
+  }
+
+  return errors;
+}
+
+/**
+ * Lesson 4 diagram must stay aligned with CaseCompare reason 3 wording.
+ */
+export function validateLesson04Diagram(root) {
+  const errors = [];
+  const diagramPath = path.join(root, 'src/data/pyramid-lesson-04-diagram.json');
+  if (!fs.existsSync(diagramPath)) {
+    errors.push('缺少 pyramid-lesson-04-diagram.json');
+    return errors;
+  }
+  let diagram;
+  try {
+    diagram = JSON.parse(fs.readFileSync(diagramPath, 'utf8'));
+  } catch {
+    errors.push('pyramid-lesson-04-diagram.json 不是合法 JSON');
+    return errors;
+  }
+
+  const reasonItems =
+    diagram.levels?.find((l) => l.id === 'reasons')?.items ?? [];
+  const r3 = reasonItems.find((i) => i.id === 'r3');
+  if (!r3) {
+    errors.push('图中缺少理由 r3');
+    return errors;
+  }
+  if (/考核|不影响考核/.test(r3.text)) {
+    errors.push('图的理由 3 不得升格为「考核」等原文没有的概念');
+  }
+  if (!/缺席|可选/.test(r3.text)) {
+    errors.push('理由 3 应概括可选与不记缺席类依据');
+  }
+  if (!/好像|补听|下季度|还有/.test(r3.text)) {
+    errors.push('理由 3 应保留「好像」等不确定性（如补听或下季度场次）');
   }
 
   return errors;
