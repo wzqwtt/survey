@@ -83,7 +83,7 @@ export function validateLessonFile(filePath, root = process.cwd()) {
   }
 
   if (fm?.lesson === '4') {
-    errors.push(...validateLesson04Content(text));
+    errors.push(...validateLesson04Content(text, root));
   }
 
   return {ok: errors.length === 0, errors, rel};
@@ -195,7 +195,7 @@ export function validateLesson03Content(text) {
 /**
  * Lesson 4 semantics: reader's question first, wrong-question verbose, SCQ not taught here.
  */
-export function validateLesson04Content(text) {
+export function validateLesson04Content(text, root = process.cwd()) {
   const errors = [];
 
   if (!/原创虚构/.test(text)) {
@@ -221,9 +221,23 @@ export function validateLesson04Content(text) {
     errors.push('啰嗦版应含与读者问题无关、但结构版不借用的旁支事实（如培训评价类措辞）');
   }
 
-  if (!/不是被删掉，也不是被改写成/.test(text)) {
-    errors.push('compareNotes 应说明无关事实未被静默删除或改写成新理由');
+  if (/与去不去周四这场无关/.test(text)) {
+    errors.push('compareNotes 不宜把口碑、证书说成与培训「完全无关」，应区分「培训好不好」与「周四去不去」');
   }
+
+  if (/第\s*5–7\s*课、第\s*8\s*课和第\s*11\s*课/.test(text)) {
+    errors.push('课程页前瞻课号应与 roadmap 一致（行动建议→第 9 课，情景/SCQ→第 8 课，界定问题→第 11 课）');
+  }
+
+  if (/行动建议[\s\S]{0,80}第\s*8\s*课/.test(text) && !/行动建议[\s\S]{0,80}第\s*9\s*课/.test(text)) {
+    errors.push('行动建议应明确留到第 9 课（与 pyramid-roadmap.json 一致）');
+  }
+
+  if (/title:\s*'理由 3[^']*考核/.test(text)) {
+    errors.push('理由 3 不得把「不记缺席」升格为「考核」等原文没有的概念');
+  }
+
+  errors.push(...validateLesson04Diagram(root));
 
   if (!/correctId="B"/.test(text)) {
     errors.push('MicroExercise 正确答案应为 B');
@@ -259,6 +273,44 @@ export function validateLesson04Content(text) {
 
   if (!/周五.*方案|方案初稿/.test(text)) {
     errors.push('案例应围绕「周五交方案、周四培训去不去」类读者问题');
+  }
+
+  return errors;
+}
+
+/**
+ * Lesson 4 diagram must stay aligned with CaseCompare reason 3 wording.
+ */
+export function validateLesson04Diagram(root) {
+  const errors = [];
+  const diagramPath = path.join(root, 'src/data/pyramid-lesson-04-diagram.json');
+  if (!fs.existsSync(diagramPath)) {
+    errors.push('缺少 pyramid-lesson-04-diagram.json');
+    return errors;
+  }
+  let diagram;
+  try {
+    diagram = JSON.parse(fs.readFileSync(diagramPath, 'utf8'));
+  } catch {
+    errors.push('pyramid-lesson-04-diagram.json 不是合法 JSON');
+    return errors;
+  }
+
+  const reasonItems =
+    diagram.levels?.find((l) => l.id === 'reasons')?.items ?? [];
+  const r3 = reasonItems.find((i) => i.id === 'r3');
+  if (!r3) {
+    errors.push('图中缺少理由 r3');
+    return errors;
+  }
+  if (/考核|不影响考核/.test(r3.text)) {
+    errors.push('图的理由 3 不得升格为「考核」等原文没有的概念');
+  }
+  if (!/缺席|可选/.test(r3.text)) {
+    errors.push('理由 3 应概括可选与不记缺席类依据');
+  }
+  if (!/好像|补听|下季度|还有/.test(r3.text)) {
+    errors.push('理由 3 应保留「好像」等不确定性（如补听或下季度场次）');
   }
 
   return errors;
