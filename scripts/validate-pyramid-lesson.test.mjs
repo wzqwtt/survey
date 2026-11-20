@@ -8,6 +8,7 @@ import {
   parseFrontMatter,
   validateLesson02Content,
   validateLesson03Content,
+  validateLesson04Content,
 } from './validate-pyramid-lesson.mjs';
 
 test('parseFrontMatter reads keys', () => {
@@ -84,6 +85,35 @@ test('validateLessonFile accepts lesson 03 fixture', () => {
   const lesson = path.join(
     root,
     'docs/learning/thinking/pyramid-principle-daily/2026-11-19-lesson-03.mdx',
+  );
+  const r = validateLessonFile(lesson, root);
+  assert.equal(r.ok, true, r.errors?.join('; '));
+});
+
+test('validateLesson04Content rejects wrong-question case and false scope claims', () => {
+  const badSnippet = `
+原创虚构
+好像 有人说
+<CaseCompare verbose="培训很好" compareNotes={['两版一样']} />
+<MicroExercise correctId="A" options={[{ id: 'B', text: '别的' }]} />
+本课已讲完 SCQ 步骤
+今天讲完问题界定
+p. 88
+完全等量
+`;
+  const errors = validateLesson04Content(badSnippet);
+  assert.ok(errors.some((e) => e.includes('啰嗦版') || e.includes('答非所问')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('正确答案应为 B')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('SCQ')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('页码')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('完全等量')), errors.join('; '));
+});
+
+test('validateLessonFile accepts lesson 04 fixture', () => {
+  const root = path.resolve(import.meta.dirname, '..');
+  const lesson = path.join(
+    root,
+    'docs/learning/thinking/pyramid-principle-daily/2026-11-20-lesson-04.mdx',
   );
   const r = validateLessonFile(lesson, root);
   assert.equal(r.ok, true, r.errors?.join('; '));

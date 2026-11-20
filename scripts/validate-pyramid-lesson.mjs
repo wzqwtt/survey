@@ -82,6 +82,10 @@ export function validateLessonFile(filePath, root = process.cwd()) {
     errors.push(...validateLesson03Content(text));
   }
 
+  if (fm?.lesson === '4') {
+    errors.push(...validateLesson04Content(text));
+  }
+
   return {ok: errors.length === 0, errors, rel};
 }
 
@@ -183,6 +187,78 @@ export function validateLesson03Content(text) {
 
   if (!/留到后续课/.test(text)) {
     errors.push('读者问题、分组检查等应明确留到后续课');
+  }
+
+  return errors;
+}
+
+/**
+ * Lesson 4 semantics: reader's question first, wrong-question verbose, SCQ not taught here.
+ */
+export function validateLesson04Content(text) {
+  const errors = [];
+
+  if (!/原创虚构/.test(text)) {
+    errors.push('第4课正文应标明案例为原创虚构（非原书/非真实事件）');
+  }
+
+  if (!/啰嗦版主要在评价/.test(text) && !/答非所问/.test(text)) {
+    errors.push('compareNotes 应点明啰嗦版在答另一个问题（或答非所问）');
+  }
+
+  if (text.includes('完全等量')) {
+    errors.push('compareNotes 不应使用「完全等量」类表述');
+  }
+
+  const hedgeTokens = ['好像', '有人说'];
+  for (const token of hedgeTokens) {
+    if (!text.includes(token)) {
+      errors.push(`CaseCompare/verbose 应保留「${token}」等原样措辞`);
+    }
+  }
+
+  if (!/结业证书|讲师在业内口碑/.test(text)) {
+    errors.push('啰嗦版应含与读者问题无关、但结构版不借用的旁支事实（如培训评价类措辞）');
+  }
+
+  if (!/不是被删掉，也不是被改写成/.test(text)) {
+    errors.push('compareNotes 应说明无关事实未被静默删除或改写成新理由');
+  }
+
+  if (!/correctId="B"/.test(text)) {
+    errors.push('MicroExercise 正确答案应为 B');
+  }
+
+  const microBlock = text.includes('<MicroExercise')
+    ? text.slice(text.indexOf('<MicroExercise'), text.indexOf('/>', text.indexOf('<MicroExercise')) + 2)
+    : '';
+
+  if (microBlock && !/id:\s*'B'[\s\S]*?我建议/.test(microBlock)) {
+    errors.push('MicroExercise B 应先回答读者问题（含明确建议或判断）');
+  }
+
+  if (microBlock && /id:\s*'A'/.test(microBlock) && !/id:\s*'A'[\s\S]*?值得/.test(microBlock)) {
+    errors.push('MicroExercise A 应体现答非所问（评价会议/培训好坏而非是否召开）');
+  }
+
+  if (/p\.\s*\d+|第\s*\d+\s*页|页码\s*\d+/.test(text)) {
+    errors.push('第4课不应编造具体引语页码');
+  }
+
+  if (/本课已讲完.*SCQ|今天教完.*SCQ|已掌握.*SCQ 步骤/.test(text)) {
+    errors.push('不要把 SCQ 完整步骤写成本课已教完');
+  }
+
+  if (/本课已讲完分组|今天讲完问题界定|已掌握分组检查/.test(text)) {
+    errors.push('不要把分组检查、问题界定写成本课已讲完');
+  }
+
+  if (!/留到.*课|留到后续课/.test(text)) {
+    errors.push('SCQ 步骤、分组检查、问题界定等应明确留到后续课');
+  }
+
+  if (!/周五.*方案|方案初稿/.test(text)) {
+    errors.push('案例应围绕「周五交方案、周四培训去不去」类读者问题');
   }
 
   return errors;
