@@ -1,0 +1,161 @@
+---
+series: pyramid
+sidebar_position: 6
+sidebar_label: 第05课
+title: 第5课：把相似的事实收成一组
+description: 先把同类的事实收在一起，不要把不同种类的事实混成一堆。
+tags: [金字塔原理, 每日学习]
+date: 2026-11-21
+lesson: 5
+one_liner: 先把同类的事实收在一起，不要把不同种类的事实混成一堆。
+---
+
+import PyramidSeriesRoot from '@site/src/components/pyramid-series/PyramidSeriesRoot';
+import LessonChrome from '@site/src/components/pyramid-series/LessonChrome';
+import CourseRoadmap from '@site/src/components/pyramid-series/CourseRoadmap';
+import LessonHero from '@site/src/components/pyramid-series/LessonHero';
+import PyramidDiagram from '@site/src/components/pyramid-series/PyramidDiagram';
+import CaseCompare from '@site/src/components/pyramid-series/CaseCompare';
+import MicroExercise from '@site/src/components/pyramid-series/MicroExercise';
+import CollapsiblePanel from '@site/src/components/pyramid-series/CollapsiblePanel';
+import ReviewPrompt from '@site/src/components/pyramid-series/ReviewPrompt';
+import diagram from '@site/src/data/pyramid-lesson-05-diagram.json';
+
+<PyramidSeriesRoot>
+
+<LessonChrome
+  seriesTitle="《金字塔原理》每日一小课"
+  lessonLabel="第5课：把相似的事实收成一组"
+  designMinutes="3 到 5 分钟"
+  localeDate="2026-11-21"
+/>
+
+<CourseRoadmap currentLesson={5} />
+
+<LessonHero oneLiner="先把同类的事实收在一起，不要把不同种类的事实混成一堆。" />
+
+上一课我们练习：先想清楚读者此刻心里的问题，总观点要先回答这个问题。  
+今天再往前退一步：在抽出见解、回答读者之前，先把看到的低层事实里「相似的」收成一组。
+
+本课的生活案例与练习均为原创虚构，不是原书案例，也不是真实事件。
+
+## 为什么先把相似的事实收成一组
+
+Barbara Minto 官网[概念页](https://www.barbaraminto.com/concept)说明：人们理想的思考过程，是搭建一座想法金字塔；其中第一步是 **Grouping together low-level facts they see as similar**（把自认为相似的低层事实收成一组）；下一步才是 **Drawing an insight from having seen the similarity**（从看到相似中抽出见解）；然后再 **Forming a new grouping of related insights**（把相关见解再收成新的一组），等等。
+
+今天只练第一步：按相似点分组。  
+「从一组事实里抽出见解」留到第 6 课。  
+课程页里的 “How to Look Critically at the Groupings”（检查理由个数、分组是否找对、见解是否恰当等）留到第 7 课，本课不展开。
+
+思考常常从许多零散观察开始：天气、用具、路程、谁几点有空，可能同时涌进脑子。  
+若全混在一句话里，读者要自己替你分辨哪几条属于同一类，负担会加重。  
+先按同类收成几组，再往下做见解和表达，会清楚得多。
+
+CaseCompare 组件里结构版仍用「结论」「理由」等标题，那是界面沿用前几课的写法。  
+今天结构版里的每一块，对应的是「组别」和该组下的事实，不是已经抽好的完整见解。
+
+<PyramidDiagram data={diagram} />
+
+<CaseCompare
+  scene="场景：朋友在微信问：「这周末要不要一起去郊外野餐？」"
+  verbose="这周末去郊外野餐听起来不错。周六预报说午后可能阵雨，不一定下透。周日好像更晴一点，但也不确定。野餐垫上周用完还没洗，可能来得及晾。保温箱盖子卡扣好像有点松，不一定漏气。导航显示两处草坪都要步行二十分钟左右。其中一处好像要预约，另一处先到先得。朋友小周周六上午有事，只能下午出发。有人说上次那家面包店周六排队很长，买三明治可能要多留时间。野餐总是让人放松，我觉得值得安排一次。"
+  conclusion="这周末去不去、选周六还是周日，我先把各处听来的情况按类收一下，再和你一起定。"
+  reasons={[
+    {
+      title: '组别 1：天气与日子',
+      facts: ['周六预报说午后可能阵雨，不一定下透。', '周日好像更晴一点，但也不确定。'],
+    },
+    {
+      title: '组别 2：野餐用具',
+      facts: ['野餐垫上周用完还没洗，可能来得及晾。', '保温箱盖子卡扣好像有点松，不一定漏气。'],
+    },
+    {
+      title: '组别 3：地点与到达',
+      facts: ['导航显示两处草坪都要步行二十分钟左右。', '其中一处好像要预约，另一处先到先得。'],
+    },
+    {
+      title: '组别 4：同伴与时间',
+      facts: [
+        '朋友小周周六上午有事，只能下午出发。',
+        '有人说上次那家面包店周六排队很长，买三明治可能要多留时间。',
+      ],
+    },
+  ]}
+  compareNotes={[
+    '啰嗦版把天气、用具、地点、同伴时间等不同种类的事实混在一段话里，还夹杂「值得安排一次」这类笼统评价。',
+    '结构版使用完全相同的事实与不确定性措辞（「好像」「可能」「不一定」等保持原样），只是按同类分成四组。',
+    '结构版的总起只说明「先按类收一下再定」，没有把分组本身说成已经得出「必去」或「必不去」的见解。',
+    '「野餐让人放松」「值得安排」等旁支评价，结构版不改成更强的论据。',
+    '两版差别只在是否按同类分组，而不是换了一组虚构事实。',
+  ]}
+/>
+
+<MicroExercise
+  prompt="你要给朋友概括「老家房子出租前要不要先小规模粉刷」。下面哪种写法更接近「把相似的低层事实收成一组」？"
+  options={[
+    {
+      id: 'A',
+      text: '客厅墙皮有一小块鼓起来。厨房水槽下面管子上次滴答过。卧室窗户关不严，刮风时缝里有风。阳台栏杆螺丝好像松了一个。总体来说房子状况还行，租户一般也能接受。',
+    },
+    {
+      id: 'B',
+      text: '和墙面有关：客厅墙皮有一小块鼓起来。和水电有关：厨房水槽下面管子上次滴答过。和门窗有关：卧室窗户关不严，刮风时缝里有风；阳台栏杆螺丝好像松了一个。',
+    },
+    {
+      id: 'C',
+      text: '这套房位置不错，早该粉刷一下，拖久了不划算。',
+    },
+  ]}
+  correctId="B"
+  explanation="B 把事实按墙面、水电、门窗等相似点分组。A 把不同部位的问题混在一堆，只有结尾的笼统评价。C 只有判断，没有把具体事实分组。"
+/>
+
+<ReviewPrompt
+  questions={[
+    '你手头的事实里，哪几条其实属于同一类？',
+    '有没有把天气、时间、工具、地点等不同种类的事实混在同一段里？',
+  ]}
+/>
+
+<CollapsiblePanel title="适用边界">
+  <p>这一课只教「把相似的低层事实收成一组」，不是完整方法。</p>
+  <ul>
+    <li>官网把该方法用于你向读者提供思考的文件，例如邮件、备忘录、报告和幻灯片。</li>
+    <li>分组不能代替可靠事实；也不能代替从相似中抽出见解（第 6 课）和对分组做批判性检查（第 7 课）。</li>
+    <li>本课不教 MECE、演绎与归纳的完整运用、SCQ、问题界定、行动建议等；这些在后续课展开。</li>
+    <li>今天练的是相似点分组，不承诺每组已经互斥穷尽（MECE）。</li>
+    <li>中文课文只借鉴 ASD-STE100 的简明写法，不是该标准的认证文本。</li>
+  </ul>
+</CollapsiblePanel>
+
+<CollapsiblePanel title="可靠来源">
+  <ul>
+    <li>
+      <a href="https://www.barbaraminto.com/">Barbara Minto 官网首页</a>：说明 Minto Pyramid Principle 用于把想法组织成金字塔，便于读者抓住思路。
+    </li>
+    <li>
+      <a href="https://www.barbaraminto.com/concept">概念页</a>：理想思考过程的第一步是把相似的低层事实收成一组；下一步才是从相似中抽出见解，再形成更高一层的分组等。本课只对应第一步。
+    </li>
+    <li>
+      <a href="https://www.barbaraminto.com/course">课程页</a>：含 How to Look Critically at the Groupings 等，属于分组检查，本系列放在第 7 课，不是本课课表。
+    </li>
+    <li>
+      <a href="https://www.barbaraminto.com/textbook">教材页</a>：说明如何用规则发展思考并让表达更有说服力。本课不引用页码。该页提到 1996 年教材有 12 章，这不是本课系列的课表。
+    </li>
+    <li>
+      <a href="https://www.pearson.com/en-gb/subject-catalog/p/the-pyramid-principle/P200000015259/9781292763255">
+        Pearson 书目页
+      </a>
+      ：公开介绍强调先组织思考，再用金字塔结构表达。该页目录不是本课程表。
+    </li>
+    <li>
+      <a href="https://www.asd-ste100.org/">ASD-STE100</a> 与{' '}
+      <a href="https://www.asd-europe.org/standards-specifications/simplified-technical-english/what-are-the-basics-of-simplified-technical-english/">
+        ASD 简介
+      </a>
+      ：只用于说明课文写法的借鉴来源。
+    </li>
+  </ul>
+</CollapsiblePanel>
+
+</PyramidSeriesRoot>

@@ -10,6 +10,8 @@ import {
   validateLesson03Content,
   validateLesson04Content,
   validateLesson04Diagram,
+  validateLesson05Content,
+  validateLesson05Diagram,
 } from './validate-pyramid-lesson.mjs';
 
 test('parseFrontMatter reads keys', () => {
@@ -146,6 +148,64 @@ test('validateLessonFile accepts lesson 04 fixture', () => {
   const lesson = path.join(
     root,
     'docs/learning/thinking/pyramid-principle-daily/2026-11-20-lesson-04.mdx',
+  );
+  const r = validateLessonFile(lesson, root);
+  assert.equal(r.ok, true, r.errors?.join('; '));
+});
+
+test('validateLesson05Content rejects mixed-facts case and false scope claims', () => {
+  const badSnippet = `
+原创虚构
+好像 可能 不一定
+<CaseCompare compareNotes={['完全等量', '换了一组事实']} verbose="只有雨" />
+留到第 6 课
+本课已讲完见解
+p. 12
+<MicroExercise correctId="A" options={[{ id: 'B', text: '和墙面有关' }]} />
+`;
+  const root = path.resolve(import.meta.dirname, '..');
+  const errors = validateLesson05Content(badSnippet, root);
+  assert.ok(errors.some((e) => e.includes('第 7 课')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('正确答案应为 B')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('页码')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('完全等量')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('见解')), errors.join('; '));
+  assert.ok(errors.length >= 5, `expected multiple errors, got ${errors.length}`);
+});
+
+test('validateLesson05Diagram rejects mis-assigned facts', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pyr-05-'));
+  const diagramPath = path.join(root, 'src/data');
+  fs.mkdirSync(diagramPath, {recursive: true});
+  fs.writeFileSync(
+    path.join(diagramPath, 'pyramid-lesson-05-diagram.json'),
+    JSON.stringify({
+      caption: '无见解步骤说明',
+      levels: [
+        {
+          id: 'groups',
+          layer: 'middle',
+          label: '理由',
+          items: [{id: 'g2', text: '用具'}],
+        },
+        {
+          id: 'facts',
+          layer: 'bottom',
+          items: [{id: 'f1', supports: 'g1', text: '野餐垫上周用完还没洗。'}],
+        },
+      ],
+    }),
+  );
+  const errors = validateLesson05Diagram(root);
+  assert.ok(errors.some((e) => e.includes('supports') || e.includes('野餐垫')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('第 6 课')), errors.join('; '));
+});
+
+test('validateLessonFile accepts lesson 05 fixture', () => {
+  const root = path.resolve(import.meta.dirname, '..');
+  const lesson = path.join(
+    root,
+    'docs/learning/thinking/pyramid-principle-daily/2026-11-21-lesson-05.mdx',
   );
   const r = validateLessonFile(lesson, root);
   assert.equal(r.ok, true, r.errors?.join('; '));

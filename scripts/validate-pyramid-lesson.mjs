@@ -86,6 +86,10 @@ export function validateLessonFile(filePath, root = process.cwd()) {
     errors.push(...validateLesson04Content(text, root));
   }
 
+  if (fm?.lesson === '5') {
+    errors.push(...validateLesson05Content(text, root));
+  }
+
   return {ok: errors.length === 0, errors, rel};
 }
 
@@ -311,6 +315,153 @@ export function validateLesson04Diagram(root) {
   }
   if (!/好像|补听|下季度|还有/.test(r3.text)) {
     errors.push('理由 3 应保留「好像」等不确定性（如补听或下季度场次）');
+  }
+
+  return errors;
+}
+
+/**
+ * Lesson 5 semantics: group similar facts only; insight → lesson 6, critical grouping → lesson 7.
+ */
+export function validateLesson05Content(text, root = process.cwd()) {
+  const errors = [];
+
+  if (!/原创虚构/.test(text)) {
+    errors.push('第5课正文应标明案例为原创虚构（非原书/非真实事件）');
+  }
+
+  if (!/留到第\s*6\s*课|第\s*6\s*课再练/.test(text)) {
+    errors.push('应明确「从一组事实里抽出见解」留到第 6 课');
+  }
+
+  if (!/第\s*7\s*课/.test(text)) {
+    errors.push('应明确分组批判性检查留到第 7 课');
+  }
+
+  if (/本课已讲完.*见解|今天教完.*抽出见解|已掌握分组检查/.test(text)) {
+    errors.push('不要把见解抽取或分组检查写成本课已讲完');
+  }
+
+  if (/There are three reasons/i.test(text)) {
+    errors.push('不应把 course 页反例引语当作本课见解');
+  }
+
+  if (text.includes('完全等量')) {
+    errors.push('compareNotes 不应使用「完全等量」类表述');
+  }
+
+  const hedgeTokens = ['好像', '可能', '不一定'];
+  for (const token of hedgeTokens) {
+    if (!text.includes(token)) {
+      errors.push(`CaseCompare/verbose 应保留「${token}」等原样措辞`);
+    }
+  }
+
+  if (!/啰嗦版把天气|混在一段话里/.test(text) && !/不同种类的事实混/.test(text)) {
+    errors.push('compareNotes 应点明啰嗦版把不同种类事实混在一起');
+  }
+
+  if (!/野餐让人放松|值得安排/.test(text)) {
+    errors.push('啰嗦版应含不参与分组的旁支评价，结构版不宜升格为论据');
+  }
+
+  if (/所以从一组事实里已经看出|因此必须去野餐/.test(text)) {
+    errors.push('结构版总起不得把分组夸大为已抽出的见解');
+  }
+
+  if (!/差别只在是否按同类分组/.test(text)) {
+    errors.push('compareNotes 应说明差别只在分组而非换事实');
+  }
+
+  errors.push(...validateLesson05Diagram(root));
+
+  if (!/correctId="B"/.test(text)) {
+    errors.push('MicroExercise 正确答案应为 B');
+  }
+
+  const microBlock = text.includes('<MicroExercise')
+    ? text.slice(text.indexOf('<MicroExercise'), text.indexOf('/>', text.indexOf('<MicroExercise')) + 2)
+    : '';
+
+  if (microBlock && !/id:\s*'B'[\s\S]*?和墙面有关/.test(microBlock)) {
+    errors.push('MicroExercise B 应按相似点分组事实');
+  }
+
+  if (microBlock && /id:\s*'A'/.test(microBlock) && !/id:\s*'A'[\s\S]*?墙皮/.test(microBlock)) {
+    errors.push('MicroExercise A 应体现不同种类混在一起');
+  }
+
+  if (microBlock && /id:\s*'C'/.test(microBlock) && !/id:\s*'C'[\s\S]*?早该粉刷/.test(microBlock)) {
+    errors.push('MicroExercise C 应体现只有笼统判断、未分组事实');
+  }
+
+  if (/p\.\s*\d+|第\s*\d+\s*页|页码\s*\d+/.test(text)) {
+    errors.push('第5课不应编造具体引语页码');
+  }
+
+  if (/本课已讲完.*MECE|今天教完.*SCQ/.test(text)) {
+    errors.push('不要把 MECE、SCQ 等写成本课已教完');
+  }
+
+  if (!/Grouping together low-level facts|相似的低层事实收成一组|相似的低层事实/.test(text)) {
+    errors.push('应点明官网概念页第一步是相似事实分组');
+  }
+
+  return errors;
+}
+
+/**
+ * Lesson 5 diagram: middle layer is group labels; facts must support correct group ids.
+ */
+export function validateLesson05Diagram(root) {
+  const errors = [];
+  const diagramPath = path.join(root, 'src/data/pyramid-lesson-05-diagram.json');
+  if (!fs.existsSync(diagramPath)) {
+    errors.push('缺少 pyramid-lesson-05-diagram.json');
+    return errors;
+  }
+  let diagram;
+  try {
+    diagram = JSON.parse(fs.readFileSync(diagramPath, 'utf8'));
+  } catch {
+    errors.push('pyramid-lesson-05-diagram.json 不是合法 JSON');
+    return errors;
+  }
+
+  const groups = diagram.levels?.find((l) => l.id === 'groups')?.items ?? [];
+  if (groups.length < 3) {
+    errors.push('图的中层应至少有若干同类组别');
+  }
+  const groupIds = new Set(groups.map((g) => g.id));
+
+  const facts = diagram.levels?.find((l) => l.id === 'facts')?.items ?? [];
+  for (const f of facts) {
+    if (!f.supports || !groupIds.has(f.supports)) {
+      errors.push(`事实「${f.text?.slice(0, 12)}…」的 supports 必须指向有效组别`);
+    }
+  }
+
+  const weatherFacts = facts.filter((f) => f.supports === 'g1');
+  if (!weatherFacts.some((f) => /阵雨/.test(f.text)) || !weatherFacts.some((f) => /更晴/.test(f.text))) {
+    errors.push('天气组事实应与正文天气类一致');
+  }
+
+  const gearFacts = facts.filter((f) => f.supports === 'g2');
+  if (!gearFacts.some((f) => /野餐垫/.test(f.text)) || !gearFacts.some((f) => /保温箱/.test(f.text))) {
+    errors.push('用具组事实不应张冠李戴（野餐垫、保温箱应在 g2）');
+  }
+
+  if (facts.some((f) => /野餐垫/.test(f.text) && f.supports !== 'g2')) {
+    errors.push('野餐垫事实不得撑在非用具组上');
+  }
+
+  const middleLabel = diagram.levels?.find((l) => l.layer === 'middle')?.label ?? '';
+  if (/理由/.test(middleLabel) && !/组别/.test(middleLabel)) {
+    errors.push('图的中层标签宜用组别而非单独「理由」');
+  }
+
+  if (!/第\s*6\s*课/.test(diagram.caption ?? '')) {
+    errors.push('图注应点明见解抽取留到第 6 课');
   }
 
   return errors;
