@@ -383,8 +383,38 @@ export function validateLesson05Content(text, root = process.cwd()) {
     ? text.slice(text.indexOf('<MicroExercise'), text.indexOf('/>', text.indexOf('<MicroExercise')) + 2)
     : '';
 
+  if (/CaseCompare\s*组件/.test(text)) {
+    errors.push('正文不宜出现 CaseCompare 组件等开发术语');
+  }
+
+  if (/组别\s*4：同伴与时间[\s\S]*?面包店|title:\s*'组别 4：同伴与时间'[\s\S]*?面包店/.test(text)) {
+    errors.push('「同伴与时间」组不宜放入面包店排队等与同伴档期无关的事实');
+  }
+
+  if (microBlock && !/出租前要处理|出租前.*哪些问题/.test(microBlock)) {
+    errors.push('MicroExercise 题干应对准整套房屋出租前事项分类');
+  }
+
   if (microBlock && !/id:\s*'B'[\s\S]*?和墙面有关/.test(microBlock)) {
     errors.push('MicroExercise B 应按相似点分组事实');
+  }
+
+  if (microBlock) {
+    const optionB = microBlock.match(/id:\s*'B'[\s\S]*?text:\s*'([^']+)'/)?.[1] ?? '';
+    if (
+      /栏杆/.test(optionB) &&
+      /和门窗有关[^']*栏杆|门窗有关：[^']*栏杆螺丝/.test(optionB) &&
+      !/栏杆安全/.test(optionB)
+    ) {
+      errors.push('MicroExercise B 不得把阳台栏杆归入「门窗」组');
+    }
+    const optionA = microBlock.match(/id:\s*'A'[\s\S]*?text:\s*'([^']+)'/)?.[1] ?? '';
+    const sharedFacts = ['墙皮', '水槽下面管子', '窗户关不严', '栏杆螺丝'];
+    for (const token of sharedFacts) {
+      if (optionA.includes(token) !== optionB.includes(token)) {
+        errors.push(`MicroExercise A/B 事实集合应一致（含「${token}」）`);
+      }
+    }
   }
 
   if (microBlock && /id:\s*'A'/.test(microBlock) && !/id:\s*'A'[\s\S]*?墙皮/.test(microBlock)) {
@@ -453,6 +483,18 @@ export function validateLesson05Diagram(root) {
 
   if (facts.some((f) => /野餐垫/.test(f.text) && f.supports !== 'g2')) {
     errors.push('野餐垫事实不得撑在非用具组上');
+  }
+
+  const peerFacts = facts.filter((f) => f.supports === 'g4');
+  if (peerFacts.some((f) => /面包店|三明治|排队很长/.test(f.text))) {
+    errors.push('图解「同伴与时间」组不应含面包店排队类事实');
+  }
+  if (
+    peerFacts.length > 0 &&
+    !peerFacts.some((f) => /小周|朋友/.test(f.text)) &&
+    !peerFacts.some((f) => /汇合|出发|集合|下午到|上午/.test(f.text))
+  ) {
+    errors.push('图解同伴与时间组应含同伴档期或汇合时间类事实');
   }
 
   const middleLabel = diagram.levels?.find((l) => l.layer === 'middle')?.label ?? '';
