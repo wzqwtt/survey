@@ -90,6 +90,10 @@ export function validateLessonFile(filePath, root = process.cwd()) {
     errors.push(...validateLesson05Content(text, root));
   }
 
+  if (fm?.lesson === '6') {
+    errors.push(...validateLesson06Content(text, root));
+  }
+
   return {ok: errors.length === 0, errors, rel};
 }
 
@@ -504,6 +508,220 @@ export function validateLesson05Diagram(root) {
 
   if (!/第\s*6\s*课/.test(diagram.caption ?? '')) {
     errors.push('图注应点明见解抽取留到第 6 课');
+  }
+
+  return errors;
+}
+
+function insightTextOverStrong(text) {
+  if (/必去|必不去|必须选周日|肯定更晴|周日一定晴/.test(text)) return true;
+  if (/一定晴/.test(text) && !/不能|还不|不宜|不是|不按|别按/.test(text)) return true;
+  if (/一定下雨/.test(text) && !/不能|还不|不宜/.test(text)) return true;
+  return false;
+}
+
+/**
+ * Lesson 6 semantics: draw insight from grouped similar facts; critical grouping → lesson 7.
+ */
+export function validateLesson06Content(text, root = process.cwd()) {
+  const errors = [];
+
+  if (!/原创虚构/.test(text)) {
+    errors.push('第6课正文应标明案例为原创虚构（非原书/非真实事件）');
+  }
+
+  if (!/先把同类的事实收在一起/.test(text)) {
+    errors.push('上节回顾应准确概括第 5 课要点（同类事实收成一组）');
+  }
+
+  if (
+    !/Drawing an insight from having seen the similarity|从看到相似中抽出见解|从一组事实里抽出见解/.test(
+      text,
+    )
+  ) {
+    errors.push('应点明官网概念页第二步是从相似中抽出见解');
+  }
+
+  if (!/第\s*7\s*课/.test(text)) {
+    errors.push('应明确 How to Look Critically at the Groupings 等分组检查留到第 7 课');
+  }
+
+  if (/本课已讲完分组检查|已掌握.*Look Critically|今天教完.*理由个数/.test(text)) {
+    errors.push('不要把第 7 课的系统分组检查写成本课已讲完');
+  }
+
+  if (
+    /There are three reasons/i.test(text) &&
+    !/not an appropriate insight|不宜当作|不是.*恰当见解|反例|举例/.test(text)
+  ) {
+    errors.push('不应把「There are three reasons」类报个数写法当作恰当见解示范');
+  }
+
+  if (text.includes('完全等量')) {
+    errors.push('compareNotes 不应使用「完全等量」类表述');
+  }
+
+  const requiredFactSnippets = [
+    '周六预报说午后可能阵雨，不一定下透。',
+    '周日好像更晴一点，但也不确定。',
+    '野餐垫上周用完还没洗，可能来得及晾。',
+    '保温箱盖子卡扣好像有点松，不一定漏气。',
+    '导航显示两处草坪都要步行二十分钟左右。',
+    '其中一处好像要预约，另一处先到先得。',
+    '朋友小周周六上午有事，只能下午出发。',
+    '大家原先说周日上午十点在地铁站集合，小周下午才能到，汇合时间可能要往后挪。',
+  ];
+  for (const snippet of requiredFactSnippets) {
+    if (!text.includes(snippet)) {
+      errors.push(`CaseCompare 应保留野餐案列事实：「${snippet.slice(0, 16)}…」`);
+    }
+  }
+
+  const hedgeTokens = ['好像', '可能', '不一定'];
+  for (const token of hedgeTokens) {
+    if (!text.includes(token)) {
+      errors.push(`正文应保留「${token}」等原样措辞`);
+    }
+  }
+
+  const caseBlock = text.includes('<CaseCompare')
+    ? text.slice(text.indexOf('<CaseCompare'), text.indexOf('/>', text.indexOf('<CaseCompare')) + 2)
+    : '';
+  if (caseBlock && /conclusion="[^"]*(必去|必不去|一定选周日|周日一定晴|肯定更晴)/.test(caseBlock)) {
+    errors.push('结构版结论不得把不确定性升格为必去/一定晴等过强判断');
+  }
+  if (caseBlock) {
+    const titles = [...caseBlock.matchAll(/title:\s*'([^']+)'/g)].map((m) => m[1]);
+    for (const inner of titles) {
+      if (/^(?:天气|野餐用具|地点|同伴)/.test(inner) && insightTextOverStrong(inner)) {
+        errors.push('结构版各组见解不得明显强于事实（如一定晴、必去）');
+        break;
+      }
+    }
+  }
+
+  if (!/差别.*抽出|见解.*事实强度|罗列完就停/.test(text)) {
+    errors.push('compareNotes 应说明差别在于是否抽出与事实强度相符的见解');
+  }
+
+  if (!/换了一组事实/.test(text) && !/而不是换了一组虚构事实/.test(text)) {
+    errors.push('compareNotes 应点明两版使用相同事实而非换案');
+  }
+
+  const reasonTitles = [...text.matchAll(/title:\s*'([^']+)'/g)].map((m) => m[1]);
+  const picnicInsightTitles = reasonTitles.filter((t) => /天气|用具|地点|同伴/.test(t));
+  if (picnicInsightTitles.length < 4) {
+    errors.push('CaseCompare 结构版应含四组见解（或「组别：见解」）标题');
+  }
+  if (picnicInsightTitles.some((t) => /^组别\s*\d：/.test(t) && !/：.*[。；]|不稳|还不|可能|好像|不确定|未必|要确认|要挪|不能按/.test(t))) {
+    errors.push('CaseCompare 组别标题后应写出见解，不宜只重复组别标签');
+  }
+  if (reasonTitles.some((t) => /一共有.*条|共有\d|三个原因|两个理由/.test(t))) {
+    errors.push('见解不宜只报个数（如「一共有两条」）');
+  }
+
+  errors.push(...validateLesson06Diagram(root, text));
+
+  if (!/correctId="B"/.test(text)) {
+    errors.push('MicroExercise 正确答案应为 B');
+  }
+
+  const microBlock = text.includes('<MicroExercise')
+    ? text.slice(text.indexOf('<MicroExercise'), text.indexOf('/>', text.indexOf('<MicroExercise')) + 2)
+    : '';
+
+  if (microBlock && /出租前要处理|出租前.*哪些问题/.test(microBlock)) {
+    errors.push('MicroExercise 题干不应重复第 5 课出租房题');
+  }
+
+  if (microBlock && /组件|JSON/.test(microBlock)) {
+    errors.push('MicroExercise 不宜出现组件、JSON 等开发术语');
+  }
+
+  if (microBlock && !/id:\s*'B'[\s\S]*?(见解|说明|意味着|还不|可能要|未必)/.test(microBlock)) {
+    errors.push('MicroExercise B 应体现从分组事实抽出与强度相符的见解');
+  }
+
+  if (/CaseCompare\s*组件|PyramidDiagram\s*组件/.test(text)) {
+    errors.push('正文不宜出现组件等开发术语');
+  }
+
+  if (/p\.\s*\d+|第\s*\d+\s*页|页码\s*\d+/.test(text)) {
+    errors.push('第6课不应编造具体引语页码');
+  }
+
+  if (!/one_liner|oneLiner/.test(text)) {
+    errors.push('LessonHero oneLiner 应与 front matter one_liner 要点一致');
+  }
+
+  return errors;
+}
+
+/**
+ * Lesson 6 diagram: middle layer is insights; facts support matching insight ids.
+ */
+export function validateLesson06Diagram(root, lessonText = '') {
+  const errors = [];
+  const diagramPath = path.join(root, 'src/data/pyramid-lesson-06-diagram.json');
+  if (!fs.existsSync(diagramPath)) {
+    errors.push('缺少 pyramid-lesson-06-diagram.json');
+    return errors;
+  }
+  let diagram;
+  try {
+    diagram = JSON.parse(fs.readFileSync(diagramPath, 'utf8'));
+  } catch {
+    errors.push('pyramid-lesson-06-diagram.json 不是合法 JSON');
+    return errors;
+  }
+
+  const middle = diagram.levels?.find((l) => l.layer === 'middle');
+  if (!middle) {
+    errors.push('图缺少中间层');
+    return errors;
+  }
+  if (/组别/.test(middle.label ?? '') && !/见解/.test(middle.label ?? '')) {
+    errors.push('图的中层标签应为见解而非仅「同类组别」');
+  }
+  if (middle.id === 'groups') {
+    errors.push('第 6 图中层 id 宜用 insights 等，不应沿用 lesson 5 的 groups');
+  }
+
+  const insightItems = middle.items ?? [];
+  const insightIds = new Set(insightItems.map((i) => i.id));
+  if (insightItems.length < 4) {
+    errors.push('图的中层应至少有四条例见的概括');
+  }
+  if (insightItems.some((i) => /^(天气与日子|野餐用具|地点与到达|同伴与时间)$/.test(i.text))) {
+    errors.push('图的中层文字应是见解，不宜仅为组别名词');
+  }
+  if (insightItems.some((i) => /一共有|共有\d|三个原因/.test(i.text))) {
+    errors.push('图的中层不宜用报个数充当见解');
+  }
+  if (insightItems.some((i) => insightTextOverStrong(i.text ?? ''))) {
+    errors.push('图中见解不得过强（如一定晴、必去）');
+  }
+
+  const facts = diagram.levels?.find((l) => l.id === 'facts')?.items ?? [];
+  for (const f of facts) {
+    if (!f.supports || !insightIds.has(f.supports)) {
+      errors.push(`事实「${f.text?.slice(0, 12)}…」的 supports 必须指向有效见解 id`);
+    }
+  }
+
+  const weatherFacts = facts.filter((f) => /阵雨|更晴/.test(f.text ?? ''));
+  if (weatherFacts.length >= 2) {
+    const weatherInsightIds = new Set(weatherFacts.map((f) => f.supports));
+    if (weatherInsightIds.size !== 1) {
+      errors.push('两条天气事实应支撑同一条天气见解');
+    }
+  }
+
+  if (!/虚构/.test(diagram.caption ?? '')) {
+    errors.push('图注应标明虚构并点出本课在练抽出见解');
+  }
+  if (!/抽出见解|见解/.test(diagram.caption ?? '')) {
+    errors.push('图注应点明本课练习抽出见解');
   }
 
   return errors;

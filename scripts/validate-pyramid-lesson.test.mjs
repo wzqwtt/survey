@@ -12,6 +12,8 @@ import {
   validateLesson04Diagram,
   validateLesson05Content,
   validateLesson05Diagram,
+  validateLesson06Content,
+  validateLesson06Diagram,
 } from './validate-pyramid-lesson.mjs';
 
 test('parseFrontMatter reads keys', () => {
@@ -290,6 +292,99 @@ test('validateLessonFile accepts lesson 05 fixture', () => {
     root,
     'docs/learning/thinking/pyramid-principle-daily/2026-11-21-lesson-05.mdx',
   );
+  const r = validateLessonFile(lesson, root);
+  assert.equal(r.ok, true, r.errors?.join('; '));
+});
+
+test('validateLesson06Content rejects ungrouped listing, false scope, and over-strong insight', () => {
+  const badSnippet = `
+原创虚构
+好像 可能 不一定
+Drawing an insight
+留到第 7 课
+本课已讲完分组检查
+p. 12
+<CaseCompare compareNotes={['换了一组事实']} verbose="周日一定晴" conclusion="这周末必去野餐" />
+reasons={[
+  { title: '天气与日子：预报都带不确定性', facts: ['周六预报说午后可能阵雨，不一定下透。', '周日好像更晴一点，但也不确定。'] },
+]}
+<MicroExercise correctId="A" options={[{ id: 'B', text: '从相似点抽出见解' }]} />
+`;
+  const root = path.resolve(import.meta.dirname, '..');
+  const errors = validateLesson06Content(badSnippet, root);
+  assert.ok(errors.some((e) => e.includes('第 7 课') || e.includes('分组检查')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('页码')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('必去') || e.includes('过强')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('正确答案应为 B')), errors.join('; '));
+  assert.ok(errors.length >= 4, `expected multiple errors, got ${errors.length}`);
+});
+
+test('validateLesson06Content rejects count-only insight and dev jargon', () => {
+  const badSnippet = `
+原创虚构
+好像 可能 不一定
+Drawing an insight from having seen the similarity
+留到第 7 课
+There are three reasons
+差别在于是否抽出与事实强度相符的见解
+Saturday预报
+<CaseCompare compareNotes={['结构版使用完全相同的事实与不确定性措辞']} verbose="好像可能不一定" />
+reasons={[
+  { title: '天气与日子：一共有两条天气消息', facts: ['周六预报说午后可能阵雨，不一定下透。', '周日好像更晴一点，但也不确定。'] },
+]}
+<MicroExercise prompt="团队聚餐" correctId="B" options={[
+  { id: 'A', text: '和口味有关：有人不吃辣。和时间有关：周三晚上。' },
+  { id: 'B', text: '口味和时间都还不定型，需要再定一版' },
+  { id: 'C', text: '必须定周三晚川菜馆' },
+]} />
+PyramidDiagram 组件
+`;
+  const root = path.resolve(import.meta.dirname, '..');
+  const errors = validateLesson06Content(badSnippet, root);
+  assert.ok(errors.some((e) => e.includes('个数') || e.includes('There are three')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('组件') || e.includes('开发术语')), errors.join('; '));
+});
+
+test('validateLesson06Diagram rejects group labels and mis-assigned facts', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pyr-06-'));
+  const diagramPath = path.join(root, 'src/data');
+  fs.mkdirSync(diagramPath, {recursive: true});
+  fs.writeFileSync(
+    path.join(diagramPath, 'pyramid-lesson-06-diagram.json'),
+    JSON.stringify({
+      caption: '无见解说明',
+      levels: [
+        {
+          id: 'groups',
+          layer: 'middle',
+          label: '同类组别',
+          items: [{id: 'g1', text: '天气与日子'}],
+        },
+        {
+          id: 'facts',
+          layer: 'bottom',
+          items: [
+            {id: 'f1a', supports: 'g1', text: '周六预报说午后可能阵雨，不一定下透。'},
+            {id: 'f1b', supports: 'g2', text: '周日好像更晴一点，但也不确定。'},
+          ],
+        },
+      ],
+    }),
+  );
+  const errors = validateLesson06Diagram(root);
+  assert.ok(errors.some((e) => e.includes('见解') || e.includes('middle')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('supports') || e.includes('更晴')), errors.join('; '));
+});
+
+test('validateLessonFile accepts lesson 06 fixture when present', () => {
+  const root = path.resolve(import.meta.dirname, '..');
+  const lesson = path.join(
+    root,
+    'docs/learning/thinking/pyramid-principle-daily/2026-11-22-lesson-06.mdx',
+  );
+  if (!fs.existsSync(lesson)) {
+    return;
+  }
   const r = validateLessonFile(lesson, root);
   assert.equal(r.ok, true, r.errors?.join('; '));
 });
