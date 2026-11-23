@@ -1,0 +1,164 @@
+---
+series: pyramid
+sidebar_position: 8
+sidebar_label: 第07课
+title: 第7课：检查并列的理由是否真正站得住
+description: 说出并列理由后，再检查个数是否正好、分组是否找对、见解是否恰当；不要把报个数当成见解。
+tags: [金字塔原理, 每日学习]
+date: 2026-11-23
+lesson: 7
+one_liner: 并列理由列出来后，要检查个数、分组与见解是否相称；仅有「有三个理由」不是恰当见解。
+---
+
+import PyramidSeriesRoot from '@site/src/components/pyramid-series/PyramidSeriesRoot';
+import LessonChrome from '@site/src/components/pyramid-series/LessonChrome';
+import CourseRoadmap from '@site/src/components/pyramid-series/CourseRoadmap';
+import LessonHero from '@site/src/components/pyramid-series/LessonHero';
+import PyramidDiagram from '@site/src/components/pyramid-series/PyramidDiagram';
+import CaseCompare from '@site/src/components/pyramid-series/CaseCompare';
+import MicroExercise from '@site/src/components/pyramid-series/MicroExercise';
+import CollapsiblePanel from '@site/src/components/pyramid-series/CollapsiblePanel';
+import ReviewPrompt from '@site/src/components/pyramid-series/ReviewPrompt';
+import diagram from '@site/src/data/pyramid-lesson-07-diagram.json';
+
+<PyramidSeriesRoot>
+
+<LessonChrome
+  seriesTitle="《金字塔原理》每日一小课"
+  lessonLabel="第7课：检查并列的理由是否真正站得住"
+  designMinutes="3 到 5 分钟"
+  localeDate="2026-11-23"
+/>
+
+<CourseRoadmap currentLesson={7} />
+
+<LessonHero oneLiner="并列理由列出来后，要检查个数、分组与见解是否相称；仅有「有三个理由」不是恰当见解。" />
+
+上一课我们练习：看到一组事实的相似点之后，抽出它们共同说明的、且不超过事实强度的见解；不要只罗列事实，也不要把见解说得比事实更满。  
+今天往前一步：对这些已经列出的并列理由和分组，做批判性检查，看它们是否真正站得住。
+
+本课的生活案例与练习均为原创虚构，不是原书案例，也不是真实事件。
+
+## 为什么还要检查并列理由
+
+第 5 课练过分组，第 6 课练过从相似事实里抽出见解。  
+官网[课程页](https://www.barbaraminto.com/course)在 **How to Look Critically at the Groupings** 一段里写明：
+
+> How to Look Critically at the Groupings – to make sure that when you say “There are three reasons for making this change,” there are in fact only three reasons, that you have identified the right three, and that you have drawn the appropriate insight from having identified them. (“There are three reasons” is not an appropriate insight!)
+
+本课把这一段收成三项互相配合的检查，仍是同一概念里的三步，不是拆成三课：
+
+1. **个数对不对**：你说「有三条理由」时，是不是正好三条？有没有把两条并成一条、把一条拆成两条，或漏掉本该单独算的一条？
+2. **分组找得对不对**：这几条是不是按真正的相似点分开的「对的」理由？有没有把不同种类塞进同一条，或把同一类重复算成两条？
+3. **见解是否恰当**：认出这些理由之后，有没有写出与事实强度相符的见解？仅仅说「有三个理由」或 “There are three reasons” **不是**恰当见解。
+
+检查通过后，才更适合把相关见解再收成更高一层；本课不展开情景/SCQ、行动建议、归纳演绎全文等问题界定与全文回头检查（留给后续课）。  
+若用语里偶尔提到 MECE，那是本课为帮助理解而用的**教学用语**，不是官网本段逐字引语，也不展开完整 MECE 课。
+
+<PyramidDiagram data={diagram} />
+
+<CaseCompare
+  scene="场景：迭代复盘会上，有人主张「从群聊换到任务看板」；同事请大家先摆依据。"
+  verbose="换工具有三个理由。最近两次迭代里，需求在群里中途改过，有人说可能没注意到 @ 提醒；在群里搜旧对话，有时要等挺久才出结果，不一定每次都很慢——这两条算一条吧。上周试运行里，八人团队里大概三人好像打开过看板视图，其余好像还没点开，算第二条。安全同事说供应商的数据条款可能还在审，目前好像不能下定论；免费席位上限明年一季度可能碰到，还不确定会不会超，我觉得先放一边。后端同事说留在群里上下文已经都在，可能不太想两边切，我也没单列。所以有三个理由支持换，下周就全员切换吧。顺便说楼下便利店新上了饭团，听说不错。"
+  conclusion="协作、试用与审批席位都还不明朗，还不能把「下周全员切换」说成已由三条并列理由撑住。"
+  reasons={[
+    {
+      title: '协作跟帖：需求中途改动与可能漏看 @，都说明群里跟需求变动可能容易脱节；搜旧对话有时也慢，查阅负担不一定轻。',
+      facts: [
+        '最近两次迭代里，需求在群里中途改过，有人说可能没注意到 @ 提醒。',
+        '在群里搜旧对话，有时要等挺久才出结果，不一定每次都很慢。',
+      ],
+    },
+    {
+      title: '试用与意愿：仅少数人试过看板，也有人倾向留在群里，全员切换的采纳基础还不牢靠。',
+      facts: [
+        '上周试运行里，八人团队里大概三人好像打开过看板视图，其余好像还没点开。',
+        '后端同事说留在群里上下文已经都在，可能不太想两边切。',
+      ],
+    },
+    {
+      title: '切换前提：安全审查与席位上限都还不明朗，还不能把切换当成条件已齐备的事。',
+      facts: [
+        '安全同事说供应商的数据条款可能还在审，目前好像不能下定论。',
+        '免费席位上限明年一季度可能碰到，还不确定会不会超。',
+      ],
+    },
+  ]}
+  compareNotes={[
+    '啰嗦版与结构版使用同一批事实与不确定性措辞（「可能」「好像」「不一定」等保持原样）；差别在于啰嗦版未经三项检查。',
+    '啰嗦版口头报「三条理由」，却把搜旧消息慢与 @ 漏看混成一条、又把安全与席位轻轻带过，最后以「有三个理由」代替恰当见解并推到「下周全员切换」。',
+    '结构版经检查后保留三条并列理由，每条写出与事实强度相符的见解；总起没有说必须换或必须不换。',
+    '啰嗦版里的便利店饭团是旁支评价，结构版没有把它升格为一条理由；两版差别在检查（个数/分组/见解），不是换了另一组虚构事实。',
+  ]}
+/>
+
+<MicroExercise
+  prompt="小团队想调整报销单据的审批路径。你手头有这些消息：和流程有关——现在两级审批有时要等两三天，财务说可能再招一个人接手初审；和系统有关——新报销系统上周上线，有人好像还不会传附件；和规则有关——上司说差旅标准可能下月才公布新版，目前还不确定要不要先改路径。哪种写法通过了「个数—分组—见解」的检查？"
+  options={[
+    {
+      id: 'A',
+      text: '流程：两级审批等两三天，财务可能招人——算一条。系统：有人不会传附件——算第二条。规则：标准下月才公布——第三条。再把「等两三天」和「可能招人」各算一条，一共有四条理由，所以明天就关掉旧路径。',
+    },
+    {
+      id: 'B',
+      text: '流程：等待与人力都还可能变，路径不能假设已经提速。系统：上传习惯还没稳住，硬切可能增加退回。规则：标准未定，审批链条最好先留弹性。',
+    },
+    {
+      id: 'C',
+      text: '有三条消息，所以必须有三条理由；结论：下月一定按新系统单轨审批。',
+    },
+  ]}
+  correctId="B"
+  explanation="B 按相似点分成三条并列理由，每条写出不超过「可能」「好像」「还不确定」强度的见解。A 把无关旁支算进个数，且结论过强。C 用报个数撑起过强的单轨结论，没有把三条理由写成恰当见解。"
+/>
+
+<ReviewPrompt
+  questions={[
+    '你写的「有几条理由」和实际列出的条目是否一致，有没有重复计或漏计？',
+    '每一条里的几项事实，是不是同一种相似点，而不是不同类硬塞在一起？',
+    '总起或各条标题里，有没有比事实更满的见解，或只有「有三个理由」而没有说清理由说明什么？',
+  ]}
+/>
+
+<CollapsiblePanel title="适用边界">
+  <p>这一课只教对并列理由和分组做批判性检查，不是完整方法。</p>
+  <ul>
+    <li>官网把该方法用于你向读者提供思考的文件，例如邮件、备忘录、报告和幻灯片。</li>
+    <li>检查不能代替可靠事实，也不能代替第 5 课的分组与第 6 课的抽见解；后两者应先做到，再进入本课检查。</li>
+    <li>本课不教完整 MECE、SCQ、问题界定、行动建议、归纳与演绎全文，也不在课上讲完检查之后如何再叠更高一层见解的全流程。</li>
+    <li>本系列学习顺序是自拟路线，不是原书 12 章课表。</li>
+    <li>中文课文只借鉴 ASD-STE100 的简明写法，不是该标准的认证文本。</li>
+  </ul>
+</CollapsiblePanel>
+
+<CollapsiblePanel title="可靠来源">
+  <ul>
+    <li>
+      <a href="https://www.barbaraminto.com/">Barbara Minto 官网首页</a>：说明 Minto Pyramid Principle 用于把想法组织成金字塔，便于读者抓住思路。
+    </li>
+    <li>
+      <a href="https://www.barbaraminto.com/concept">概念页</a>：理想思考含分组、抽见解、再收成新的一组等步骤；第 5、6 课已练前两步，本课对应课程页的分组批判性检查。
+    </li>
+    <li>
+      <a href="https://www.barbaraminto.com/course">课程页</a>：本课主来源，含 How to Look Critically at the Groupings 及 “There are three reasons” is not an appropriate insight 的提示。
+    </li>
+    <li>
+      <a href="https://www.barbaraminto.com/textbook">教材页</a>：说明如何用规则发展思考并让表达更有说服力。该页提到 1996 年教材有 12 章，这不是本课系列的课表。本课不引用页码。
+    </li>
+    <li>
+      <a href="https://www.pearson.com/en-gb/subject-catalog/p/the-pyramid-principle/P200000015259/9781292763255">
+        Pearson 书目页
+      </a>
+      ：公开介绍强调先组织思考，再用金字塔结构表达。该页目录不是本课程表。
+    </li>
+    <li>
+      <a href="https://www.asd-ste100.org/">ASD-STE100</a> 与{' '}
+      <a href="https://www.asd-europe.org/standards-specifications/simplified-technical-english/what-are-the-basics-of-simplified-technical-english/">
+        ASD 简介
+      </a>
+      ：只用于说明课文写法的借鉴来源。
+    </li>
+  </ul>
+</CollapsiblePanel>
+
+</PyramidSeriesRoot>
