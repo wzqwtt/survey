@@ -42,9 +42,7 @@ import diagram from '@site/src/data/pyramid-lesson-07-diagram.json';
 ## 为什么还要检查并列理由
 
 第 5 课练过分组，第 6 课练过从相似事实里抽出见解。  
-官网[课程页](https://www.barbaraminto.com/course)在 **How to Look Critically at the Groupings** 一段里写明：
-
-> How to Look Critically at the Groupings – to make sure that when you say “There are three reasons for making this change,” there are in fact only three reasons, that you have identified the right three, and that you have drawn the appropriate insight from having identified them. (“There are three reasons” is not an appropriate insight!)
+官网[课程页](https://www.barbaraminto.com/course)在 **How to Look Critically at the Groupings** 一段里写明：当你说 “There are three reasons…” 时，要核对理由是否正好、是否找对、有没有写出恰当见解；并提醒，仅说有三个理由**不是**恰当见解（“There are three reasons” is not an appropriate insight）。
 
 本课把这一段收成三项互相配合的检查，仍是同一概念里的三步，不是拆成三课：
 
@@ -63,7 +61,7 @@ import diagram from '@site/src/data/pyramid-lesson-07-diagram.json';
   conclusion="协作、试用与审批席位都还不明朗，还不能把「下周全员切换」说成已由三条并列理由撑住。"
   reasons={[
     {
-      title: '协作跟帖：需求中途改动与可能漏看 @，都说明群里跟需求变动可能容易脱节；搜旧对话有时也慢，查阅负担不一定轻。',
+      title: '协作跟帖：需求变动时可能漏看 @、查旧对话也可能费时，都说明群内获取信息仍有困难。',
       facts: [
         '最近两次迭代里，需求在群里中途改过，有人说可能没注意到 @ 提醒。',
         '在群里搜旧对话，有时要等挺久才出结果，不一定每次都很慢。',
@@ -86,8 +84,8 @@ import diagram from '@site/src/data/pyramid-lesson-07-diagram.json';
   ]}
   compareNotes={[
     '啰嗦版与结构版使用同一批事实与不确定性措辞（「可能」「好像」「不一定」等保持原样）；差别在于啰嗦版未经三项检查。',
-    '啰嗦版口头报「三条理由」，却把搜旧消息慢与 @ 漏看混成一条、又把安全与席位轻轻带过，最后以「有三个理由」代替恰当见解并推到「下周全员切换」。',
-    '结构版经检查后保留三条并列理由，每条写出与事实强度相符的见解；总起没有说必须换或必须不换。',
+    '啰嗦版口头报「三条理由」却未核对：把 @ 与搜旧消息说成「算一条」后个数仍对不上，又把安全、席位与「留在群里」轻轻带过或未单列，最后以「有三个理由」代替恰当见解并推到「下周全员切换」。',
+    '结构版经检查后也是三条：协作组里 @ 与搜旧消息因相似点「群内信息获取仍困难」可同组，试用意愿与切换前提各成一组；差别不在「这两件事该不该同组」，而在是否核对个数、是否漏掉关键事实、是否写出与事实相称的见解。',
     '啰嗦版里的便利店饭团是旁支评价，结构版没有把它升格为一条理由；两版差别在检查（个数/分组/见解），不是换了另一组虚构事实。',
   ]}
 />
@@ -101,7 +99,7 @@ import diagram from '@site/src/data/pyramid-lesson-07-diagram.json';
     },
     {
       id: 'B',
-      text: '流程：等待与人力都还可能变，路径不能假设已经提速。系统：上传习惯还没稳住，硬切可能增加退回。规则：标准未定，审批链条最好先留弹性。',
+      text: '流程、系统与规则都还有不确定，最好先确认现状再定何时改审批路径。流程：两级审批等两三天，财务可能招人，不能假设已经提速。系统：有人好像还不会传附件，硬切可能增加退回。规则：差旅标准可能下月才公布新版，目前还不确定，审批链条最好先留弹性。',
     },
     {
       id: 'C',
@@ -109,7 +107,7 @@ import diagram from '@site/src/data/pyramid-lesson-07-diagram.json';
     },
   ]}
   correctId="B"
-  explanation="B 按相似点分成三条并列理由，每条写出不超过「可能」「好像」「还不确定」强度的见解。A 把无关旁支算进个数，且结论过强。C 用报个数撑起过强的单轨结论，没有把三条理由写成恰当见解。"
+  explanation="B 先给出与三条理由相称的谨慎总判断，再按相似点分成三条并列理由，每条见解保留「可能」「好像」「还不确定」强度。A 先口头归成三条，又把同一流程事实拆成两条重复计数，还以错数撑起「明天就关旧路径」的过强结论。C 用报个数撑起过强的单轨结论，没有把三条理由写成恰当见解。"
 />
 
 <ReviewPrompt

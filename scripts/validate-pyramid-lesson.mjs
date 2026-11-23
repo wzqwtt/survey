@@ -851,6 +851,48 @@ export function validateLesson07Content(text, root = process.cwd()) {
     if (optionB && !/还不|可能|好像|未必|弹性|不能假设/.test(optionB)) {
       errors.push('MicroExercise B 见解应与不确定性措辞相称');
     }
+    const explanation =
+      microBlock.match(/explanation="([^"]+)"/)?.[1]
+      ?? microBlock.match(/explanation=\{['"`]([^'"`]+)['"`]\}/)?.[1]
+      ?? '';
+    if (/无关旁支/.test(explanation) && !/饭团|咖啡|便利店/.test(microBlock)) {
+      errors.push('MicroExercise 解析不宜把「无关旁支」当作 A 的主错（除非题干或选项真有题干外旁支）');
+    }
+    if (optionB && /流程[：:]/.test(optionB)) {
+      const head = optionB.split(/流程[：:]/)[0];
+      if (head.length < 6 || !/最好先|不宜|先确认|再定|还不能|留弹性|都还有不确定/.test(head)) {
+        errors.push('MicroExercise B 宜有由三条理由共同支撑的谨慎总判断，而非只有分列见解');
+      }
+    }
+    if (/可能下月才公布|还不确定要不要先改/.test(microBlock) && optionB) {
+      const ruleSeg = optionB.match(/规则[：:][^。]+/)?.[0] ?? '';
+      if (
+        ruleSeg
+        && /下月才公布|标准未定/.test(ruleSeg)
+        && !/可能|还不确定|好像/.test(ruleSeg)
+      ) {
+        errors.push('MicroExercise B 规则条见解应保留题干「可能」「还不确定」强度');
+      }
+      const sysSeg = optionB.match(/系统[：:][^。]+/)?.[0] ?? '';
+      if (sysSeg && /上传习惯|不会传附件/.test(sysSeg) && !/可能|好像|还不/.test(sysSeg)) {
+        errors.push('MicroExercise B 系统条见解应保留题干不确定性措辞');
+      }
+    }
+  }
+
+  const compareNotesBlob = text.includes('compareNotes')
+    ? text.slice(text.indexOf('compareNotes'), text.indexOf('/>', text.indexOf('<CaseCompare')) + 2)
+    : '';
+  if (
+    compareNotesBlob
+    && /算一条|混成一条/.test(compareNotesBlob)
+    && /@/.test(compareNotesBlob)
+    && /搜/.test(compareNotesBlob)
+    && !/共同相似|相似点|同组|群内信息/.test(compareNotesBlob)
+  ) {
+    errors.push(
+      'compareNotes 若批评啰嗦版把 @ 与搜旧消息合并计数，应说明结构版同组依据（如共同相似点），避免「前错后对」假象',
+    );
   }
 
   const prose = text.replace(/^import[^\n]+\n/gm, '');
