@@ -1072,7 +1072,19 @@ export function validateLesson08Content(text, root = process.cwd()) {
   const caseBlock = text.includes('<CaseCompare')
     ? text.slice(text.indexOf('<CaseCompare'), text.indexOf('/>', text.indexOf('<CaseCompare')) + 2)
     : '';
+  if (caseBlock && !/scq=\{\{/.test(caseBlock)) {
+    errors.push('CaseCompare 结构版应通过 scq 属性展示可读的情景、变化、问题三句');
+  }
+  if (caseBlock && /scq=\{\{/.test(caseBlock)) {
+    const scqBody = caseBlock.match(/scq=\{\{([\s\S]*?)\}\}\s*\n\s*conclusion=/)?.[1] ?? '';
+    if (!/situation:/.test(scqBody) || !/complication:/.test(scqBody) || !/question:/.test(scqBody)) {
+      errors.push('scq 应含 situation、complication、question 三项');
+    }
+  }
   const structuredConclusion = caseBlock.match(/conclusion="([^"]+)"/)?.[1] ?? '';
+  if (structuredConclusion && /小规模抽奖/.test(structuredConclusion)) {
+    errors.push('结构版结论不宜写「小规模抽奖」等无事实依据的规模判断');
+  }
   if (
     structuredConclusion
     && /(全面改成捐步|必须改成捐步|立刻全面)/.test(structuredConclusion)
@@ -1236,8 +1248,18 @@ export function validateLesson08Diagram(root, lessonText = '') {
     errors.push('同事偏好组应含热闹感与捐步意愿类事实');
   }
   const r3Facts = facts.filter((f) => f.supports === 'r3');
-  if (!r3Facts.some((f) => /六周|节目单/.test(f.text)) || !r3Facts.some((f) => /八成|排练/.test(f.text))) {
+  if (!r3Facts.some((f) => /六周|节目单/.test(f.text)) || !r3Facts.some((f) => /排练/.test(f.text))) {
     errors.push('筹备节奏组应含时间窗口与排练类事实');
+  }
+  if (r3Facts.some((f) => /去年|八成/.test(f.text))) {
+    errors.push('去年到场/热闹宜放在偏好或情景侧，不宜仅挂在筹备节奏理由下');
+  }
+  const r2FactsHot = facts.filter((f) => f.supports === 'r2');
+  if (!r2FactsHot.some((f) => /去年|八成/.test(f.text))) {
+    errors.push('同事偏好组宜含去年热闹体验类事实，支撑保留抽奖的偏好语境');
+  }
+  if (/小规模抽奖/.test(topText)) {
+    errors.push('图顶层不宜写无依据的「小规模抽奖」');
   }
 
   if (lessonText && !lessonText.includes('公司年会按惯例有压轴抽奖')) {

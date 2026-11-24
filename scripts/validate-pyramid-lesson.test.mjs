@@ -578,6 +578,41 @@ p. 12
   assert.ok(errors.length >= 4, `expected multiple errors, got ${errors.length}`);
 });
 
+test('validateLesson08Content rejects missing scq prop and 小规模抽奖 conclusion', () => {
+  const root = path.resolve(import.meta.dirname, '..');
+  const snippet = `
+原创虚构 好像 可能 不一定
+并列理由 个数 分组 见解
+Situation Complication Question
+SCQ Framework identifying the question in your reader's mind
+How to Build a Pyramid identify the reader's question
+第4课 弄清读者心里的问题
+先说结论 顶端答案
+第9课 第10课 第11课 第12课
+教学设计
+第5课 第7课 分组 见解 检查
+同一批事实 S→C→Q 情景 变化 问题
+停车位 摇号 麻辣香锅 食堂
+财务同事说捐款入账可能要等新捐赠管理办法出台，还不确定能否和抽奖奖金走同一笔预算。
+工会介绍捐步时提到步数可以折算小额捐款，但具体额度口径好像还在和法务核对。
+有的同事在茶水间聊天时好像更想保留面对面热闹感。
+也有人表示愿意试试捐步，但目前好像还没有统一问卷结果。
+活动筹备组说距离年会还有六周，节目单好像还在收意见。
+去年年会到场率大概八成，抽奖时现场气氛挺热闹。
+筹备同事担心大改形态可能来不及排练收尾，也不一定来得及把捐步互动排进流程。
+<CaseCompare conclusion="可先保留小规模抽奖" verbose="公司年会按惯例有压轴抽奖" />
+title: '预算与合规'
+title: '同事偏好'
+title: '筹备节奏'
+<MicroExercise correctId="B" explanation="带到问题" options={[
+  { id: 'B', text: '多年来上午十点档是大家接受的惯例（情景）。今年傍晚货梯占用与观摩编制都还不明朗（变化）。在观摩与货梯影响未查清前，不宜现在就宣布改到周五傍晚；可先并排摸底。' },
+]} />
+`;
+  const errors = validateLesson08Content(snippet, root);
+  assert.ok(errors.some((e) => e.includes('scq')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('小规模')), errors.join('; '));
+});
+
 test('validateLesson08Diagram rejects SCQ-only middle layer and bad supports', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pyr-08-'));
   const diagramPath = path.join(root, 'src/data');

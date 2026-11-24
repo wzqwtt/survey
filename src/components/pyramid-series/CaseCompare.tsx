@@ -6,12 +6,20 @@ type StructuredReason = {
   facts: string[];
 };
 
+type ScqIntro = {
+  situation: string;
+  complication: string;
+  question: string;
+};
+
 type Props = {
   scene: string;
   verbose: string;
   conclusion: string;
   reasons: StructuredReason[];
   compareNotes: string[];
+  /** Optional short S→C→Q shown in 结构版 before the answer (lesson 8+). */
+  scq?: ScqIntro;
 };
 
 export default function CaseCompare({
@@ -20,6 +28,7 @@ export default function CaseCompare({
   conclusion,
   reasons,
   compareNotes,
+  scq,
 }: Props): ReactNode {
   const [mode, setMode] = useState<'verbose' | 'structured'>('verbose');
 
@@ -50,6 +59,23 @@ export default function CaseCompare({
         <blockquote style={{margin: 0, fontStyle: 'normal'}}>{verbose}</blockquote>
       ) : (
         <div>
+          {scq ? (
+            <div className={styles.structuredBlock}>
+              <h4>情景—变化—问题（短引）</h4>
+              <p>
+                <strong>情景：</strong>
+                {scq.situation}
+              </p>
+              <p>
+                <strong>变化：</strong>
+                {scq.complication}
+              </p>
+              <p>
+                <strong>问题：</strong>
+                {scq.question}
+              </p>
+            </div>
+          ) : null}
           <div className={styles.structuredBlock}>
             <h4>结论</h4>
             <p>{conclusion}</p>
