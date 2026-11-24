@@ -98,6 +98,10 @@ export function validateLessonFile(filePath, root = process.cwd()) {
     errors.push(...validateLesson07Content(text, root));
   }
 
+  if (fm?.lesson === '8') {
+    errors.push(...validateLesson08Content(text, root));
+  }
+
   return {ok: errors.length === 0, errors, rel};
 }
 
@@ -984,6 +988,260 @@ export function validateLesson07Diagram(root, lessonText = '') {
   }
   if (!/虚构/.test(diagram.caption ?? '')) {
     errors.push('图注应标明虚构教学案例');
+  }
+
+  return errors;
+}
+
+/**
+ * Lesson 8 semantics: SCQ path — situation, complication, question, then answer.
+ */
+export function validateLesson08Content(text, root = process.cwd()) {
+  const errors = [];
+
+  if (!/原创虚构/.test(text)) {
+    errors.push('第8课正文应标明案例为原创虚构（非原书/非真实事件）');
+  }
+
+  if (!/个数.*分组.*见解|并列理由.*检查/.test(text)) {
+    errors.push('上节回顾应概括第 7 课要点（个数、分组与见解的检查）');
+  }
+
+  if (!/情景|Situation/.test(text) || !/变化|Complication/.test(text) || !/问题|Question/.test(text)) {
+    errors.push('应说明情景（S）、变化（C）、问题（Q）三步');
+  }
+
+  if (!/SCQ Framework|identifying the question in your reader's mind/i.test(text)) {
+    errors.push('可靠来源或正文应提及官网 SCQ Framework 与识别读者 question 的用途');
+  }
+
+  if (!/How to Build a Pyramid|identify the reader's question/i.test(text)) {
+    errors.push('应引用课程页 How to Build a Pyramid 中先弄清读者 question 的表述');
+  }
+
+  if (!/第\s*4\s*课|弄清读者心里的问题/.test(text)) {
+    errors.push('应说明与第 4 课「先弄清问题」的衔接');
+  }
+
+  if (!/先说结论|顶端答案|再给出顶端答案/.test(text)) {
+    errors.push('应点明问题清楚后仍先说结论（顶端答案），与第 1 课一致');
+  }
+
+  if (!/第\s*9\s*课/.test(text) || !/第\s*10\s*课/.test(text) || !/第\s*11\s*课/.test(text) || !/第\s*12\s*课/.test(text)) {
+    errors.push('应前瞻第 9–12 课主题但不展开');
+  }
+
+  if (
+    /本课已(经)?讲完.*行动建议|今天教完.*归纳与演绎|本课展开讲授.*复杂情境|全文回头检查的具体步骤/.test(
+      text,
+    )
+  ) {
+    errors.push('不要把第 9–12 课主题写成本课已教完或展开讲授');
+  }
+
+  if (/结论埋在长篇背景.*正确|不给答案.*示范/.test(text)) {
+    errors.push('不宜把「不给答案」或把结论埋进长背景当作正确示范');
+  }
+
+  if (text.includes('完全等量')) {
+    errors.push('compareNotes 不应使用「完全等量」类表述');
+  }
+
+  const requiredFactSnippets = [
+    '财务同事说捐款入账可能要等新捐赠管理办法出台，还不确定能否和抽奖奖金走同一笔预算。',
+    '工会介绍捐步时提到步数可以折算小额捐款，但具体额度口径好像还在和法务核对。',
+    '有的同事在茶水间聊天时好像更想保留面对面热闹感。',
+    '也有人表示愿意试试捐步，但目前好像还没有统一问卷结果。',
+    '活动筹备组说距离年会还有六周，节目单好像还在收意见。',
+    '去年年会到场率大概八成，抽奖时现场气氛挺热闹。',
+    '筹备同事担心大改形态可能来不及排练收尾，也不一定来得及把捐步互动排进流程。',
+  ];
+  for (const snippet of requiredFactSnippets) {
+    if (!text.includes(snippet)) {
+      errors.push(`CaseCompare 应保留年会案例事实：「${snippet.slice(0, 16)}…」`);
+    }
+  }
+
+  const hedgeTokens = ['好像', '可能', '不一定'];
+  for (const token of hedgeTokens) {
+    if (!text.includes(token)) {
+      errors.push(`正文应保留「${token}」等原样措辞`);
+    }
+  }
+
+  const caseBlock = text.includes('<CaseCompare')
+    ? text.slice(text.indexOf('<CaseCompare'), text.indexOf('/>', text.indexOf('<CaseCompare')) + 2)
+    : '';
+  const structuredConclusion = caseBlock.match(/conclusion="([^"]+)"/)?.[1] ?? '';
+  if (
+    structuredConclusion
+    && /(全面改成捐步|必须改成捐步|立刻全面)/.test(structuredConclusion)
+    && !/不宜|不要|还不能|不宜现在/.test(structuredConclusion)
+  ) {
+    errors.push('结构版结论不得把不确定性升格为必须全面改捐步等过强判断');
+  }
+
+  if (!/S→C→Q|情景.*变化.*问题/.test(text)) {
+    errors.push('compareNotes 或正文应点明结构版先走 S→C→Q 再答');
+  }
+
+  if (!/同一批事实|相同事实/.test(text)) {
+    errors.push('compareNotes 应点明两版使用同一批事实');
+  }
+
+  if (!/停车位|摇号/.test(text)) {
+    errors.push('啰嗦版宜含不参与成理由的旁支（如停车位摇号）');
+  }
+  if (caseBlock && /title:\s*'[^']*摇号/.test(text)) {
+    errors.push('结构版不得把旁支摇号升格为一条理由');
+  }
+
+  if (!/麻辣香锅|食堂/.test(text)) {
+    errors.push('啰嗦版宜用不参与成理由的旁支背景冲淡问题（如食堂侧写）');
+  }
+
+  const reasonTitles = [...text.matchAll(/title:\s*'([^']+)'/g)].map((m) => m[1]);
+  const scqReasons = reasonTitles.filter((t) => /预算|偏好|筹备/.test(t));
+  if (scqReasons.length !== 3) {
+    errors.push('CaseCompare 结构版在带上问题后应有三条并列理由');
+  }
+
+  errors.push(...validateLesson08Diagram(root, text));
+
+  if (!/correctId="B"/.test(text)) {
+    errors.push('MicroExercise 正确答案应为 B');
+  }
+
+  const microBlock = text.includes('<MicroExercise')
+    ? text.slice(text.indexOf('<MicroExercise'), text.indexOf('/>', text.indexOf('<MicroExercise')) + 2)
+    : '';
+
+  if (microBlock && /野餐|群聊换|报销单据|出租房检修/.test(microBlock)) {
+    errors.push('MicroExercise 题干不应重复前几课案例');
+  }
+
+  if (microBlock && /停车位摇号|年会抽奖/.test(microBlock)) {
+    errors.push('MicroExercise 不宜重复本课年会案例');
+  }
+
+  if (microBlock) {
+    const optionB = microBlock.match(/id:\s*'B'[\s\S]*?text:\s*'([^']+)'/)?.[1] ?? '';
+    if (optionB && !/情景|变化|问题/.test(optionB)) {
+      errors.push('MicroExercise B 应体现情景→变化→问题路径');
+    }
+    if (optionB && !/不宜|还不|未查清|摸底|先/.test(optionB)) {
+      errors.push('MicroExercise B 答案应与事实强度相符（谨慎）');
+    }
+    const explanation = microBlock.match(/explanation="([^"]+)"/)?.[1] ?? '';
+    if (explanation && !/带到.*问题|情景/.test(explanation)) {
+      errors.push('MicroExercise 解析应点明是否把读者带到问题前');
+    }
+  }
+
+  const prose = text.replace(/^import[^\n]+\n/gm, '');
+  if (/CaseCompare\s*组件|PyramidDiagram\s*组件|\bJSON\b|pull request/i.test(prose)) {
+    errors.push('正文不宜出现组件、JSON、PR 等开发术语');
+  }
+
+  if (/p\.\s*\d+|第\s*\d+\s*页|页码\s*\d+/.test(text)) {
+    errors.push('第8课不应编造具体引语页码');
+  }
+
+  if (!/教学设计/.test(text)) {
+    errors.push('展开 S/C/Q 操作步骤时应标明为教学设计');
+  }
+
+  if (!/第\s*5.*7\s*课|分组.*见解.*检查/.test(text)) {
+    errors.push('适用边界应提及本课不代替第 5–7 课分组与检查');
+  }
+
+  return errors;
+}
+
+/**
+ * Lesson 8 diagram: top is answer after SCQ; middle reasons; facts support ids; not SCQ labels only.
+ */
+export function validateLesson08Diagram(root, lessonText = '') {
+  const errors = [];
+  const diagramPath = path.join(root, 'src/data/pyramid-lesson-08-diagram.json');
+  if (!fs.existsSync(diagramPath)) {
+    errors.push('缺少 pyramid-lesson-08-diagram.json');
+    return errors;
+  }
+  let diagram;
+  try {
+    diagram = JSON.parse(fs.readFileSync(diagramPath, 'utf8'));
+  } catch {
+    errors.push('pyramid-lesson-08-diagram.json 不是合法 JSON');
+    return errors;
+  }
+
+  if (!/情景|变化|问题|带到/.test(diagram.caption ?? '')) {
+    errors.push('图注应点明用情景把读者带到问题前');
+  }
+  if (!/虚构/.test(diagram.caption ?? '')) {
+    errors.push('图注应标明虚构教学案例');
+  }
+
+  const top = diagram.levels?.find((l) => l.layer === 'top');
+  if (!top) {
+    errors.push('图缺少顶层');
+    return errors;
+  }
+  const topText = top.items?.[0]?.text ?? '';
+  if (!/抽奖|捐步/.test(topText) || !/保留|不宜|摸底/.test(topText)) {
+    errors.push('图顶层应是回答问题后的顶端答案，不宜只写「有一个问题」');
+  }
+  if (/^问题[：:]\s*$/.test(topText)) {
+    errors.push('图顶层不宜只有问题标签而无答案');
+  }
+
+  const middle = diagram.levels?.find((l) => l.layer === 'middle');
+  if (!middle) {
+    errors.push('图缺少中间层');
+    return errors;
+  }
+  if (/^情景$|^变化$|^问题$/.test(middle.label ?? '')) {
+    errors.push('图的中层不宜仅用情景/变化/问题类别词而无理由结构');
+  }
+
+  const reasonItems = middle.items ?? [];
+  const reasonIds = new Set(reasonItems.map((i) => i.id));
+  if (reasonItems.length !== 3) {
+    errors.push('图的中层应正好三条支撑答案的并列理由');
+  }
+  if (reasonItems.some((i) => /^(情景|变化|问题)$/.test(i.text ?? ''))) {
+    errors.push('图的中层条目应是理由概括，不宜仅为 SCQ 类别词');
+  }
+  if (reasonItems.some((i) => insightTextOverStrong(i.text ?? ''))) {
+    errors.push('图中理由概括不得过强（如必须全面改捐步）');
+  }
+
+  const facts = diagram.levels?.find((l) => l.id === 'facts')?.items ?? [];
+  if (facts.length < 7) {
+    errors.push('图底层应含年会案例七条事实');
+  }
+  for (const f of facts) {
+    if (!f.supports || !reasonIds.has(f.supports)) {
+      errors.push(`事实「${f.text?.slice(0, 12)}…」的 supports 必须指向有效理由 id`);
+    }
+  }
+
+  const r1Facts = facts.filter((f) => f.supports === 'r1');
+  if (!r1Facts.some((f) => /捐赠|预算/.test(f.text)) || !r1Facts.some((f) => /法务|额度/.test(f.text))) {
+    errors.push('预算与合规组应含捐赠入账与额度核对类事实');
+  }
+  const r2Facts = facts.filter((f) => f.supports === 'r2');
+  if (!r2Facts.some((f) => /热闹/.test(f.text)) || !r2Facts.some((f) => /捐步/.test(f.text))) {
+    errors.push('同事偏好组应含热闹感与捐步意愿类事实');
+  }
+  const r3Facts = facts.filter((f) => f.supports === 'r3');
+  if (!r3Facts.some((f) => /六周|节目单/.test(f.text)) || !r3Facts.some((f) => /八成|排练/.test(f.text))) {
+    errors.push('筹备节奏组应含时间窗口与排练类事实');
+  }
+
+  if (lessonText && !lessonText.includes('公司年会按惯例有压轴抽奖')) {
+    errors.push('年会情景宜在正文中交代惯例抽奖与热闹体验');
   }
 
   return errors;
