@@ -102,6 +102,10 @@ export function validateLessonFile(filePath, root = process.cwd()) {
     errors.push(...validateLesson08Content(text, root));
   }
 
+  if (fm?.lesson === '9') {
+    errors.push(...validateLesson09Content(text, root));
+  }
+
   return {ok: errors.length === 0, errors, rel};
 }
 
@@ -1264,6 +1268,354 @@ export function validateLesson08Diagram(root, lessonText = '') {
 
   if (lessonText && !lessonText.includes('公司年会按惯例有压轴抽奖')) {
     errors.push('年会情景宜在正文中交代惯例抽奖与热闹体验');
+  }
+
+  return errors;
+}
+
+/**
+ * Lesson 9 semantics: recommendations provoke action — executable total + parallel actions.
+ */
+export function validateLesson09Content(text, root = process.cwd()) {
+  const errors = [];
+
+  if (!/原创虚构/.test(text)) {
+    errors.push('第9课正文应标明案例为原创虚构（非原书/非真实事件）');
+  }
+
+  if (!/情景|变化/.test(text) || !/问题前|带到/.test(text)) {
+    errors.push('上节回顾应概括第 8 课情景—变化—问题前要点');
+  }
+
+  if (!/How to Deal with Action Ideas|provoke action|lead to change/i.test(text)) {
+    errors.push('应引用课程页 How to Deal with Action Ideas 及 provoke action / lead to change');
+  }
+
+  if (!/推动行动|能推动行动/.test(text)) {
+    errors.push('应点明本课练「建议写得能推动行动」');
+  }
+
+  if (!/第\s*10\s*课/.test(text) || !/第\s*11\s*课/.test(text) || !/第\s*12\s*课/.test(text)) {
+    errors.push('应前瞻第 10–12 课主题但不展开');
+  }
+
+  if (
+    /本课已(经)?讲完.*归纳与演绎|今天教完.*复杂情境|本课展开讲授.*全文回头检查/.test(text)
+  ) {
+    errors.push('不要把第 10–12 课主题写成本课已教完或展开讲授');
+  }
+
+  if (!/教学设计/.test(text)) {
+    errors.push('展开操作步骤时应标明为教学设计');
+  }
+
+  if (!/第\s*4\s*课|第\s*5.*7\s*课|第\s*8\s*课/.test(text)) {
+    errors.push('适用边界应提及本课不代替第 4–8 课已学步骤');
+  }
+
+  if (text.includes('完全等量')) {
+    errors.push('compareNotes 不应使用「完全等量」类表述');
+  }
+
+  const requiredFactSnippets = [
+    '三楼会议室多年来凭前台登记领钥匙，同事一般熟悉这套做法。',
+    '工作日下午两点到四点高峰时段，纸质登记表常常约满，偶尔为签字先后顺序争执。',
+    'IT 同事说工牌读头接口可能能对接，但与会议室日历的联动还没试过，排期好像还要四到六周，还不确定能否赶上本季度窗口。',
+    '安防同事说若改成自助进出，审计日志格式可能要用新规，制度草案好像还在内审，还不确定何时能定稿。',
+    '有的团队习惯到前台当面交接钥匙，也有人表示愿意用 App 提前一天预约。',
+    '设施组拿到读头安装报价单，但采购审批周期好像还不明朗，不一定本季能走完。',
+  ];
+  for (const snippet of requiredFactSnippets) {
+    if (!text.includes(snippet)) {
+      errors.push(`CaseCompare 应保留会议室案例事实：「${snippet.slice(0, 16)}…」`);
+    }
+  }
+
+  const hedgeTokens = ['好像', '可能', '不一定'];
+  for (const token of hedgeTokens) {
+    if (!text.includes(token)) {
+      errors.push(`正文应保留「${token}」等原样措辞`);
+    }
+  }
+
+  const caseBlock = text.includes('<CaseCompare')
+    ? text.slice(text.indexOf('<CaseCompare'), text.indexOf('/>', text.indexOf('<CaseCompare')) + 2)
+    : '';
+  if (caseBlock && /scq=\{\{/.test(caseBlock)) {
+    errors.push('本课 CaseCompare 可不使用 scq；若未用则不要在 compareNotes 里声称结构版先展示 SCQ');
+  }
+
+  const structuredConclusion = caseBlock.match(/conclusion="([^"]+)"/)?.[1] ?? '';
+  if (structuredConclusion && /建议考虑|关于.*的一些想法|可以再议/.test(structuredConclusion)) {
+    errors.push('结构版总建议应是可执行行动，不宜停在「建议考虑」式空话');
+  }
+  if (structuredConclusion && !/试点|并排|两周|问询|保留|核对|缺口|批准/.test(structuredConclusion)) {
+    errors.push('结构版总建议宜含读者可执行或拍板的具体步骤（如核对、试点、保留兜底）');
+  }
+  if (
+    structuredConclusion
+    && /(全楼一律|一律刷牌|全面自助)/.test(structuredConclusion)
+    && !/不宜|不要|还不能|保留|试点/.test(structuredConclusion)
+  ) {
+    errors.push('结构版总建议不得把不确定性升格为必须立刻全面刷牌自助');
+  }
+  if (
+    structuredConclusion
+    && /(未来|下月).{0,8}(六周|试点|试运行)/.test(structuredConclusion)
+    && !/条件满足|书面批准|核对条件|批准后再|待接口/.test(structuredConclusion)
+  ) {
+    errors.push('结构版总建议不宜在未核实条件、排期与审批前就按下固定周数启动试点');
+  }
+  if (structuredConclusion && /草案/.test(structuredConclusion) && !/不等于|不宜把草案|草案不等于/.test(structuredConclusion)) {
+    errors.push('涉及制度草案时，结构版宜点明草案达标不等于正式合规授权');
+  }
+
+  const reasonTitlesOrdered = [...text.matchAll(/title:\s*'([^']+)'/g)].map((m) => m[1]);
+  const pilotIdx = reasonTitlesOrdered.findIndex((t) => /试点|并行试运行/.test(t));
+  const willIdx = reasonTitlesOrdered.findIndex((t) => /意愿|问询/.test(t));
+  if (pilotIdx >= 0 && willIdx >= 0 && willIdx > pilotIdx) {
+    errors.push('摸清意愿类行动宜排在限定试点之前，不宜写在试点行动之后');
+  }
+
+  const firstActionTitle = reasonTitlesOrdered.find((t) => /联调|核对|合规|排期/.test(t)) ?? '';
+  if (
+    firstActionTitle
+    && /两周内/.test(firstActionTitle)
+    && /试连|联调/.test(firstActionTitle)
+    && !/缺口|排期清单|可行排期|提议期限/.test(firstActionTitle)
+  ) {
+    errors.push('在事实写联调排期约四到六周时，不宜把两周写成完成全部试连，宜改为排期与缺口摸底');
+  }
+
+  if (/啰嗦版以.*收尾/.test(text)) {
+    errors.push('compareNotes 不宜写「啰嗦版以…收尾」，因啰嗦版其后还有升格断言等正文');
+  }
+
+  if (caseBlock && !/原创教学建议|并非.*唯一方案/.test(text)) {
+    errors.push('结构版示范中的特定期限或试点规模宜标明为原创教学建议，而非事实推出的唯一方案');
+  }
+
+  if (!/同一批事实|相同事实/.test(text)) {
+    errors.push('compareNotes 应点明两版使用同一批事实');
+  }
+
+  if (!/推动行动|可执行|并列行动/.test(text)) {
+    errors.push('compareNotes 或正文应点明差别在建议是否写得能推动行动');
+  }
+
+  if (caseBlock && /先展示.{0,16}SCQ/.test(text) && !/不先展示/.test(text)) {
+    errors.push('未使用 scq 时 compareNotes 不宜声称结构版先展示 SCQ');
+  }
+
+  if (!/绿植|浇灌/.test(text)) {
+    errors.push('啰嗦版宜含不参与成行动的旁支（如绿植浇灌提醒）');
+  }
+  if (caseBlock && /title:\s*'[^']*绿植/.test(text)) {
+    errors.push('结构版不得把绿植旁支升格为一条并列行动');
+  }
+
+  const reasonTitles = [...text.matchAll(/title:\s*'([^']+)'/g)].map((m) => m[1]);
+  const actionReasons = reasonTitles.filter((t) => /联调|试点|意愿|合规|核对|排期/.test(t));
+  if (actionReasons.length !== 3) {
+    errors.push('CaseCompare 结构版应有三条并列行动（核对排期、摸底意愿、限定试点等）');
+  }
+
+  errors.push(...validateLesson09Diagram(root, text));
+
+  if (!/correctId="B"/.test(text)) {
+    errors.push('MicroExercise 正确答案应为 B');
+  }
+
+  const microBlock = text.includes('<MicroExercise')
+    ? text.slice(text.indexOf('<MicroExercise'), text.indexOf('/>', text.indexOf('<MicroExercise')) + 2)
+    : '';
+
+  const bannedMicroScenes = /野餐|群聊换|出租房检修|年会抽奖|捐步|消防演练|停车位摇号|三楼会议室|工牌自助/;
+  if (microBlock && bannedMicroScenes.test(microBlock)) {
+    errors.push('MicroExercise 题干不应重复前几课或本课案例场景');
+  }
+
+  if (microBlock) {
+    const optionB = microBlock.match(/id:\s*'B'[\s\S]*?text:\s*'([^']+)'/)?.[1] ?? '';
+    if (optionB && !/行动|两周|一周|试跑|并排/.test(optionB)) {
+      errors.push('MicroExercise B 应写出能推动行动的并列步骤');
+    }
+    if (optionB && !/还不|不明朗|先保留|再定/.test(optionB)) {
+      errors.push('MicroExercise B 答案应与事实强度相符（谨慎）');
+    }
+    if (optionB && /试跑一次/.test(optionB) && /两次/.test(optionB)) {
+      errors.push('MicroExercise B 中总建议的试跑次数与行政演练名额不宜不一致（一次/两次）');
+    }
+    const optionA = microBlock.match(/id:\s*'A'[\s\S]*?text:\s*'([^']+)'/)?.[1] ?? '';
+    if (optionA && !/关于|建议研究|全面/.test(optionA)) {
+      errors.push('MicroExercise A 宜体现建议含糊或过强');
+    }
+    const optionC = microBlock.match(/id:\s*'C'[\s\S]*?text:\s*'([^']+)'/)?.[1] ?? '';
+    if (optionC && /总建议|行动：/.test(optionC)) {
+      errors.push('MicroExercise C 宜只有背景、无可执行建议');
+    }
+    const explanation = microBlock.match(/explanation="([^"]+)"/)?.[1] ?? '';
+    if (explanation && !/推动行动|可执行|并列/.test(explanation)) {
+      errors.push('MicroExercise 解析应点明是否能推动行动');
+    }
+    if (explanation && /好像.*原样|保持原样.*好像|逐字保留.*好像/.test(explanation)) {
+      errors.push('MicroExercise 解析不宜声称 B 逐字保留「好像」，B 通常用概括语表达不确定性');
+    }
+  }
+
+  const prose = text.replace(/^import[^\n]+\n/gm, '');
+  if (/CaseCompare\s*组件|PyramidDiagram\s*组件|\bJSON\b|pull request/i.test(prose)) {
+    errors.push('正文不宜出现组件、JSON、PR 等开发术语');
+  }
+
+  if (/p\.\s*\d+|第\s*\d+\s*页|页码\s*\d+/.test(text)) {
+    errors.push('第9课不应编造具体引语页码');
+  }
+
+  return errors;
+}
+
+/**
+ * Lesson 9 diagram: top = actionable recommendation; middle = parallel actions; facts align.
+ */
+export function validateLesson09Diagram(root, lessonText = '') {
+  const errors = [];
+  const diagramPath = path.join(root, 'src/data/pyramid-lesson-09-diagram.json');
+  if (!fs.existsSync(diagramPath)) {
+    errors.push('缺少 pyramid-lesson-09-diagram.json');
+    return errors;
+  }
+  let diagram;
+  try {
+    diagram = JSON.parse(fs.readFileSync(diagramPath, 'utf8'));
+  } catch {
+    errors.push('pyramid-lesson-09-diagram.json 不是合法 JSON');
+    return errors;
+  }
+
+  if (!/推动行动|并列行动|可执行/.test(diagram.caption ?? '')) {
+    errors.push('图注应点明建议写得能推动行动');
+  }
+  if (!/虚构/.test(diagram.caption ?? '')) {
+    errors.push('图注应标明虚构教学案例');
+  }
+
+  const top = diagram.levels?.find((l) => l.layer === 'top');
+  if (!top) {
+    errors.push('图缺少顶层');
+    return errors;
+  }
+  const topText = top.items?.[0]?.text ?? '';
+  if (!/试点|并排|保留|不宜|核对|缺口/.test(topText) || !/工牌|预约/.test(topText)) {
+    errors.push('图顶层应是可执行的总建议（含核对、试点/保留兜底与不宜全面切换）');
+  }
+  if (
+    topText
+    && /(未来|下月).{0,8}(六周|试点)/.test(topText)
+    && !/条件满足|书面批准|核对|批准后再|待接口/.test(topText)
+  ) {
+    errors.push('图顶层不宜在未写清条件核实与批准前就按下固定周数启动试点');
+  }
+  if (topText && /两周内.*试连/.test(topText) && !/缺口|排期|清单|提议期限/.test(topText)) {
+    errors.push('图顶层「两周」宜指向排期与缺口摸底，不宜写成两周内完成全部试连');
+  }
+  if (/建议考虑|关于.*思考/.test(topText)) {
+    errors.push('图顶层不宜是题目式空话');
+  }
+  if (
+    /(全楼一律|一律刷牌)/.test(topText)
+    && !/不宜|不要|还不能|保留/.test(topText)
+  ) {
+    errors.push('图顶层不宜在无兜底表述下过强要求全楼刷牌');
+  }
+
+  const middle = diagram.levels?.find((l) => l.layer === 'middle');
+  if (!middle) {
+    errors.push('图缺少中间层');
+    return errors;
+  }
+  if (/^情景$|^变化$|^问题$/.test(middle.label ?? '')) {
+    errors.push('图的中层不宜仅用情景/变化/问题类别词');
+  }
+
+  const actionItems = middle.items ?? [];
+  const actionIds = new Set(actionItems.map((i) => i.id));
+  if (actionItems.length !== 3) {
+    errors.push('图的中层应正好三条并列行动');
+  }
+  if (actionItems.some((i) => /^(情景|变化|问题)$/.test(i.text ?? ''))) {
+    errors.push('图的中层条目应是行动概括，不宜仅为 SCQ 类别词');
+  }
+  if (!actionItems.some((i) => /联调|IT|安防|核对|排期/.test(i.text ?? ''))) {
+    errors.push('并列行动应含核对排期或联调与合规类步骤');
+  }
+  if (!actionItems.some((i) => /限定并排试点|并排试运行|高峰工牌/.test(i.text ?? ''))) {
+    errors.push('并列行动应含限定并排试点类步骤');
+  }
+  if (!actionItems.some((i) => /问询|意愿|交接/.test(i.text ?? ''))) {
+    errors.push('并列行动应含摸清意愿类步骤');
+  }
+  if (actionItems.some((i) => insightTextOverStrong(i.text ?? ''))) {
+    errors.push('图中行动概括不得过强（如必须全楼刷牌）');
+  }
+
+  const facts = diagram.levels?.find((l) => l.id === 'facts')?.items ?? [];
+  if (facts.length < 6) {
+    errors.push('图底层应含会议室案例至少六条事实');
+  }
+  for (const f of facts) {
+    if (!f.supports || !actionIds.has(f.supports)) {
+      errors.push(`事实「${f.text?.slice(0, 12)}…」的 supports 必须指向有效行动 id`);
+    }
+  }
+
+  const canonicalFacts = [
+    '三楼会议室多年来凭前台登记领钥匙，同事一般熟悉这套做法。',
+    '工作日下午两点到四点高峰时段，纸质登记表常常约满，偶尔为签字先后顺序争执。',
+    'IT 同事说工牌读头接口可能能对接，但与会议室日历的联动还没试过，排期好像还要四到六周，还不确定能否赶上本季度窗口。',
+    '安防同事说若改成自助进出，审计日志格式可能要用新规，制度草案好像还在内审，还不确定何时能定稿。',
+    '有的团队习惯到前台当面交接钥匙，也有人表示愿意用 App 提前一天预约。',
+    '设施组拿到读头安装报价单，但采购审批周期好像还不明朗，不一定本季能走完。',
+  ];
+  for (const snippet of canonicalFacts) {
+    if (!facts.some((f) => f.text === snippet)) {
+      errors.push(`图底层事实应与课文一致：「${snippet.slice(0, 14)}…」`);
+    }
+  }
+
+  const verifyId = actionItems.find((i) => /联调|核对|IT|安防|排期/.test(i.text ?? ''))?.id;
+  const pilotId = actionItems.find((i) => /限定并排试点|并排试运行|高峰工牌/.test(i.text ?? ''))?.id;
+  const willId = actionItems.find((i) => /摸清意愿|发简短问询/.test(i.text ?? ''))?.id;
+  const verifyFacts = facts.filter((f) => f.supports === verifyId);
+  if (
+    verifyId
+    && (!verifyFacts.some((f) => /IT|工牌|接口/.test(f.text)) || !verifyFacts.some((f) => /安防|审计/.test(f.text)))
+  ) {
+    errors.push('核对排期类行动应含 IT 接口与安防日志类事实');
+  }
+  const pilotFacts = facts.filter((f) => f.supports === pilotId);
+  if (
+    pilotId
+    && (!pilotFacts.some((f) => /前台|钥匙/.test(f.text)) || !pilotFacts.some((f) => /高峰|约满/.test(f.text)))
+  ) {
+    errors.push('限定试点行动应含登记惯例与高峰争执类事实');
+  }
+  const willFacts = facts.filter((f) => f.supports === willId);
+  if (willId && !willFacts.some((f) => /当面|App|预约/.test(f.text))) {
+    errors.push('摸清意愿行动应含交接偏好类事实');
+  }
+  const willAction = actionItems.find((i) => i.id === willId);
+  const pilotAction = actionItems.find((i) => i.id === pilotId);
+  if (willAction && pilotAction) {
+    const willPos = actionItems.indexOf(willAction);
+    const pilotPos = actionItems.indexOf(pilotAction);
+    if (willPos > pilotPos) {
+      errors.push('图中摸清意愿行动宜排在限定试点之前');
+    }
+  }
+
+  if (lessonText && !lessonText.includes('三楼会议室多年来凭前台登记领钥匙')) {
+    errors.push('会议室惯例宜在正文中交代前台登记领钥匙');
   }
 
   return errors;
