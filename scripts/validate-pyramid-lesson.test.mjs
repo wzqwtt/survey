@@ -14,6 +14,8 @@ import {
   validateLesson05Diagram,
   validateLesson06Content,
   validateLesson06Diagram,
+  validateLesson07Content,
+  validateLesson07Diagram,
 } from './validate-pyramid-lesson.mjs';
 
 test('parseFrontMatter reads keys', () => {
@@ -381,6 +383,150 @@ test('validateLessonFile accepts lesson 06 fixture when present', () => {
   const lesson = path.join(
     root,
     'docs/learning/thinking/pyramid-principle-daily/2026-11-22-lesson-06.mdx',
+  );
+  if (!fs.existsSync(lesson)) {
+    return;
+  }
+  const r = validateLessonFile(lesson, root);
+  assert.equal(r.ok, true, r.errors?.join('; '));
+});
+
+test('validateLesson07Content rejects missing critical check and count-as-insight', () => {
+  const badSnippet = `
+原创虚构
+好像 可能 不一定
+How to Look Critically at the Groupings
+There are three reasons
+not an appropriate insight
+本课已讲完 SCQ
+MECE 是正解
+完全等量
+p. 88
+上一课抽出见解
+批判性检查
+个数对不对 分组找得对不对 见解是否恰当
+同一批事实
+差别在检查
+饭团 便利店
+最近两次迭代里，需求在群里中途改过，有人说可能没注意到 @ 提醒。
+在群里搜旧对话，有时要等挺久才出结果，不一定每次都很慢。
+上周试运行里，八人团队里大概三人好像打开过看板视图，其余好像还没点开。
+后端同事说留在群里上下文已经都在，可能不太想两边切。
+安全同事说供应商的数据条款可能还在审，目前好像不能下定论。
+免费席位上限明年一季度可能碰到，还不确定会不会超。
+<CaseCompare conclusion="下周就换，必须切换" verbose="好像可能不一定" />
+reasons={[
+  { title: '一共有三条理由', facts: ['最近两次迭代里，需求在群里中途改过，有人说可能没注意到 @ 提醒。'] },
+]}
+<MicroExercise correctId="A" options={[{ id: 'B', text: '流程还不' }]} />
+PyramidDiagram 组件
+`;
+  const root = path.resolve(import.meta.dirname, '..');
+  const errors = validateLesson07Content(badSnippet, root);
+  assert.ok(errors.some((e) => e.includes('SCQ') || e.includes('教完')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('MECE') || e.includes('教学用语')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('正确答案应为 B')), errors.join('; '));
+  assert.ok(errors.length >= 4, `expected multiple errors, got ${errors.length}`);
+});
+
+test('validateLesson07Diagram rejects wrong count and mis-assigned facts', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pyr-07-'));
+  const diagramPath = path.join(root, 'src/data');
+  fs.mkdirSync(diagramPath, {recursive: true});
+  fs.writeFileSync(
+    path.join(diagramPath, 'pyramid-lesson-07-diagram.json'),
+    JSON.stringify({
+      caption: '无检查说明',
+      levels: [
+        {
+          id: 'reasons',
+          layer: 'middle',
+          label: '类别',
+          items: [
+            {id: 'r1', text: 'There are three reasons'},
+            {id: 'r2', text: '试用'},
+          ],
+        },
+        {
+          id: 'facts',
+          layer: 'bottom',
+          items: [
+            {id: 'f1', supports: 'r1', text: '最近两次迭代里，需求在群里中途改过。'},
+            {id: 'f2', supports: 'r9', text: '在群里搜旧对话，有时要等挺久才出结果，不一定每次都很慢。'},
+          ],
+        },
+      ],
+    }),
+  );
+  const errors = validateLesson07Diagram(root);
+  assert.ok(errors.some((e) => e.includes('三条') || e.includes('正好')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('supports') || e.includes('r9')), errors.join('; '));
+});
+
+test('validateLesson07Content rejects contradictory @/search compareNotes and weak micro explanations', () => {
+  const root = path.resolve(import.meta.dirname, '..');
+  const baseFacts = `
+原创虚构 好像 可能 不一定
+不超过事实强度的见解
+批判性检查 检查并列
+How to Look Critically at the Groupings
+not an appropriate insight
+个数对不对 分组找得对不对 见解是否恰当
+同一批事实 差别在检查 个数 分组 见解
+饭团 便利店
+最近两次迭代里，需求在群里中途改过，有人说可能没注意到 @ 提醒。
+在群里搜旧对话，有时要等挺久才出结果，不一定每次都很慢。
+上周试运行里，八人团队里大概三人好像打开过看板视图，其余好像还没点开。
+后端同事说留在群里上下文已经都在，可能不太想两边切。
+安全同事说供应商的数据条款可能还在审，目前好像不能下定论。
+免费席位上限明年一季度可能碰到，还不确定会不会超。
+title: '协作跟帖：需求中途改动与可能漏看 @'
+title: '试用与意愿'
+title: '切换前提'
+`;
+  const badCompare = `${baseFacts}
+<CaseCompare compareNotes={[
+  '却把搜旧消息慢与 @ 漏看混成一条',
+  '结构版经检查后保留三条并列理由',
+]} />
+<MicroExercise correctId="B" explanation="A 把无关旁支算进个数" options={[
+  { id: 'A', text: '一共有四条理由各算一条关旧路径' },
+  { id: 'B', text: '流程：还不。系统：还不。规则：标准下月才公布。' },
+]} prompt="可能下月才公布新版 有人好像还不会传附件 还不确定要不要先改路径" />
+`;
+  const compareErrors = validateLesson07Content(badCompare, root);
+  assert.ok(
+    compareErrors.some((e) => e.includes('相似点') || e.includes('前错后对')),
+    compareErrors.join('; '),
+  );
+
+  const badMicro = `${baseFacts}
+<CaseCompare compareNotes={['差别在检查', '相似点群内信息']} />
+<MicroExercise correctId="B" explanation="A 把无关旁支算进个数，结论过强" options={[
+  { id: 'A', text: '一共有四条理由各算一条关旧路径' },
+  { id: 'B', text: '流程：还不不能假设。系统：上传习惯还没稳住。规则：标准下月才公布。' },
+]} prompt="上司说差旅标准可能下月才公布新版，目前还不确定要不要先改路径。有人好像还不会传附件" />
+`;
+  const microErrors = validateLesson07Content(badMicro, root);
+  assert.ok(
+    microErrors.some((e) => e.includes('无关旁支')),
+    microErrors.join('; '),
+  );
+  assert.ok(
+    microErrors.some((e) => e.includes('规则条') || e.includes('不确定性')),
+    microErrors.join('; '),
+  );
+  assert.ok(
+    microErrors.some((e) => e.includes('谨慎总判断')),
+    microErrors.join('; '),
+  );
+});
+
+test('validateLessonFile accepts lesson 07 fixture when present', () => {
+  const root = path.resolve(import.meta.dirname, '..');
+  const lesson = path.join(
+    root,
+    'docs/learning/thinking/pyramid-principle-daily/2026-11-23-lesson-07.mdx',
   );
   if (!fs.existsSync(lesson)) {
     return;

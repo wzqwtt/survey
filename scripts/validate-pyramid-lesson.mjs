@@ -94,6 +94,10 @@ export function validateLessonFile(filePath, root = process.cwd()) {
     errors.push(...validateLesson06Content(text, root));
   }
 
+  if (fm?.lesson === '7') {
+    errors.push(...validateLesson07Content(text, root));
+  }
+
   return {ok: errors.length === 0, errors, rel};
 }
 
@@ -722,6 +726,264 @@ export function validateLesson06Diagram(root, lessonText = '') {
   }
   if (!/抽出见解|见解/.test(diagram.caption ?? '')) {
     errors.push('图注应点明本课练习抽出见解');
+  }
+
+  return errors;
+}
+
+/**
+ * Lesson 7 semantics: critical check on parallel reasons (count, grouping, insight).
+ */
+export function validateLesson07Content(text, root = process.cwd()) {
+  const errors = [];
+
+  if (!/原创虚构/.test(text)) {
+    errors.push('第7课正文应标明案例为原创虚构（非原书/非真实事件）');
+  }
+
+  if (!/不超过事实强度的见解/.test(text)) {
+    errors.push('上节回顾应准确概括第 6 课要点（抽出不超过事实强度的见解）');
+  }
+
+  if (!/批判性检查|检查并列/.test(text)) {
+    errors.push('应说明本课对并列理由做批判性检查');
+  }
+
+  if (!/How to Look Critically at the Groupings/.test(text)) {
+    errors.push('应引用课程页 How to Look Critically at the Groupings');
+  }
+
+  if (!/not an appropriate insight|不是.*恰当见解/.test(text)) {
+    errors.push('应点明 “There are three reasons” 不是恰当见解');
+  }
+
+  if (!/个数对不对|分组找得对不对|见解是否恰当/.test(text)) {
+    errors.push('应列出三项检查（个数、分组、见解）');
+  }
+
+  if (/本课已讲完.*SCQ|今天教完.*问题界定|本课讲完行动建议/.test(text)) {
+    errors.push('不要把 SCQ、问题界定、行动建议等写成本课已教完');
+  }
+
+  if (/MECE/.test(text) && !/教学用语|帮助理解/.test(text)) {
+    errors.push('提及 MECE 时应标明为教学用语而非官网本段原话');
+  }
+
+  if (text.includes('完全等量')) {
+    errors.push('compareNotes 不应使用「完全等量」类表述');
+  }
+
+  const requiredFactSnippets = [
+    '最近两次迭代里，需求在群里中途改过，有人说可能没注意到 @ 提醒。',
+    '在群里搜旧对话，有时要等挺久才出结果，不一定每次都很慢。',
+    '上周试运行里，八人团队里大概三人好像打开过看板视图，其余好像还没点开。',
+    '后端同事说留在群里上下文已经都在，可能不太想两边切。',
+    '安全同事说供应商的数据条款可能还在审，目前好像不能下定论。',
+    '免费席位上限明年一季度可能碰到，还不确定会不会超。',
+  ];
+  for (const snippet of requiredFactSnippets) {
+    if (!text.includes(snippet)) {
+      errors.push(`CaseCompare 应保留换工具案事实：「${snippet.slice(0, 14)}…」`);
+    }
+  }
+
+  const hedgeTokens = ['好像', '可能', '不一定'];
+  for (const token of hedgeTokens) {
+    if (!text.includes(token)) {
+      errors.push(`正文应保留「${token}」等原样措辞`);
+    }
+  }
+
+  const caseBlock = text.includes('<CaseCompare')
+    ? text.slice(text.indexOf('<CaseCompare'), text.indexOf('/>', text.indexOf('<CaseCompare')) + 2)
+    : '';
+  if (caseBlock && /conclusion="[^"]*(必须换|下周就换|一定切换|全员必换)/.test(caseBlock)) {
+    errors.push('结构版结论不得把不确定性升格为必须切换等过强判断');
+  }
+
+  if (!/差别.*检查|个数|分组|见解/.test(text) || !/同一批事实|相同事实/.test(text)) {
+    errors.push('compareNotes 应点明两版事实相同、差别在检查（个数/分组/见解）');
+  }
+
+  if (!/饭团|便利店/.test(text)) {
+    errors.push('啰嗦版宜含不参与成理由的旁支（如便利店饭团）');
+  }
+  if (caseBlock && /title:\s*'[^']*饭团/.test(text)) {
+    errors.push('结构版不得把旁支饭团升格为一条理由');
+  }
+
+  const reasonTitles = [...text.matchAll(/title:\s*'([^']+)'/g)].map((m) => m[1]);
+  const toolReasons = reasonTitles.filter((t) => /协作|试用|切换前提|意愿/.test(t));
+  if (toolReasons.length !== 3) {
+    errors.push('CaseCompare 结构版经检查后应正好三条并列理由');
+  }
+  if (reasonTitles.some((t) => /^一共有|共有\d个理由|There are three reasons$/i.test(t.trim()))) {
+    errors.push('结构版理由标题不宜只报个数');
+  }
+
+  errors.push(...validateLesson07Diagram(root, text));
+
+  if (!/correctId="B"/.test(text)) {
+    errors.push('MicroExercise 正确答案应为 B');
+  }
+
+  const microBlock = text.includes('<MicroExercise')
+    ? text.slice(text.indexOf('<MicroExercise'), text.indexOf('/>', text.indexOf('<MicroExercise')) + 2)
+    : '';
+
+  if (microBlock && /野餐|出租房/.test(microBlock)) {
+    errors.push('MicroExercise 题干不应重复第 5–6 课案例');
+  }
+
+  if (microBlock && /咖啡机|饭团/.test(microBlock)) {
+    errors.push('MicroExercise 选项不应引入题干未给出的旁支事实');
+  }
+
+  if (microBlock) {
+    const optionA = microBlock.match(/id:\s*'A'[\s\S]*?text:\s*'([^']+)'/)?.[1] ?? '';
+    const optionB = microBlock.match(/id:\s*'B'[\s\S]*?text:\s*'([^']+)'/)?.[1] ?? '';
+    if (optionA && /一共有/.test(optionA) && !/各算一条|重复|拆成|关旧路径/.test(optionA)) {
+      errors.push('MicroExercise A 应体现未经检查的个数或分组问题');
+    }
+    if (optionB && !/流程|系统|规则/.test(optionB)) {
+      errors.push('MicroExercise B 应按相似点分组并写出见解');
+    }
+    if (optionB && !/还不|可能|好像|未必|弹性|不能假设/.test(optionB)) {
+      errors.push('MicroExercise B 见解应与不确定性措辞相称');
+    }
+    const explanation =
+      microBlock.match(/explanation="([^"]+)"/)?.[1]
+      ?? microBlock.match(/explanation=\{['"`]([^'"`]+)['"`]\}/)?.[1]
+      ?? '';
+    if (/无关旁支/.test(explanation) && !/饭团|咖啡|便利店/.test(microBlock)) {
+      errors.push('MicroExercise 解析不宜把「无关旁支」当作 A 的主错（除非题干或选项真有题干外旁支）');
+    }
+    if (optionB && /流程[：:]/.test(optionB)) {
+      const head = optionB.split(/流程[：:]/)[0];
+      if (head.length < 6 || !/最好先|不宜|先确认|再定|还不能|留弹性|都还有不确定/.test(head)) {
+        errors.push('MicroExercise B 宜有由三条理由共同支撑的谨慎总判断，而非只有分列见解');
+      }
+    }
+    if (/可能下月才公布|还不确定要不要先改/.test(microBlock) && optionB) {
+      const ruleSeg = optionB.match(/规则[：:][^。]+/)?.[0] ?? '';
+      if (
+        ruleSeg
+        && /下月才公布|标准未定/.test(ruleSeg)
+        && !/可能|还不确定|好像/.test(ruleSeg)
+      ) {
+        errors.push('MicroExercise B 规则条见解应保留题干「可能」「还不确定」强度');
+      }
+      const sysSeg = optionB.match(/系统[：:][^。]+/)?.[0] ?? '';
+      if (sysSeg && /上传习惯|不会传附件/.test(sysSeg) && !/可能|好像|还不/.test(sysSeg)) {
+        errors.push('MicroExercise B 系统条见解应保留题干不确定性措辞');
+      }
+    }
+  }
+
+  const compareNotesBlob = text.includes('compareNotes')
+    ? text.slice(text.indexOf('compareNotes'), text.indexOf('/>', text.indexOf('<CaseCompare')) + 2)
+    : '';
+  if (
+    compareNotesBlob
+    && /算一条|混成一条/.test(compareNotesBlob)
+    && /@/.test(compareNotesBlob)
+    && /搜/.test(compareNotesBlob)
+    && !/共同相似|相似点|同组|群内信息/.test(compareNotesBlob)
+  ) {
+    errors.push(
+      'compareNotes 若批评啰嗦版把 @ 与搜旧消息合并计数，应说明结构版同组依据（如共同相似点），避免「前错后对」假象',
+    );
+  }
+
+  const prose = text.replace(/^import[^\n]+\n/gm, '');
+  if (/CaseCompare\s*组件|PyramidDiagram\s*组件|\bJSON\b|pull request/i.test(prose)) {
+    errors.push('正文不宜出现组件、JSON、PR 等开发术语');
+  }
+
+  if (/p\.\s*\d+|第\s*\d+\s*页|页码\s*\d+/.test(text)) {
+    errors.push('第7课不应编造具体引语页码');
+  }
+
+  if (!/第\s*5\s*课/.test(text) && !/分组/.test(text)) {
+    errors.push('适用边界或回顾应提及本课不代替第 5 课分组');
+  }
+
+  return errors;
+}
+
+/**
+ * Lesson 7 diagram: middle layer is checked parallel reasons; not count-only.
+ */
+export function validateLesson07Diagram(root, lessonText = '') {
+  const errors = [];
+  const diagramPath = path.join(root, 'src/data/pyramid-lesson-07-diagram.json');
+  if (!fs.existsSync(diagramPath)) {
+    errors.push('缺少 pyramid-lesson-07-diagram.json');
+    return errors;
+  }
+  let diagram;
+  try {
+    diagram = JSON.parse(fs.readFileSync(diagramPath, 'utf8'));
+  } catch {
+    errors.push('pyramid-lesson-07-diagram.json 不是合法 JSON');
+    return errors;
+  }
+
+  const middle = diagram.levels?.find((l) => l.layer === 'middle');
+  if (!middle) {
+    errors.push('图缺少中间层');
+    return errors;
+  }
+  if (!/检查|理由/.test(middle.label ?? '')) {
+    errors.push('图的中层标签应点出经检查站得住的并列理由');
+  }
+  if (middle.id === 'insights' && !/理由|检查/.test(diagram.caption ?? '')) {
+    errors.push('第 7 图中层宜为 reasons 等，语义为经检查的理由而非纯见解层');
+  }
+
+  const reasonItems = middle.items ?? [];
+  const reasonIds = new Set(reasonItems.map((i) => i.id));
+  if (reasonItems.length !== 3) {
+    errors.push('图的中层应正好三条例经检查的并列理由');
+  }
+  if (reasonItems.some((i) => /一共有|There are three reasons/i.test(i.text ?? ''))) {
+    errors.push('图的中层不宜用报个数充当理由或见解');
+  }
+  if (reasonItems.some((i) => insightTextOverStrong(i.text ?? ''))) {
+    errors.push('图中理由概括不得过强（如必须切换）');
+  }
+  if (reasonItems.some((i) => /^(协作|试用|切换)/.test(i.text ?? '') && (i.text ?? '').length < 12)) {
+    errors.push('图的中层文字应是带见解的理由概括，不宜仅为类别名词');
+  }
+
+  const facts = diagram.levels?.find((l) => l.id === 'facts')?.items ?? [];
+  if (facts.length < 6) {
+    errors.push('图底层应含换工具案六条事实');
+  }
+  for (const f of facts) {
+    if (!f.supports || !reasonIds.has(f.supports)) {
+      errors.push(`事实「${f.text?.slice(0, 12)}…」的 supports 必须指向有效理由 id`);
+    }
+  }
+
+  const r1Facts = facts.filter((f) => f.supports === 'r1');
+  if (!r1Facts.some((f) => /@/.test(f.text)) || !r1Facts.some((f) => /搜旧对话/.test(f.text))) {
+    errors.push('协作组事实应含 @ 漏看与搜对话类条目');
+  }
+  const r2Facts = facts.filter((f) => f.supports === 'r2');
+  if (!r2Facts.some((f) => /看板/.test(f.text)) || !r2Facts.some((f) => /留在群里/.test(f.text))) {
+    errors.push('试用意愿组应含看板试用与留在群里类事实');
+  }
+  const r3Facts = facts.filter((f) => f.supports === 'r3');
+  if (!r3Facts.some((f) => /安全/.test(f.text)) || !r3Facts.some((f) => /席位/.test(f.text))) {
+    errors.push('切换前提组应含安全审查与席位类事实');
+  }
+
+  if (!/批判性检查|检查/.test(diagram.caption ?? '')) {
+    errors.push('图注应点明本课练习分组/并列理由的批判性检查');
+  }
+  if (!/虚构/.test(diagram.caption ?? '')) {
+    errors.push('图注应标明虚构教学案例');
   }
 
   return errors;
