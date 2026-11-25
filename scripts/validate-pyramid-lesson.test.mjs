@@ -18,6 +18,8 @@ import {
   validateLesson07Diagram,
   validateLesson08Content,
   validateLesson08Diagram,
+  validateLesson09Content,
+  validateLesson09Diagram,
 } from './validate-pyramid-lesson.mjs';
 
 test('parseFrontMatter reads keys', () => {
@@ -658,6 +660,124 @@ test('validateLessonFile accepts lesson 08 fixture when present', () => {
   const lesson = path.join(
     root,
     'docs/learning/thinking/pyramid-principle-daily/2026-11-24-lesson-08.mdx',
+  );
+  if (!fs.existsSync(lesson)) {
+    return;
+  }
+  const r = validateLessonFile(lesson, root);
+  assert.equal(r.ok, true, r.errors?.join('; '));
+});
+
+test('validateLesson09Content rejects vague recommendations and missing Action Ideas quote', () => {
+  const badSnippet = `
+原创虚构 好像 可能 不一定
+情景 变化 带到 问题前
+教学设计
+第4课 第5课 第7课 第8课
+第10课 第11课 第12课
+本课已讲完归纳与演绎
+推动行动
+同一批事实
+绿植 浇灌
+三楼会议室多年来凭前台登记领钥匙，同事一般熟悉这套做法。
+工作日下午两点到四点高峰时段，纸质登记表常常约满，偶尔为签字先后顺序争执。
+IT 同事说工牌读头接口可能能对接，但与会议室日历的联动还没试过，排期好像还要四到六周，还不确定能否赶上本季度窗口。
+安防同事说若改成自助进出，审计日志格式可能要用新规，制度草案好像还在内审，还不确定何时能定稿。
+有的团队习惯到前台当面交接钥匙，也有人表示愿意用 App 提前一天预约。
+设施组拿到读头安装报价单，但采购审批周期好像还不明朗，不一定本季能走完。
+<CaseCompare verbose="下月起全楼应一律刷牌自助。" conclusion="建议考虑一下会议室优化" />
+title: '联调与合规'
+compareNotes 里差别在建议是否写得能推动行动
+<MicroExercise correctId="A" options={[
+  { id: 'B', text: '下月起全面改档。' },
+  { id: 'A', text: '关于时段的意见稿。' },
+  { id: 'C', text: '共享盘路径很长。' },
+]} explanation="很好" />
+PyramidDiagram 组件
+p. 9
+`;
+  const root = path.resolve(import.meta.dirname, '..');
+  const errors = validateLesson09Content(badSnippet, root);
+  assert.ok(errors.some((e) => e.includes('Action Ideas') || e.includes('provoke')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('正确答案应为 B')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('三条') || e.includes('并列行动')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('空话') || e.includes('建议考虑')), errors.join('; '));
+  assert.ok(errors.length >= 4, `expected multiple errors, got ${errors.length}`);
+});
+
+test('validateLesson09Content rejects SCQ claims when scq prop present', () => {
+  const root = path.resolve(import.meta.dirname, '..');
+  const snippet = `
+原创虚构 好像 可能 不一定 能推动行动
+情景 变化 带到 问题前
+How to Deal with Action Ideas provoke action and lead to change
+教学设计 第4课 第5课 第7课 第8课 第10课 第11课 第12课
+同一批事实 绿植 浇灌 并列行动
+三楼会议室多年来凭前台登记领钥匙，同事一般熟悉这套做法。
+工作日下午两点到四点高峰时段，纸质登记表常常约满，偶尔为签字先后顺序争执。
+IT 同事说工牌读头接口可能能对接，但与会议室日历的联动还没试过，排期好像还要四到六周，还不确定能否赶上本季度窗口。
+安防同事说若改成自助进出，审计日志格式可能要用新规，制度草案好像还在内审，还不确定何时能定稿。
+有的团队习惯到前台当面交接钥匙，也有人表示愿意用 App 提前一天预约。
+设施组拿到读头安装报价单，但采购审批周期好像还不明朗，不一定本季能走完。
+<CaseCompare scq={{ situation: 'x', complication: 'y', question: 'z' }} verbose="ok" conclusion="建议先在未来六周并排试点工牌预约，并保留前台登记兜底；不宜现在就宣布全楼一律刷牌自助。" />
+title: '联调与合规：试连接口'
+title: '并排试点：高峰并行六周'
+title: '摸清意愿：发问询'
+compareNotes 结构版先展示 SCQ
+<MicroExercise correctId="B" explanation="推动行动与可执行并列" options={[
+  { id: 'B', text: '还不明朗前建议先保留主档，并排试跑；行动：两周内说明缺口。' },
+  { id: 'A', text: '关于客户演示时段调整的意见稿：建议研究一下。' },
+  { id: 'C', text: '去年演示纪要扫描件文件名很长。' },
+]} />
+`;
+  const errors = validateLesson09Content(snippet, root);
+  assert.ok(errors.some((e) => e.includes('scq') || e.includes('SCQ')), errors.join('; '));
+});
+
+test('validateLesson09Diagram rejects non-action middle layer and bad supports', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pyr-09-'));
+  const diagramPath = path.join(root, 'src/data');
+  fs.mkdirSync(diagramPath, {recursive: true});
+  fs.writeFileSync(
+    path.join(diagramPath, 'pyramid-lesson-09-diagram.json'),
+    JSON.stringify({
+      caption: '示意图',
+      levels: [
+        {
+          id: 'step',
+          layer: 'top',
+          items: [{id: 's1', text: '建议考虑优化会议室'}],
+        },
+        {
+          id: 'actions',
+          layer: 'middle',
+          items: [
+            {id: 'r1', text: '情景'},
+            {id: 'r2', text: '变化'},
+          ],
+        },
+        {
+          id: 'facts',
+          layer: 'bottom',
+          items: [
+            {id: 'f1', supports: 'r1', text: 'IT 同事说工牌读头接口可能能对接。'},
+            {id: 'f2', supports: 'r9', text: '有的团队习惯到前台当面交接钥匙。'},
+          ],
+        },
+      ],
+    }),
+  );
+  const errors = validateLesson09Diagram(root);
+  assert.ok(errors.some((e) => e.includes('三条') || e.includes('并列行动')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('supports') || e.includes('r9')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('空话') || e.includes('可执行') || e.includes('试点')), errors.join('; '));
+});
+
+test('validateLessonFile accepts lesson 09 fixture when present', () => {
+  const root = path.resolve(import.meta.dirname, '..');
+  const lesson = path.join(
+    root,
+    'docs/learning/thinking/pyramid-principle-daily/2026-11-25-lesson-09.mdx',
   );
   if (!fs.existsSync(lesson)) {
     return;
