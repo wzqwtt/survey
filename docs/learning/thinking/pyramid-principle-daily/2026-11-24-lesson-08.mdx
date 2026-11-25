@@ -1,0 +1,187 @@
+---
+series: pyramid
+sidebar_position: 9
+sidebar_label: 第08课
+title: 第8课：用情景把读者带到问题前
+description: 用读者已接受的情景与随之出现的变化，把读者带到心里的问题前，再给出顶端答案。
+tags: [金字塔原理, 每日学习]
+date: 2026-11-24
+lesson: 8
+one_liner: 用读者已接受的情景与随之出现的变化，把读者带到心里的问题前，再给出顶端答案。
+---
+
+import PyramidSeriesRoot from '@site/src/components/pyramid-series/PyramidSeriesRoot';
+import LessonChrome from '@site/src/components/pyramid-series/LessonChrome';
+import CourseRoadmap from '@site/src/components/pyramid-series/CourseRoadmap';
+import LessonHero from '@site/src/components/pyramid-series/LessonHero';
+import PyramidDiagram from '@site/src/components/pyramid-series/PyramidDiagram';
+import CaseCompare from '@site/src/components/pyramid-series/CaseCompare';
+import MicroExercise from '@site/src/components/pyramid-series/MicroExercise';
+import CollapsiblePanel from '@site/src/components/pyramid-series/CollapsiblePanel';
+import ReviewPrompt from '@site/src/components/pyramid-series/ReviewPrompt';
+import diagram from '@site/src/data/pyramid-lesson-08-diagram.json';
+
+<PyramidSeriesRoot>
+
+<LessonChrome
+  seriesTitle="《金字塔原理》每日一小课"
+  lessonLabel="第8课：用情景把读者带到问题前"
+  designMinutes="3 到 5 分钟"
+  localeDate="2026-11-24"
+/>
+
+<CourseRoadmap currentLesson={8} />
+
+<LessonHero oneLiner="用读者已接受的情景与随之出现的变化，把读者带到心里的问题前，再给出顶端答案。" />
+
+上一课我们强调：并列理由列出来后，还要检查个数是否正好、分组是否找对、见解是否恰当；仅有「有三个理由」不是恰当见解。
+
+今天只练一件事：**用情景把读者带到心里的问题前**，再给出顶端答案与理由。  
+这和第 4 课互补：第 4 课练先弄清读者心里的问题；本课练如何用简短的 Situation—Complication—Question（情景—变化—问题）路径，把读者带到这个问题前。
+
+本课的生活案例与练习均为原创虚构，不是原书案例，也不是真实事件。
+
+## 为什么要用情景把读者带到问题前
+
+读者打开你的邮件、备忘录或报告时，很少从空白开始。  
+他们心里往往已经接受某些背景，又突然面对一层新变化——于是自然冒出一个问题。  
+你若跳过这一步，读者可能还没跟上「你在答什么」，就觉得你答偏了。
+
+官网首页说明 Minto 方法里含有 **SCQ Framework™**（Situation, Complication, Question），用于 **identifying the question in your reader's mind**。  
+课程页在 **How to Build a Pyramid** 里也写明：先弄清读者的 question，再用金字塔规则找出并组织回答该问题所需的要点。
+
+下列三步是本课**教学设计**，用来说明课里怎么操作，不当作书中逐字原句：
+
+1. **情景（Situation）**：从读者已经知道、通常会接受的起点讲起，不要一上来就放有争议的判断。
+2. **变化（Complication）**：指出打破该情景、让人需要面对新情况的变化；中文也常译「复杂情况」，不必一定是刚发生的坏事。保留真实的不确定措辞。
+3. **问题（Question）**：这个变化在读者心里引出的那个问题；顶端答案要回答的正是这个问题。
+
+走完短的 S→C→Q，再给出答案与理由，仍符合第 1 课：**问题清楚之后，先说结论（答案），再给理由**，而不是把结论埋在长篇背景里。
+
+啰嗦版常见错法：把读者尚未接受的争议判断当成情景；只堆背景却始终不落到一个清楚的问题；或还没把读者带到问题前就展开另一话题或过强建议。
+
+后续课次只作衔接、不在本课展开：行动建议 → 第 9 课；归纳与演绎 → 第 10 课；复杂情境界定问题 → 第 11 课；全文回头检查 → 第 12 课。
+
+<PyramidDiagram data={diagram} />
+
+<CaseCompare
+  scene="场景：工会干事要在内网写一篇简短说明，回答同事问的：今年年会抽奖要不要改成公益捐步？"
+  verbose="今年年会应该全面改成公益捐步，这才符合价值观。公司年会按惯例有压轴抽奖，去年到场率大概八成，抽奖时现场气氛挺热闹——这话读者一般能同意。今年工会推出公益捐步，步数可以折算小额捐款；财务同事说捐款入账可能要等新捐赠管理办法出台，还不确定能否和抽奖奖金走同一笔预算，具体额度口径好像还在和法务核对。有的同事在茶水间聊天时好像更想保留面对面热闹感，也有人表示愿意试试捐步，但目前好像还没有统一问卷结果。活动筹备组说距离年会还有六周，节目单好像还在收意见。筹备同事担心大改形态可能来不及排练收尾，也不一定来得及把捐步互动排进流程。公司食堂最近上了麻辣香锅窗口，中午排队挺长。我认为两种都好，干脆都上，大家看着办吧。对了，本周五停车位摇号结果公布，别忘查邮件。"
+  scq={{
+    situation:
+      '公司年会按惯例有压轴抽奖；去年到场率大概八成，抽奖时现场气氛挺热闹。',
+    complication:
+      '今年工会推出公益捐步，但捐赠入账口径好像还在核对，同事对抽奖还是捐步也还在摸底，都还不明朗。',
+    question: '今年年会还保留压轴抽奖，还是改成公益捐步？',
+  }}
+  conclusion="在捐赠入账与同事偏好都还不明朗之前，今年可先暂保留原压轴抽奖安排，同时并排摸底捐步能否合规落地；不宜现在就宣布全面改成捐步。"
+  reasons={[
+    {
+      title: '预算与合规：捐款入账规则与奖金渠道还不确定，不宜立刻把形态定为全面捐步。',
+      facts: [
+        '财务同事说捐款入账可能要等新捐赠管理办法出台，还不确定能否和抽奖奖金走同一笔预算。',
+        '工会介绍捐步时提到步数可以折算小额捐款，但具体额度口径好像还在和法务核对。',
+      ],
+    },
+    {
+      title: '同事偏好：有人好像更看重现场热闹，也有人愿意试捐步，单一形态的基础还不牢靠。',
+      facts: [
+        '去年年会到场率大概八成，抽奖时现场气氛挺热闹。',
+        '有的同事在茶水间聊天时好像更想保留面对面热闹感。',
+        '也有人表示愿意试试捐步，但目前好像还没有统一问卷结果。',
+      ],
+    },
+    {
+      title: '筹备节奏：节目单仍在收意见，更适合先定稳妥主方案再谈是否并排捐步。',
+      facts: [
+        '活动筹备组说距离年会还有六周，节目单好像还在收意见。',
+        '筹备同事担心大改形态可能来不及排练收尾，也不一定来得及把捐步互动排进流程。',
+      ],
+    },
+  ]}
+  compareNotes={[
+    '啰嗦版与结构版使用同一批事实与不确定性措辞（「可能」「好像」「不一定」「还不确定」等保持原样）；差别在于结构版在结构版视图里先展示短的 S→C→Q 三句，再给出顶端答案。',
+    '啰嗦版情景：以读者尚未接受的判断「应该全面改成捐步」开场，而不是先写读者已接受的年会惯例与到场体验。',
+    '啰嗦版变化：捐步与财务规则、偏好摸底等事实被背景、食堂麻辣香锅和停车位摇号冲散，读者心里的「今年到底保留抽奖还是改捐步」迟迟没落到纸面。',
+    '结构版短引：情景=惯例抽奖与去年热闹体验；变化=捐步推出且入账与偏好还不明朗；问题=保留抽奖还是改捐步。其后是顶端答案：暂保留原压轴抽奖并排摸底捐步，不立刻全面改捐步（这是示范写法，不是对原案规模的考证）。',
+    '结构版仍先给出顶端结论（答案），再列三条与事实强度相称的理由；不是用长篇背景代替结论，也不鼓励不给答案。',
+    '啰嗦版里的停车位摇号是旁支提醒，结构版没有把它升格为一条理由；两版差别在是否把读者带到问题前，不是换了一组虚构事实。',
+  ]}
+/>
+
+<MicroExercise
+  prompt="行政同事收到问询：大楼消防演练历来放在工作日早晚高峰外，今年物业想改到周五傍晚人流多时办，以测试疏散效率。已知信息：多年来演练都选在上午十点档，周边写字楼也习惯这个时段；今年装修队说傍晚要占一层货梯搬设备，可能影响出口指引。消防员原则上要到场观摩，但具体编制还没回复，好像还可能调期；有的租户担心傍晚演练会打扰加班同事，也有人觉得高峰演练更贴近真实情况。哪种写法先用情景把读者带到问题前，再给出与事实强度相符的答案？"
+  options={[
+    {
+      id: 'A',
+      text: '傍晚演练绝对必要，应该立刻定在周五高峰，不再讨论上午档。',
+    },
+    {
+      id: 'B',
+      text: '多年来上午十点档是大家接受的惯例（情景）。今年傍晚货梯占用与观摩编制都还不明朗（变化），读者自然会问：今年演练还能不能留在上午、要不要冒险改傍晚（问题）。在观摩与货梯影响未查清前，不宜现在就宣布改到周五傍晚；可先并排摸底傍晚方案与上午备选。',
+    },
+    {
+      id: 'C',
+      text: '大楼用的是新型喷淋系统，供应商 brochure 写了很多技术参数；去年演练签字表扫描件在共享盘第三层文件夹里，周末还开放参观。',
+    },
+  ]}
+  correctId="B"
+  explanation="B 用短的惯例—新变数—问题路径，把读者带到「今年时段怎么定」前，再给出谨慎答案。A 跳过大家已接受的上午十点惯例，一上来把「傍晚绝对必要」当情景，并在货梯与观摩编制未查清前就断言定在周五傍晚，过强。C 只堆背景，没有变化与问题，更没有顶端答案。"
+/>
+
+<ReviewPrompt
+  questions={[
+    '你的「情景」是不是读者已经会接受的起点，而不是一上来就塞入他们想反驳的判断？',
+    '「变化」有没有点出让人必须面对的新情况，并保留与事实相符的不确定措辞？',
+    '读者心里的那个问题有没有在纸面上写清，而且你的顶端答案正是在回答这个问题？',
+  ]}
+/>
+
+<CollapsiblePanel title="适用边界">
+  <p>这一课只教用情景把读者带到问题前，不是完整方法。</p>
+  <ul>
+    <li>官网把该方法用于你向读者提供思考的文件，例如邮件、备忘录、报告和幻灯片。</li>
+    <li>情景引言不能代替可靠事实，也不能代替第 4 课「先弄清读者心里的问题」或第 5–7 课的分组、见解与批判性检查。</li>
+    <li>本课不教行动建议怎么写足、归纳与演绎全文、复杂情境界定问题，也不教全文回头检查；这些分别留给第 9–12 课。</li>
+    <li>本系列学习顺序是自拟路线，不是原书 12 章课表。</li>
+    <li>中文课文只借鉴 ASD-STE100 的简明写法，不是该标准的认证文本。</li>
+  </ul>
+</CollapsiblePanel>
+
+<CollapsiblePanel title="可靠来源">
+  <ul>
+    <li>
+      <a href="https://www.barbaraminto.com/">Barbara Minto 官网首页</a>：课程介绍提到 unique Situation, Complication, Question
+      Framework（SCQ Framework™）for identifying the question in your reader's mind。（撰写本节前，官网首页曾返回 HTTP
+      500，无法逐字核对版面；此处依据既有公开摘要与第 4 课已核实过的英文短语。）
+    </li>
+    <li>
+      <a href="https://www.barbaraminto.com/course">课程页</a>：How to Build a Pyramid 写明 how to identify the reader's
+      question, and then use the pyramid rules to discover and organize the points needed to answer that question。（撰写时课程页
+      亦曾返回 HTTP 500；短语与第 4 课记录一致。本系列「用情景把读者带到问题前」是教学表述，不代表某页码的中译书名。）
+    </li>
+    <li>
+      <a href="https://www.barbaraminto.com/concept">概念页</a>：理想思考含分组、抽见解、再收成新的一组等步骤；第 5–7 课已练分组与检查，本课对应
+      SCQ 入门路径。
+    </li>
+    <li>
+      <a href="https://www.barbaraminto.com/textbook">教材页</a>：说明如何用规则发展思考并让表达更有说服力。该页提到 1996 年教材有 12
+      章，这不是本课系列的课表。本课不引用页码。
+    </li>
+    <li>
+      <a href="https://www.pearson.com/en-gb/subject-catalog/p/the-pyramid-principle/P200000015259/9781292763255">
+        Pearson 书目页
+      </a>
+      ：公开介绍强调先组织思考，再用金字塔结构表达。该页目录不是本课程表。
+    </li>
+    <li>
+      <a href="https://www.asd-ste100.org/">ASD-STE100</a> 与{' '}
+      <a href="https://www.asd-europe.org/standards-specifications/simplified-technical-english/what-are-the-basics-of-simplified-technical-english/">
+        ASD 简介
+      </a>
+      ：只用于说明课文写法的借鉴来源。
+    </li>
+  </ul>
+</CollapsiblePanel>
+
+</PyramidSeriesRoot>

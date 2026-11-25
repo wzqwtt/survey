@@ -16,6 +16,8 @@ import {
   validateLesson06Diagram,
   validateLesson07Content,
   validateLesson07Diagram,
+  validateLesson08Content,
+  validateLesson08Diagram,
 } from './validate-pyramid-lesson.mjs';
 
 test('parseFrontMatter reads keys', () => {
@@ -527,6 +529,135 @@ test('validateLessonFile accepts lesson 07 fixture when present', () => {
   const lesson = path.join(
     root,
     'docs/learning/thinking/pyramid-principle-daily/2026-11-23-lesson-07.mdx',
+  );
+  if (!fs.existsSync(lesson)) {
+    return;
+  }
+  const r = validateLessonFile(lesson, root);
+  assert.equal(r.ok, true, r.errors?.join('; '));
+});
+
+test('validateLesson08Content rejects missing SCQ path and premature answer', () => {
+  const badSnippet = `
+原创虚构 好像 可能 不一定
+并列理由 个数 分组 见解
+Situation Complication Question
+SCQ Framework identifying the question in your reader's mind
+How to Build a Pyramid identify the reader's question
+第4课 弄清读者心里的问题
+先说结论 顶端答案
+第9课 第10课 第11课 第12课
+本课已讲完行动建议
+教学设计
+第5课 第7课 分组 见解 检查
+同一批事实 S→C→Q 情景 变化 问题
+停车位 摇号 麻辣香锅 食堂
+财务同事说捐款入账可能要等新捐赠管理办法出台，还不确定能否和抽奖奖金走同一笔预算。
+工会介绍捐步时提到步数可以折算小额捐款，但具体额度口径好像还在和法务核对。
+有的同事在茶水间聊天时好像更想保留面对面热闹感。
+也有人表示愿意试试捐步，但目前好像还没有统一问卷结果。
+活动筹备组说距离年会还有六周，节目单好像还在收意见。
+去年年会到场率大概八成，抽奖时现场气氛挺热闹。
+筹备同事担心大改形态可能来不及排练收尾，也不一定来得及把捐步互动排进流程。
+<CaseCompare conclusion="立刻全面改成捐步" verbose="公司年会按惯例有压轴抽奖" />
+reasons={[
+  { title: '预算与合规', facts: ['财务同事说捐款入账可能要等新捐赠管理办法出台，还不确定能否和抽奖奖金走同一笔预算。'] },
+  { title: '同事偏好', facts: ['有的同事在茶水间聊天时好像更想保留面对面热闹感。'] },
+]}
+<MicroExercise correctId="A" options={[
+  { id: 'B', text: '应该先定高峰演练。' },
+]} explanation="B 很好" />
+PyramidDiagram 组件
+p. 12
+`;
+  const root = path.resolve(import.meta.dirname, '..');
+  const errors = validateLesson08Content(badSnippet, root);
+  assert.ok(errors.some((e) => e.includes('行动建议') || e.includes('教完')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('正确答案应为 B')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('三条')), errors.join('; '));
+  assert.ok(errors.length >= 4, `expected multiple errors, got ${errors.length}`);
+});
+
+test('validateLesson08Content rejects missing scq prop and 小规模抽奖 conclusion', () => {
+  const root = path.resolve(import.meta.dirname, '..');
+  const snippet = `
+原创虚构 好像 可能 不一定
+并列理由 个数 分组 见解
+Situation Complication Question
+SCQ Framework identifying the question in your reader's mind
+How to Build a Pyramid identify the reader's question
+第4课 弄清读者心里的问题
+先说结论 顶端答案
+第9课 第10课 第11课 第12课
+教学设计
+第5课 第7课 分组 见解 检查
+同一批事实 S→C→Q 情景 变化 问题
+停车位 摇号 麻辣香锅 食堂
+财务同事说捐款入账可能要等新捐赠管理办法出台，还不确定能否和抽奖奖金走同一笔预算。
+工会介绍捐步时提到步数可以折算小额捐款，但具体额度口径好像还在和法务核对。
+有的同事在茶水间聊天时好像更想保留面对面热闹感。
+也有人表示愿意试试捐步，但目前好像还没有统一问卷结果。
+活动筹备组说距离年会还有六周，节目单好像还在收意见。
+去年年会到场率大概八成，抽奖时现场气氛挺热闹。
+筹备同事担心大改形态可能来不及排练收尾，也不一定来得及把捐步互动排进流程。
+<CaseCompare conclusion="可先保留小规模抽奖" verbose="公司年会按惯例有压轴抽奖" />
+title: '预算与合规'
+title: '同事偏好'
+title: '筹备节奏'
+<MicroExercise correctId="B" explanation="带到问题" options={[
+  { id: 'B', text: '多年来上午十点档是大家接受的惯例（情景）。今年傍晚货梯占用与观摩编制都还不明朗（变化）。在观摩与货梯影响未查清前，不宜现在就宣布改到周五傍晚；可先并排摸底。' },
+]} />
+`;
+  const errors = validateLesson08Content(snippet, root);
+  assert.ok(errors.some((e) => e.includes('scq')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('小规模')), errors.join('; '));
+});
+
+test('validateLesson08Diagram rejects SCQ-only middle layer and bad supports', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pyr-08-'));
+  const diagramPath = path.join(root, 'src/data');
+  fs.mkdirSync(diagramPath, {recursive: true});
+  fs.writeFileSync(
+    path.join(diagramPath, 'pyramid-lesson-08-diagram.json'),
+    JSON.stringify({
+      caption: '示意图',
+      levels: [
+        {
+          id: 'step',
+          layer: 'top',
+          items: [{id: 's1', text: '有一个问题'}],
+        },
+        {
+          id: 'reasons',
+          layer: 'middle',
+          label: '情景',
+          items: [
+            {id: 'r1', text: '情景'},
+            {id: 'r2', text: '变化'},
+          ],
+        },
+        {
+          id: 'facts',
+          layer: 'bottom',
+          items: [
+            {id: 'f1', supports: 'r1', text: '财务同事说捐款入账可能还要等。'},
+            {id: 'f2', supports: 'r9', text: '有的同事好像更想热闹。'},
+          ],
+        },
+      ],
+    }),
+  );
+  const errors = validateLesson08Diagram(root);
+  assert.ok(errors.some((e) => e.includes('三条') || e.includes('正好')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('supports') || e.includes('r9')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('问题') || e.includes('答案')), errors.join('; '));
+});
+
+test('validateLessonFile accepts lesson 08 fixture when present', () => {
+  const root = path.resolve(import.meta.dirname, '..');
+  const lesson = path.join(
+    root,
+    'docs/learning/thinking/pyramid-principle-daily/2026-11-24-lesson-08.mdx',
   );
   if (!fs.existsSync(lesson)) {
     return;
