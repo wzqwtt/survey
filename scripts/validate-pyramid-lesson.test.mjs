@@ -668,6 +668,40 @@ test('validateLessonFile accepts lesson 08 fixture when present', () => {
   assert.equal(r.ok, true, r.errors?.join('; '));
 });
 
+test('validateLesson09Content rejects recommendations that skip verification before pilot', () => {
+  const root = path.resolve(import.meta.dirname, '..');
+  const prematureSnippet = `
+原创虚构 好像 可能 不一定
+情景 变化 带到 问题前
+How to Deal with Action Ideas provoke action and lead to change
+推动行动 教学设计 第4课 第5课 第7课 第8课 第10课 第11课 第12课
+同一批事实 绿植 浇灌 并列行动 可执行
+三楼会议室多年来凭前台登记领钥匙，同事一般熟悉这套做法。
+工作日下午两点到四点高峰时段，纸质登记表常常约满，偶尔为签字先后顺序争执。
+IT 同事说工牌读头接口可能能对接，但与会议室日历的联动还没试过，排期好像还要四到六周，还不确定能否赶上本季度窗口。
+安防同事说若改成自助进出，审计日志格式可能要用新规，制度草案好像还在内审，还不确定何时能定稿。
+有的团队习惯到前台当面交接钥匙，也有人表示愿意用 App 提前一天预约。
+设施组拿到读头安装报价单，但采购审批周期好像还不明朗，不一定本季能走完。
+<CaseCompare verbose="绿植" conclusion="在未来六周仅对三楼高峰并排试运行工牌预约，并保留登记兜底；不宜全楼一律刷牌自助。" />
+title: '联调与合规：两周内由 IT 与安防试连工牌读头接口，书面确认审计日志能否满足当前草案要求，并盯采购审批节点。'
+title: '并排试点：高峰并行六周'
+title: '摸清意愿：发问询'
+compareNotes 啰嗦版以题目式标题和意见收尾 差别在建议是否写得能推动行动
+<MicroExercise correctId="B" explanation="保留好像还不确定原样" options={[
+  { id: 'B', text: '还不明朗前建议先保留主档，并排试跑一次周五演练；行动：行政申请两次周五上午演练名额。' },
+  { id: 'A', text: '关于客户演示时段调整的意见稿：建议研究一下。' },
+  { id: 'C', text: '去年演示纪要扫描件文件名很长。' },
+]} />
+`;
+  const errors = validateLesson09Content(prematureSnippet, root);
+  assert.ok(errors.some((e) => e.includes('核实') || e.includes('批准')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('试连') || e.includes('缺口')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('收尾')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('原创教学')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('一次')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('好像')), errors.join('; '));
+});
+
 test('validateLesson09Content rejects vague recommendations and missing Action Ideas quote', () => {
   const badSnippet = `
 原创虚构 好像 可能 不一定

@@ -1349,8 +1349,8 @@ export function validateLesson09Content(text, root = process.cwd()) {
   if (structuredConclusion && /建议考虑|关于.*的一些想法|可以再议/.test(structuredConclusion)) {
     errors.push('结构版总建议应是可执行行动，不宜停在「建议考虑」式空话');
   }
-  if (structuredConclusion && !/试点|并排|两周|问询|保留/.test(structuredConclusion)) {
-    errors.push('结构版总建议宜含读者可执行或拍板的具体步骤（如试点、核对、保留兜底）');
+  if (structuredConclusion && !/试点|并排|两周|问询|保留|核对|缺口|批准/.test(structuredConclusion)) {
+    errors.push('结构版总建议宜含读者可执行或拍板的具体步骤（如核对、试点、保留兜底）');
   }
   if (
     structuredConclusion
@@ -1358,6 +1358,41 @@ export function validateLesson09Content(text, root = process.cwd()) {
     && !/不宜|不要|还不能|保留|试点/.test(structuredConclusion)
   ) {
     errors.push('结构版总建议不得把不确定性升格为必须立刻全面刷牌自助');
+  }
+  if (
+    structuredConclusion
+    && /(未来|下月).{0,8}(六周|试点|试运行)/.test(structuredConclusion)
+    && !/条件满足|书面批准|核对条件|批准后再|待接口/.test(structuredConclusion)
+  ) {
+    errors.push('结构版总建议不宜在未核实条件、排期与审批前就按下固定周数启动试点');
+  }
+  if (structuredConclusion && /草案/.test(structuredConclusion) && !/不等于|不宜把草案|草案不等于/.test(structuredConclusion)) {
+    errors.push('涉及制度草案时，结构版宜点明草案达标不等于正式合规授权');
+  }
+
+  const reasonTitlesOrdered = [...text.matchAll(/title:\s*'([^']+)'/g)].map((m) => m[1]);
+  const pilotIdx = reasonTitlesOrdered.findIndex((t) => /试点|并行试运行/.test(t));
+  const willIdx = reasonTitlesOrdered.findIndex((t) => /意愿|问询/.test(t));
+  if (pilotIdx >= 0 && willIdx >= 0 && willIdx > pilotIdx) {
+    errors.push('摸清意愿类行动宜排在限定试点之前，不宜写在试点行动之后');
+  }
+
+  const firstActionTitle = reasonTitlesOrdered.find((t) => /联调|核对|合规|排期/.test(t)) ?? '';
+  if (
+    firstActionTitle
+    && /两周内/.test(firstActionTitle)
+    && /试连|联调/.test(firstActionTitle)
+    && !/缺口|排期清单|可行排期|提议期限/.test(firstActionTitle)
+  ) {
+    errors.push('在事实写联调排期约四到六周时，不宜把两周写成完成全部试连，宜改为排期与缺口摸底');
+  }
+
+  if (/啰嗦版以.*收尾/.test(text)) {
+    errors.push('compareNotes 不宜写「啰嗦版以…收尾」，因啰嗦版其后还有升格断言等正文');
+  }
+
+  if (caseBlock && !/原创教学建议|并非.*唯一方案/.test(text)) {
+    errors.push('结构版示范中的特定期限或试点规模宜标明为原创教学建议，而非事实推出的唯一方案');
   }
 
   if (!/同一批事实|相同事实/.test(text)) {
@@ -1380,9 +1415,9 @@ export function validateLesson09Content(text, root = process.cwd()) {
   }
 
   const reasonTitles = [...text.matchAll(/title:\s*'([^']+)'/g)].map((m) => m[1]);
-  const actionReasons = reasonTitles.filter((t) => /联调|试点|意愿|合规/.test(t));
+  const actionReasons = reasonTitles.filter((t) => /联调|试点|意愿|合规|核对|排期/.test(t));
   if (actionReasons.length !== 3) {
-    errors.push('CaseCompare 结构版应有三条并列行动（联调、试点、摸清意愿等）');
+    errors.push('CaseCompare 结构版应有三条并列行动（核对排期、摸底意愿、限定试点等）');
   }
 
   errors.push(...validateLesson09Diagram(root, text));
@@ -1408,6 +1443,9 @@ export function validateLesson09Content(text, root = process.cwd()) {
     if (optionB && !/还不|不明朗|先保留|再定/.test(optionB)) {
       errors.push('MicroExercise B 答案应与事实强度相符（谨慎）');
     }
+    if (optionB && /试跑一次/.test(optionB) && /两次/.test(optionB)) {
+      errors.push('MicroExercise B 中总建议的试跑次数与行政演练名额不宜不一致（一次/两次）');
+    }
     const optionA = microBlock.match(/id:\s*'A'[\s\S]*?text:\s*'([^']+)'/)?.[1] ?? '';
     if (optionA && !/关于|建议研究|全面/.test(optionA)) {
       errors.push('MicroExercise A 宜体现建议含糊或过强');
@@ -1419,6 +1457,9 @@ export function validateLesson09Content(text, root = process.cwd()) {
     const explanation = microBlock.match(/explanation="([^"]+)"/)?.[1] ?? '';
     if (explanation && !/推动行动|可执行|并列/.test(explanation)) {
       errors.push('MicroExercise 解析应点明是否能推动行动');
+    }
+    if (explanation && /好像.*原样|保持原样.*好像|逐字保留.*好像/.test(explanation)) {
+      errors.push('MicroExercise 解析不宜声称 B 逐字保留「好像」，B 通常用概括语表达不确定性');
     }
   }
 
@@ -1465,8 +1506,18 @@ export function validateLesson09Diagram(root, lessonText = '') {
     return errors;
   }
   const topText = top.items?.[0]?.text ?? '';
-  if (!/试点|并排|保留|不宜/.test(topText) || !/工牌|预约/.test(topText)) {
-    errors.push('图顶层应是可执行的总建议（含试点/保留兜底与不宜全面切换）');
+  if (!/试点|并排|保留|不宜|核对|缺口/.test(topText) || !/工牌|预约/.test(topText)) {
+    errors.push('图顶层应是可执行的总建议（含核对、试点/保留兜底与不宜全面切换）');
+  }
+  if (
+    topText
+    && /(未来|下月).{0,8}(六周|试点)/.test(topText)
+    && !/条件满足|书面批准|核对|批准后再|待接口/.test(topText)
+  ) {
+    errors.push('图顶层不宜在未写清条件核实与批准前就按下固定周数启动试点');
+  }
+  if (topText && /两周内.*试连/.test(topText) && !/缺口|排期|清单|提议期限/.test(topText)) {
+    errors.push('图顶层「两周」宜指向排期与缺口摸底，不宜写成两周内完成全部试连');
   }
   if (/建议考虑|关于.*思考/.test(topText)) {
     errors.push('图顶层不宜是题目式空话');
@@ -1495,11 +1546,11 @@ export function validateLesson09Diagram(root, lessonText = '') {
   if (actionItems.some((i) => /^(情景|变化|问题)$/.test(i.text ?? ''))) {
     errors.push('图的中层条目应是行动概括，不宜仅为 SCQ 类别词');
   }
-  if (!actionItems.some((i) => /联调|IT|安防/.test(i.text ?? ''))) {
-    errors.push('并列行动应含联调与合规类步骤');
+  if (!actionItems.some((i) => /联调|IT|安防|核对|排期/.test(i.text ?? ''))) {
+    errors.push('并列行动应含核对排期或联调与合规类步骤');
   }
-  if (!actionItems.some((i) => /试点|并行|高峰/.test(i.text ?? ''))) {
-    errors.push('并列行动应含并排试点类步骤');
+  if (!actionItems.some((i) => /限定并排试点|并排试运行|高峰工牌/.test(i.text ?? ''))) {
+    errors.push('并列行动应含限定并排试点类步骤');
   }
   if (!actionItems.some((i) => /问询|意愿|交接/.test(i.text ?? ''))) {
     errors.push('并列行动应含摸清意愿类步骤');
@@ -1532,17 +1583,35 @@ export function validateLesson09Diagram(root, lessonText = '') {
     }
   }
 
-  const r1Facts = facts.filter((f) => f.supports === 'r1');
-  if (!r1Facts.some((f) => /IT|工牌|接口/.test(f.text)) || !r1Facts.some((f) => /安防|审计/.test(f.text))) {
-    errors.push('联调与合规行动应含 IT 接口与安防日志类事实');
+  const verifyId = actionItems.find((i) => /联调|核对|IT|安防|排期/.test(i.text ?? ''))?.id;
+  const pilotId = actionItems.find((i) => /限定并排试点|并排试运行|高峰工牌/.test(i.text ?? ''))?.id;
+  const willId = actionItems.find((i) => /摸清意愿|发简短问询/.test(i.text ?? ''))?.id;
+  const verifyFacts = facts.filter((f) => f.supports === verifyId);
+  if (
+    verifyId
+    && (!verifyFacts.some((f) => /IT|工牌|接口/.test(f.text)) || !verifyFacts.some((f) => /安防|审计/.test(f.text)))
+  ) {
+    errors.push('核对排期类行动应含 IT 接口与安防日志类事实');
   }
-  const r2Facts = facts.filter((f) => f.supports === 'r2');
-  if (!r2Facts.some((f) => /前台|钥匙/.test(f.text)) || !r2Facts.some((f) => /高峰|约满/.test(f.text))) {
-    errors.push('并排试点行动应含登记惯例与高峰争执类事实');
+  const pilotFacts = facts.filter((f) => f.supports === pilotId);
+  if (
+    pilotId
+    && (!pilotFacts.some((f) => /前台|钥匙/.test(f.text)) || !pilotFacts.some((f) => /高峰|约满/.test(f.text)))
+  ) {
+    errors.push('限定试点行动应含登记惯例与高峰争执类事实');
   }
-  const r3Facts = facts.filter((f) => f.supports === 'r3');
-  if (!r3Facts.some((f) => /当面|App|预约/.test(f.text))) {
+  const willFacts = facts.filter((f) => f.supports === willId);
+  if (willId && !willFacts.some((f) => /当面|App|预约/.test(f.text))) {
     errors.push('摸清意愿行动应含交接偏好类事实');
+  }
+  const willAction = actionItems.find((i) => i.id === willId);
+  const pilotAction = actionItems.find((i) => i.id === pilotId);
+  if (willAction && pilotAction) {
+    const willPos = actionItems.indexOf(willAction);
+    const pilotPos = actionItems.indexOf(pilotAction);
+    if (willPos > pilotPos) {
+      errors.push('图中摸清意愿行动宜排在限定试点之前');
+    }
   }
 
   if (lessonText && !lessonText.includes('三楼会议室多年来凭前台登记领钥匙')) {
