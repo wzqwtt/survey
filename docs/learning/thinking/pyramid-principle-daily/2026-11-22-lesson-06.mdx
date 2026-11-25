@@ -1,0 +1,158 @@
+---
+series: pyramid
+sidebar_position: 7
+sidebar_label: 第06课
+title: 第6课：从一组事实里抽出见解
+description: 看到一组事实的相似点之后，再抽出它们共同说明的见解；不要只罗列事实就停，也不要把见解说得比事实更满。
+tags: [金字塔原理, 每日学习]
+date: 2026-11-22
+lesson: 6
+one_liner: 看到一组事实的相似点之后，再抽出它们共同说明的见解；不要只把事实罗列完就停住，也不要把见解说得比事实更满。
+---
+
+import PyramidSeriesRoot from '@site/src/components/pyramid-series/PyramidSeriesRoot';
+import LessonChrome from '@site/src/components/pyramid-series/LessonChrome';
+import CourseRoadmap from '@site/src/components/pyramid-series/CourseRoadmap';
+import LessonHero from '@site/src/components/pyramid-series/LessonHero';
+import PyramidDiagram from '@site/src/components/pyramid-series/PyramidDiagram';
+import CaseCompare from '@site/src/components/pyramid-series/CaseCompare';
+import MicroExercise from '@site/src/components/pyramid-series/MicroExercise';
+import CollapsiblePanel from '@site/src/components/pyramid-series/CollapsiblePanel';
+import ReviewPrompt from '@site/src/components/pyramid-series/ReviewPrompt';
+import diagram from '@site/src/data/pyramid-lesson-06-diagram.json';
+
+<PyramidSeriesRoot>
+
+<LessonChrome
+  seriesTitle="《金字塔原理》每日一小课"
+  lessonLabel="第6课：从一组事实里抽出见解"
+  designMinutes="3 到 5 分钟"
+  localeDate="2026-11-22"
+/>
+
+<CourseRoadmap currentLesson={6} />
+
+<LessonHero oneLiner="看到一组事实的相似点之后，再抽出它们共同说明的见解；不要只把事实罗列完就停住，也不要把见解说得比事实更满。" />
+
+上一课我们练习：先把同类的事实收在一起，不要把不同种类的事实混成一堆。  
+今天往前一步：相似事实已经收成几组之后，要从每组里抽出它们共同说明的见解。
+
+本课的生活案例与练习均为原创虚构，不是原书案例，也不是真实事件。
+
+## 为什么还要再抽出见解
+
+Barbara Minto 官网[概念页](https://www.barbaraminto.com/concept)把理想思考过程写成：先把相似的低层事实收成一组；再 **Drawing an insight from having seen the similarity**（从看到相似中抽出见解）；然后再把相关见解收成新的一组，等等。
+
+今天只练第二步：从一组相似事实里抽出见解。  
+第 5 课已经练过分组；本课不再教「怎么分对组」。  
+课程页里的 “How to Look Critically at the Groupings”（检查理由个数、分组是否找对、见解是否恰当等）留到第 7 课，本课不展开。
+
+分组之后若只把事实逐条复述，读者仍要自己猜「这组相似点合起来说明了什么」。  
+见解要回答：这组事实共同说明了什么——不是报个数（课程页举例：“There are three reasons” is not an appropriate insight），也不是比事实更满的断言。
+
+本课在野餐案列上沿用第 5 课那四组事实与同样的不确定性措辞；差别在于结构版是否为每组写出与事实强度相符的见解。
+
+<PyramidDiagram data={diagram} />
+
+<CaseCompare
+  scene="场景：朋友在微信问：「这周末要不要一起去郊外野餐？」"
+  verbose="这周末去郊外野餐听起来不错。周六预报说午后可能阵雨，不一定下透。周日好像更晴一点，但也不确定。野餐垫上周用完还没洗，可能来得及晾。保温箱盖子卡扣好像有点松，不一定漏气。导航显示两处草坪都要步行二十分钟左右。其中一处好像要预约，另一处先到先得。朋友小周周六上午有事，只能下午出发。大家原先说周日上午十点在地铁站集合，小周下午才能到，汇合时间可能要往后挪。听完这些，我觉得周日肯定更晴，就选周日吧，十点集合也不用改。"
+  conclusion="日子和汇合时间都还有不少不确定，还不能按原计划直接敲定这周末怎么安排。"
+  reasons={[
+    {
+      title: '天气与日子：两天预报都带着不确定，还不能按「一定晴」来选日子。',
+      facts: ['周六预报说午后可能阵雨，不一定下透。', '周日好像更晴一点，但也不确定。'],
+    },
+    {
+      title: '野餐用具：垫子和保温箱都要先确认，用具未必已经收拾到位。',
+      facts: ['野餐垫上周用完还没洗，可能来得及晾。', '保温箱盖子卡扣好像有点松，不一定漏气。'],
+    },
+    {
+      title: '地点与到达：两处都要步行一段，预约规则也不一样，地点和到达方式还不能一声定下来。',
+      facts: ['导航显示两处草坪都要步行二十分钟左右。', '其中一处好像要预约，另一处先到先得。'],
+    },
+    {
+      title: '同伴与时间：小周周六上午没空，周日十点汇合和他下午才能到对不上，集合时间可能要挪。',
+      facts: [
+        '朋友小周周六上午有事，只能下午出发。',
+        '大家原先说周日上午十点在地铁站集合，小周下午才能到，汇合时间可能要往后挪。',
+      ],
+    },
+  ]}
+  compareNotes={[
+    '啰嗦版在罗列同一批事实之后，直接跳到「周日肯定更晴、选周日、集合不用改」，见解明显强于尚不确定的预报与朋友档期。',
+    '结构版使用完全相同的事实与不确定性措辞（「好像」「可能」「不一定」等保持原样），先保留四组，再为每组写出不超过事实强度的见解。',
+    '结构版总起说明「日子和汇合时间还不能按原计划直接敲定」，没有说这周末必去或必不去。',
+    '两版差别在于是否抽出与事实强度相符的见解，而不是换了一组虚构事实。',
+  ]}
+/>
+
+<MicroExercise
+  prompt="部门想订一间小会议室做季度复盘。你已经听到这些情况：和档期有关——周三下午财务同事要出外勤，可能回不来；周四上午保洁说可能要消毒，不一定占用会议室。和设备有关——投影仪遥控好像少了一节电池；白板笔上次有人借走两三支，可能还在工位。和参会有关——远程的同事小韩那天网络可能不稳定，不一定能全程开摄像头。下面哪种写法更接近「从相似事实里抽出见解」？"
+  options={[
+    {
+      id: 'A',
+      text: '档期：周三下午财务出外勤，周四上午可能消毒。设备：遥控缺电池，白板笔可能还在工位。参会：小韩网络可能不稳。',
+    },
+    {
+      id: 'B',
+      text: '档期上：两天都还有变动可能，复盘日不能想当然地钉死。设备上：遥控和白板笔都要先确认，现场未必开箱即用。参会上：远程接入可能打折扣，要预留沟通方式。',
+    },
+    {
+      id: 'C',
+      text: '一共有三条消息，所以必须改到周五并全程关摄像头。',
+    },
+  ]}
+  correctId="B"
+  explanation="B 在三组事实之上分别说出与「可能」「好像」「不一定」相称的见解。A 只把已分组的事实再抄一遍，没有回答「这组相似点合起来说明什么」。C 用报个数撑起过强的决定，也和事实对不上。"
+/>
+
+<ReviewPrompt
+  questions={[
+    '每一组相似事实里，它们共同说明的是否已经写成一句话？',
+    '你的见解有没有比事实更满，例如把「可能」说成「一定」？',
+  ]}
+/>
+
+<CollapsiblePanel title="适用边界">
+  <p>这一课只教「从一组相似事实里抽出见解」，不是完整方法。</p>
+  <ul>
+    <li>官网把该方法用于你向读者提供思考的文件，例如邮件、备忘录、报告和幻灯片。</li>
+    <li>抽出见解不能代替可靠事实，也不能代替对分组做批判性检查（第 7 课）以及更高一层的见解再分组。</li>
+    <li>本课不教 MECE 的完整运用、演绎与归纳全文、SCQ、问题界定、行动建议等；这些在后续课展开。</li>
+    <li>本系列学习顺序是自拟路线，不是原书 12 章课表。</li>
+    <li>中文课文只借鉴 ASD-STE100 的简明写法，不是该标准的认证文本。</li>
+  </ul>
+</CollapsiblePanel>
+
+<CollapsiblePanel title="可靠来源">
+  <ul>
+    <li>
+      <a href="https://www.barbaraminto.com/">Barbara Minto 官网首页</a>：说明 Minto Pyramid Principle 用于把想法组织成金字塔，便于读者抓住思路。
+    </li>
+    <li>
+      <a href="https://www.barbaraminto.com/concept">概念页</a>：理想思考过程的第二步是从看到相似中抽出见解；本课对应这一步。第一步分组已在第 5 课练习。
+    </li>
+    <li>
+      <a href="https://www.barbaraminto.com/course">课程页</a>：含 How to Look Critically at the Groupings，以及 “There are three reasons” 不宜当作恰当见解的提示；系统检查留在第 7 课，不是本课课表。
+    </li>
+    <li>
+      <a href="https://www.barbaraminto.com/textbook">教材页</a>：说明如何用规则发展思考并让表达更有说服力。本课不引用页码。该页提到 1996 年教材有 12 章，这不是本课系列的课表。
+    </li>
+    <li>
+      <a href="https://www.pearson.com/en-gb/subject-catalog/p/the-pyramid-principle/P200000015259/9781292763255">
+        Pearson 书目页
+      </a>
+      ：公开介绍强调先组织思考，再用金字塔结构表达。该页目录不是本课程表。
+    </li>
+    <li>
+      <a href="https://www.asd-ste100.org/">ASD-STE100</a> 与{' '}
+      <a href="https://www.asd-europe.org/standards-specifications/simplified-technical-english/what-are-the-basics-of-simplified-technical-english/">
+        ASD 简介
+      </a>
+      ：只用于说明课文写法的借鉴来源。
+    </li>
+  </ul>
+</CollapsiblePanel>
+
+</PyramidSeriesRoot>
