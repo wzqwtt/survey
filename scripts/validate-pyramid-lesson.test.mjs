@@ -929,6 +929,162 @@ compareNotes={['同一批事实', '两版一样好']}
   assert.ok(errors.some((e) => e.includes('伪装') || e.includes('演绎链')), errors.join('; '));
 });
 
+test('validateLesson10Content rejects dishonest r2 title and premature pilot conclusion', () => {
+  const root = path.resolve(import.meta.dirname, '..');
+  const snippet = `
+原创虚构 好像 可能 还不确定 不一定
+explains the difference between deduction and induction
+Deduction and induction
+相似的低层事实收成一组
+归纳 演绎 教学设计 第5–6课 第11课 第12课
+课程页并未单独列出归纳
+三年来晨间短讯固定在六点半，不少住校生习惯边洗漱边听。
+本学期学校把早自习铃改到七点十分；六点半时宿舍走廊可能还比较安静，但还不确定新作息下六点半收听率会不会掉。
+设备组说调钟软件可能能一键改时，但与课表播报模块的联动好像还没试过。
+播音员反映七点半前录音棚外人声夹杂可能更少，但录音棚上午档预约表常常约满。
+有老师觉得六点半利于简短校务提醒，也有同学表示希望多睡二十分钟再听。
+上周试播七点半片段时，听众反馈样本好像只有十几条，还不代表全体。
+菜单 食堂
+<CaseCompare verbose="食堂" conclusion="在课表播报联动还没试、试播样本还不代表全体前，不宜现在就宣布全线改到七点半；可先并排试播两周（提议期限）再据收听与课表冲突数据拍板是否调整固定开播时刻。" />
+title: '归纳·制作条件与预约档期：棚外人声与上午约满是同一类制作与档期问题，并列看待。'
+title: '归纳·收听习惯与作息衔接：六点半惯例与新早自习铃并存，收听率还不确定。'
+title: '归纳·意见与试点样本：师生偏好与试播反馈都还不足以支撑立刻全线改档。'
+compareNotes={['同一批事实', '演绎步骤伪装', '理由一 理由二', '早自习铃改到七点十分 → 六点半收听场景可能受影响 → 在联动与样本未清前先试播再定']}
+<MicroExercise correctId="B" explanation="B 很好。" options={[
+  { id: 'A', text: '理由一：打滑。理由二：所以有险。理由三：因此必须铺垫。' },
+  { id: 'B', text: '三类并列；若用演绎则去年有打滑→雨天坡道更吃紧→先局部试点。' },
+]} />
+`;
+  const errors = validateLesson10Content(snippet, root);
+  assert.ok(
+    errors.some((e) => e.includes('同一类档期') || e.includes('制作与技术条件')),
+    errors.join('; '),
+  );
+  assert.ok(
+    errors.some((e) => e.includes('核对') || e.includes('排上棚')),
+    errors.join('; '),
+  );
+  assert.ok(errors.some((e) => e.includes('更吃紧')), errors.join('; '));
+  assert.ok(
+    errors.filter((e) =>
+      /同一类档期|排上棚|更吃紧/.test(e),
+    ).length >= 3,
+    errors.join('; '),
+  );
+});
+
+test('validateLesson10Content rejects micro explanation that denies escalation', () => {
+  const root = path.resolve(import.meta.dirname, '..');
+  const snippet = `
+原创虚构 好像 可能 还不确定 不一定
+explains the difference between deduction and induction
+Deduction and induction
+相似的低层事实收成一组
+归纳 演绎 教学设计 第5–6课 第11课 第12课
+课程页并未单独列出归纳
+三年来晨间短讯固定在六点半，不少住校生习惯边洗漱边听。
+本学期学校把早自习铃改到七点十分；六点半时宿舍走廊可能还比较安静，但还不确定新作息下六点半收听率会不会掉。
+设备组说调钟软件可能能一键改时，但与课表播报模块的联动好像还没试过。
+播音员反映七点半前录音棚外人声夹杂可能更少，但录音棚上午档预约表常常约满。
+有老师觉得六点半利于简短校务提醒，也有同学表示希望多睡二十分钟再听。
+上周试播七点半片段时，听众反馈样本好像只有十几条，还不代表全体。
+菜单 食堂
+<CaseCompare verbose="食堂" conclusion="在联动还没试前不宜全线改档；应先核对限定试播能否排上棚、是否依赖尚未试过的联动；可行后再开始限定试播，并以两周（原创教学建议期限，自试播实际开始后计）再拍板。" />
+title: '归纳·改档的制作与技术条件：棚档约满与课表联动都尚未落实。'
+title: '归纳·收听习惯与作息衔接：收听率还不确定。'
+title: '归纳·意见与试点样本：样本还不代表全体。'
+compareNotes={['同一批事实', '伪装', '演绎链可以是：早自习铃改到七点十分 → 收听率还不确定 → 联动好像还没试过、样本不代表全体、棚约满 → 不宜全线改档，应先核对试播', '两周为原创教学建议']}
+<MicroExercise correctId="B" explanation="B 没有新增题干外事实；A 是假并列。" options={[
+  { id: 'A', text: '理由一：打滑。理由二：所以有险。理由三：因此必须铺垫。' },
+  { id: 'B', text: '并列归纳；演绎：去年打滑→雨天坡道更吃紧→局部试点。' },
+]} />
+`;
+  const errors = validateLesson10Content(snippet, root);
+  assert.ok(
+    errors.some((e) => e.includes('没有新增题干外事实') || e.includes('升格')),
+    errors.join('; '),
+  );
+  assert.ok(
+    errors.some((e) => e.includes('A') && e.includes('过强')),
+    errors.join('; '),
+  );
+});
+
+test('validateLesson10Diagram rejects dishonest r2 middle label', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pyr-10-r2-'));
+  const diagramPath = path.join(root, 'src/data');
+  fs.mkdirSync(diagramPath, {recursive: true});
+  fs.writeFileSync(
+    path.join(diagramPath, 'pyramid-lesson-10-diagram.json'),
+    JSON.stringify({
+      caption: '归纳与演绎虚构案例',
+      levels: [
+        {
+          id: 'step',
+          layer: 'top',
+          items: [
+            {
+              id: 's1',
+              text: '不宜全线改档；可先并排试播两周再定。',
+            },
+          ],
+        },
+        {
+          id: 'reasons',
+          layer: 'middle',
+          label: '归纳',
+          items: [
+            {id: 'r1', text: '收听'},
+            {
+              id: 'r2',
+              text: '制作与档期：棚外人声与上午预约满是一类制作条件问题。',
+            },
+            {id: 'r3', text: '意见'},
+          ],
+        },
+        {
+          id: 'facts',
+          layer: 'bottom',
+          items: [
+            {
+              id: 'f1',
+              supports: 'r1',
+              text: '三年来晨间短讯固定在六点半，不少住校生习惯边洗漱边听。',
+            },
+            {
+              id: 'f2',
+              supports: 'r1',
+              text: '本学期学校把早自习铃改到七点十分；六点半时宿舍走廊可能还比较安静，但还不确定新作息下六点半收听率会不会掉。',
+            },
+            {
+              id: 'f3',
+              supports: 'r2',
+              text: '播音员反映七点半前录音棚外人声夹杂可能更少，但录音棚上午档预约表常常约满。',
+            },
+            {
+              id: 'f4',
+              supports: 'r2',
+              text: '设备组说调钟软件可能能一键改时，但与课表播报模块的联动好像还没试过。',
+            },
+            {
+              id: 'f5',
+              supports: 'r3',
+              text: '有老师觉得六点半利于简短校务提醒，也有同学表示希望多睡二十分钟再听。',
+            },
+            {
+              id: 'f6',
+              supports: 'r3',
+              text: '上周试播七点半片段时，听众反馈样本好像只有十几条，还不代表全体。',
+            },
+          ],
+        },
+      ],
+    }),
+  );
+  const errors = validateLesson10Diagram(root);
+  assert.ok(errors.some((e) => e.includes('同一类档期') || e.includes('核对')), errors.join('; '));
+});
+
 test('validateLessonFile accepts lesson 10 fixture when present', () => {
   const root = path.resolve(import.meta.dirname, '..');
   const lesson = path.join(
