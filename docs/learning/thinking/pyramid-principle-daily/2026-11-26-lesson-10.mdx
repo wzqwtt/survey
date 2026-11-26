@@ -1,0 +1,163 @@
+---
+series: pyramid
+sidebar_position: 11
+sidebar_label: 第10课
+title: 第10课：归纳和演绎：两种常见推理方式
+description: 辨认归纳与演绎的差别，别把推演步骤伪装成三条并列理由。
+tags: [金字塔原理, 每日学习]
+date: 2026-11-26
+lesson: 10
+one_liner: 辨认你在用归纳（同类理由并列）还是演绎（前句引出后句成链），别把演绎链伪装成三条并列理由。
+---
+
+import PyramidSeriesRoot from '@site/src/components/pyramid-series/PyramidSeriesRoot';
+import LessonChrome from '@site/src/components/pyramid-series/LessonChrome';
+import CourseRoadmap from '@site/src/components/pyramid-series/CourseRoadmap';
+import LessonHero from '@site/src/components/pyramid-series/LessonHero';
+import PyramidDiagram from '@site/src/components/pyramid-series/PyramidDiagram';
+import CaseCompare from '@site/src/components/pyramid-series/CaseCompare';
+import MicroExercise from '@site/src/components/pyramid-series/MicroExercise';
+import CollapsiblePanel from '@site/src/components/pyramid-series/CollapsiblePanel';
+import ReviewPrompt from '@site/src/components/pyramid-series/ReviewPrompt';
+import diagram from '@site/src/data/pyramid-lesson-10-diagram.json';
+
+<PyramidSeriesRoot>
+
+<LessonChrome
+  seriesTitle="《金字塔原理》每日一小课"
+  lessonLabel="第10课：归纳和演绎：两种常见推理方式"
+  designMinutes="3 到 5 分钟"
+  localeDate="2026-11-26"
+/>
+
+<CourseRoadmap currentLesson={10} />
+
+<LessonHero oneLiner="辨认你在用归纳（同类理由并列）还是演绎（前句引出后句成链），别把演绎链伪装成三条并列理由。" />
+
+上一课我们强调：建议要写成读者能执行或能拍板的行动，而不是题目式空话或停在「建议考虑一下」。
+
+今天只练一件事：**归纳和演绎**——两种常见推理方式。第 5–6 课练的「把相似事实收成一组、抽出见解」就是在用**归纳**思路组织材料；本课再对照另一种常见方式——**演绎**：前一句引出后一句，形成「因为 A，又因为 B，所以 C」的链条。第 7 课检查并列理由个数时，也在帮你看清归纳层是否站得住；第 8–9 课的情景、行动建议与本课互补，本课不重讲那些步骤。
+
+本课的生活案例与练习均为原创虚构，不是原书案例，也不是真实事件。
+
+## 为什么先辨认归纳和演绎
+
+Barbara Minto 官网[概念页](https://www.barbaraminto.com/concept)说明：人们会把看到的相似低层事实收成一组，从相似性中抽出见解，再把相关见解组成新的一组，最终形成由一个总思想统领的金字塔；向他人表达时，再带领读者走下这座金字塔。第 5–6 课已练过其中的分组与抽见解，那是在用**归纳**式整理。
+
+[Pearson 书目页](https://www.pearson.com/en-gb/subject-catalog/p/the-pyramid-principle/P200000015259/9781292763255)的**出版社公开介绍**写明，该书 explains the difference between deduction and induction；**公开目录**中有条目 “Deduction and induction: the difference”。本课只据这些可核实表述转述方向，不编造章节号或页码。官网[课程页](https://www.barbaraminto.com/course)并未单独列出「归纳与演绎」条目，本课核心定义不据课程页下结论。
+
+下列说明是本课**教学设计**，用来说明课里怎么操作，不当作书中逐字原句：
+
+1. **归纳**：若干同一类、回答同一问题的理由或事实，共同支撑一个总结观点；各点是**并列**关系，不是「因此」引出下一步。
+2. **演绎**：前一句引出后一句（因为 A，又因为 B，所以 C）；各点是**推演步骤**，不是同一类的并列项。
+3. 两种都常见、都合法。本课只帮读者辨认自己正在用哪一种，并避免把演绎链条伪装成三条并列「理由」。
+
+啰嗦版典型错法：把「早自习改了 → 收听场景变了 → 必须改档」的演绎链，拆成「理由一、理由二、理由三」并排陈列，让读者误以为是三条并列归纳；或把作息事实、棚内档期、师生意见混在一层里却不分组。
+
+后续课次只作衔接、不在本课展开：写之前先把问题想清楚 → 第 11 课；回头检查结论有没有被理由撑住 → 第 12 课。
+
+<PyramidDiagram data={diagram} />
+
+<CaseCompare
+  scene="场景：校园广播站编委会要在内网写一段说明，答复委员问的：晨间短讯要不要从固定六点半改成七点半？"
+  verbose="关于晨间播报时段优化。食堂窗口换了新菜单贴图，别忘看。理由一：本学期早自习铃已经改到七点十分了。理由二：所以六点半收听场景肯定不对了。理由三：因此下月起必须全线改到七点半。三年来晨间短讯固定在六点半，不少住校生习惯边洗漱边听。本学期学校把早自习铃改到七点十分；六点半时宿舍走廊可能还比较安静，但还不确定新作息下六点半收听率会不会掉。设备组说调钟软件可能能一键改时，但与课表播报模块的联动好像还没试过。播音员反映七点半前录音棚外人声夹杂可能更少，但录音棚上午档预约表常常约满。有老师觉得六点半利于简短校务提醒，也有同学表示希望多睡二十分钟再听。上周试播七点半片段时，听众反馈样本好像只有十几条，还不代表全体。依我看，调钟软件能一键改时就没问题，应该立即改档。"
+  conclusion="在课表播报联动还没试、试播样本还不代表全体前，不宜现在就宣布全线改到七点半；可先并排试播两周（提议期限）再据收听与课表冲突数据拍板是否调整固定开播时刻。"
+  reasons={[
+    {
+      title: '归纳·收听习惯与作息衔接：六点半惯例与新早自习铃并存，收听率还不确定。',
+      facts: [
+        '三年来晨间短讯固定在六点半，不少住校生习惯边洗漱边听。',
+        '本学期学校把早自习铃改到七点十分；六点半时宿舍走廊可能还比较安静，但还不确定新作息下六点半收听率会不会掉。',
+      ],
+    },
+    {
+      title: '归纳·制作条件与预约档期：棚外人声与上午约满是同一类制作与档期问题，并列看待。',
+      facts: [
+        '播音员反映七点半前录音棚外人声夹杂可能更少，但录音棚上午档预约表常常约满。',
+        '设备组说调钟软件可能能一键改时，但与课表播报模块的联动好像还没试过。',
+      ],
+    },
+    {
+      title: '归纳·意见与试点样本：师生偏好与试播反馈都还不足以支撑立刻全线改档。',
+      facts: [
+        '有老师觉得六点半利于简短校务提醒，也有同学表示希望多睡二十分钟再听。',
+        '上周试播七点半片段时，听众反馈样本好像只有十几条，还不代表全体。',
+      ],
+    },
+  ]}
+  compareNotes={[
+    '啰嗦版与结构版使用同一批事实与不确定性措辞（「可能」「好像」「还不确定」「不一定」等保持原样）；差别在于推理关系是否写对，不是多出秘密信息。',
+    '啰嗦版把演绎步骤伪装成「理由一、二、三」并列，并用「所以」「因此」串成必须改档，与联动未试、样本不足的事实不符。',
+    '结构版用**归纳**：三条同类并列理由（收听作息、制作档期、意见与试点）共同支撑顶端判断；同一批事实若改写成**演绎链**，可以是：早自习铃改到七点十分 → 六点半收听场景可能受影响 → 在联动与样本未清前先试播再定——步骤前后引申，不是三条同层并列。',
+    '两版只改顺序与推理关系；结构版不把食堂新菜单旁支升格为理由，插图与事实挂载与正文一致。',
+    '顶端「两周并排试播」为原创教学建议，并非事实推出的唯一方案。',
+  ]}
+/>
+
+<MicroExercise
+  prompt="后勤小组要写答复：地下车库入口要不要在雨季加临时防滑垫？已知：去年冬天有两起打滑抱怨，可能和融雪剂残留有关；清洁承包合同好像明年三月才续签，还不确定能否加派晨间清扫；入口坡度窄，早晚高峰电动车可能并排，转弯半径好像不够用；监控里雨天早高峰往往有五到八辆车排队；有住户希望垫子上要有导引箭头，目前还没定稿。哪种写法辨认出自己在用归纳（并列同类理由），而不是把演绎链伪装成三条并列理由？"
+  options={[
+    {
+      id: 'A',
+      text: '理由一：去年有过打滑。理由二：所以有打滑风险。理由三：因此下月起必须全面铺垫并取消电动车入口。雨天排队五到八辆；融雪剂可能有关；坡度窄。',
+    },
+    {
+      id: 'B',
+      text: '在合同续签与导引箭头都还不明朗前，不宜现在就全面铺垫：风险与通行（打滑记录、坡度与排队）、保洁条件（合同与晨间清扫）、住户诉求（箭头未定）三类并列支撑「可先高峰档局部试点垫再加观测」；若用演绎，则因为去年有打滑记录→雨天坡道更吃紧→所以在合同与箭头未清前先局部试点，而非三线并列报号。',
+    },
+    {
+      id: 'C',
+      text: '车库很重要，监控存储好像上周扩容过，保安亭换了热水壶，雨天记得带伞。',
+    },
+  ]}
+  correctId="B"
+  explanation="B 先给谨慎总判断，用三类并列归纳理由支撑，并点出若写成演绎链应是前后引申；没有新增题干外事实。A 把「有记录→有风险→必须全面铺垫」的推演拆成三条假并列。C 只堆背景，没有辨认归纳与演绎。"
+/>
+
+<ReviewPrompt
+  questions={[
+    '你列在总观点下的各点，是同类事实并列支撑（归纳），还是前一句在引出后一句（演绎）？',
+    '有没有把「因为…所以…因此…」的链条，拆成「理由一、二、三」假装并列？',
+    '若改掉顺序与关系，事实集合是否没变——你没有偷偷多加一条理由？',
+  ]}
+/>
+
+<CollapsiblePanel title="适用边界">
+  <p>这一课只教辨认归纳与演绎，不是形式逻辑教材，也不保证某种结构在所有场合都更好。</p>
+  <ul>
+    <li>不是所有材料都只有一种「正确」推理方式；同一批事实有时既能归纳陈列，也能按步骤演绎，本课帮你看清你在用哪一种。</li>
+    <li>本课不代替第 5–7 课的分组与批判性检查、第 8 课的情景引言或第 9 课的行动建议写法。</li>
+    <li>若见到「高层必须用归纳、演绎只能用在段落」等网络二手说法，本课未在官网或出版社公开页核实，不当作本书硬性规定。</li>
+    <li>复杂情境界定问题与全文回头检查分别留给第 11–12 课；本系列学习顺序是自拟路线，不是原书 12 章课表。</li>
+    <li>中文课文只借鉴 ASD-STE100 的简明写法，不是该标准的认证文本。</li>
+  </ul>
+</CollapsiblePanel>
+
+<CollapsiblePanel title="可靠来源">
+  <ul>
+    <li>
+      <a href="https://www.barbaraminto.com/concept">概念页</a>：相似低层事实收成一组、抽见解、组成金字塔，表达时带领读者走下金字塔。（撰写本节前已打开概念页核对。）
+    </li>
+    <li>
+      <a href="https://www.pearson.com/en-gb/subject-catalog/p/the-pyramid-principle/P200000015259/9781292763255">
+        Pearson 书目页
+      </a>
+      ：**出版社公开介绍**写明 explains the difference between deduction and induction；**公开目录**有 “Deduction and induction: the difference”。不写章节页码；该页目录编号显示异常，不据其臆造章节号。
+    </li>
+    <li>
+      <a href="https://www.barbaraminto.com/course">课程页</a>：未单独列出「归纳与演绎」条目；本课不据课程页定义这两种推理。（撰写本节前已打开课程页核对。）
+    </li>
+    <li>
+      <a href="https://www.barbaraminto.com/textbook">教材页</a>：说明如何用规则发展思考。本课不引用页码。
+    </li>
+    <li>
+      <a href="https://www.asd-ste100.org/">ASD-STE100</a> 与{' '}
+      <a href="https://www.asd-europe.org/standards-specifications/simplified-technical-english/what-are-the-basics-of-simplified-technical-english/">
+        ASD 简介
+      </a>
+      ：只用于说明课文写法的借鉴来源。
+    </li>
+  </ul>
+</CollapsiblePanel>
+
+</PyramidSeriesRoot>

@@ -20,6 +20,8 @@ import {
   validateLesson08Diagram,
   validateLesson09Content,
   validateLesson09Diagram,
+  validateLesson10Content,
+  validateLesson10Diagram,
 } from './validate-pyramid-lesson.mjs';
 
 test('parseFrontMatter reads keys', () => {
@@ -812,6 +814,126 @@ test('validateLessonFile accepts lesson 09 fixture when present', () => {
   const lesson = path.join(
     root,
     'docs/learning/thinking/pyramid-principle-daily/2026-11-25-lesson-09.mdx',
+  );
+  if (!fs.existsSync(lesson)) {
+    return;
+  }
+  const r = validateLessonFile(lesson, root);
+  assert.equal(r.ok, true, r.errors?.join('; '));
+});
+
+test('validateLesson10Content rejects disguised deduction chains and missing Pearson quote', () => {
+  const badSnippet = `
+原创虚构 好像 可能 不一定 还不确定
+推动行动 能拍板 建议考虑一下
+教学设计
+第5–6课 第11课 第12课
+本课已讲完问题想清楚
+相似的低层事实收成一组
+归纳 演绎
+课程页并未单独列出归纳
+同一批事实 推理关系
+三年来晨间短讯固定在六点半，不少住校生习惯边洗漱边听。
+本学期学校把早自习铃改到七点十分；六点半时宿舍走廊可能还比较安静，但还不确定新作息下六点半收听率会不会掉。
+设备组说调钟软件可能能一键改时，但与课表播报模块的联动好像还没试过。
+播音员反映七点半前录音棚外人声夹杂可能更少，但录音棚上午档预约表常常约满。
+有老师觉得六点半利于简短校务提醒，也有同学表示希望多睡二十分钟再听。
+上周试播七点半片段时，听众反馈样本好像只有十几条，还不代表全体。
+<CaseCompare verbose="ok" conclusion="下月起必须全线改到七点半" />
+title: '理由一：早自习改了'
+compareNotes 结构版使用完全相同的事实与不确定性措辞
+<MicroExercise correctId="A" explanation="很好" options={[
+  { id: 'A', text: '理由一：打滑。理由二：所以有险。理由三：因此必须铺垫。' },
+  { id: 'B', text: '三个归纳并列点支撑判断。' },
+]} />
+PyramidDiagram 组件
+p. 64
+`;
+  const root = path.resolve(import.meta.dirname, '..');
+  const errors = validateLesson10Content(badSnippet, root);
+  assert.ok(errors.some((e) => e.includes('deduction') || e.includes('Pearson')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('正确答案应为 B')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('改档') || e.includes('升格')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('页码') || e.includes('64')), errors.join('; '));
+  assert.ok(errors.length >= 4, `expected multiple errors, got ${errors.length}`);
+});
+
+test('validateLesson10Diagram rejects count-style middle layer and bad supports', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pyr-10-'));
+  const diagramPath = path.join(root, 'src/data');
+  fs.mkdirSync(diagramPath, {recursive: true});
+  fs.writeFileSync(
+    path.join(diagramPath, 'pyramid-lesson-10-diagram.json'),
+    JSON.stringify({
+      caption: '示意图',
+      levels: [
+        {
+          id: 'step',
+          layer: 'top',
+          items: [{id: 's1', text: '下月起必须全线改七点半'}],
+        },
+        {
+          id: 'reasons',
+          layer: 'middle',
+          label: '理由',
+          items: [
+            {id: 'r1', text: '理由一：改了'},
+            {id: 'r2', text: '理由二：所以'},
+          ],
+        },
+        {
+          id: 'facts',
+          layer: 'bottom',
+          items: [
+            {id: 'f1', supports: 'r1', text: '三年来晨间短讯固定在六点半，不少住校生习惯边洗漱边听。'},
+            {id: 'f2', supports: 'r9', text: '上周试播七点半片段时，听众反馈样本好像只有十几条，还不代表全体。'},
+          ],
+        },
+      ],
+    }),
+  );
+  const errors = validateLesson10Diagram(root);
+  assert.ok(errors.some((e) => e.includes('三条') || e.includes('正好')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('supports') || e.includes('r9')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('归纳') || e.includes('不宜')), errors.join('; '));
+});
+
+test('validateLesson10Content rejects fake-parallel compareNotes without deduction contrast', () => {
+  const root = path.resolve(import.meta.dirname, '..');
+  const snippet = `
+原创虚构 好像 可能 不一定 还不确定
+推动行动 能拍板
+explains the difference between deduction and induction
+Deduction and induction
+相似的低层事实收成一组
+归纳 演绎 教学设计 第5–6课 第11课 第12课
+课程页并未单独列出归纳 不代替第5课
+三年来晨间短讯固定在六点半，不少住校生习惯边洗漱边听。
+本学期学校把早自习铃改到七点十分；六点半时宿舍走廊可能还比较安静，但还不确定新作息下六点半收听率会不会掉。
+设备组说调钟软件可能能一键改时，但与课表播报模块的联动好像还没试过。
+播音员反映七点半前录音棚外人声夹杂可能更少，但录音棚上午档预约表常常约满。
+有老师觉得六点半利于简短校务提醒，也有同学表示希望多睡二十分钟再听。
+上周试播七点半片段时，听众反馈样本好像只有十几条，还不代表全体。
+菜单 食堂
+<CaseCompare conclusion="在联动未试前不宜全线改档，可先试播。" verbose="食堂" />
+title: '归纳·收听习惯与作息衔接'
+title: '归纳·制作条件与预约档期'
+title: '归纳·意见与试点样本'
+compareNotes={['同一批事实', '两版一样好']}
+<MicroExercise correctId="B" explanation="归纳并列而非演绎伪装" options={[
+  { id: 'A', text: '理由一：打滑。理由二：所以有险。理由三：因此必须铺垫。' },
+  { id: 'B', text: '风险、保洁、诉求三类并列支撑谨慎判断；若用演绎则前后引申。' },
+]} />
+`;
+  const errors = validateLesson10Content(snippet, root);
+  assert.ok(errors.some((e) => e.includes('伪装') || e.includes('演绎链')), errors.join('; '));
+});
+
+test('validateLessonFile accepts lesson 10 fixture when present', () => {
+  const root = path.resolve(import.meta.dirname, '..');
+  const lesson = path.join(
+    root,
+    'docs/learning/thinking/pyramid-principle-daily/2026-11-26-lesson-10.mdx',
   );
   if (!fs.existsSync(lesson)) {
     return;
