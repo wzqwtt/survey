@@ -22,6 +22,8 @@ import {
   validateLesson09Diagram,
   validateLesson10Content,
   validateLesson10Diagram,
+  validateLesson11Content,
+  validateLesson11Diagram,
 } from './validate-pyramid-lesson.mjs';
 
 test('parseFrontMatter reads keys', () => {
@@ -1090,6 +1092,123 @@ test('validateLessonFile accepts lesson 10 fixture when present', () => {
   const lesson = path.join(
     root,
     'docs/learning/thinking/pyramid-principle-daily/2026-11-26-lesson-10.mdx',
+  );
+  if (!fs.existsSync(lesson)) {
+    return;
+  }
+  const r = validateLessonFile(lesson, root);
+  assert.equal(r.ok, true, r.errors?.join('; '));
+});
+
+test('validateLesson11Content rejects undefined problem and missing Define a Problem quote', () => {
+  const badSnippet = `
+原创虚构 好像 可能 还不确定
+归纳 演绎 伪装 并列理由
+教学设计
+第4课 第8课 第12课
+本课已讲完回头检查
+同一批事实
+社区共享工具屋三年来靠纸质登记簿借还，街坊一般熟悉手写流程。
+今年春天新来了几十户租客，登记字迹与缩写习惯更杂，人工对账可能更费事，但还不确定这与差错率是否直接相关。
+街道上月抽检发现三把梯子编号与登记不符，可能有人未还就登记已还，也可能贴错编号，还不确定哪一种更常见。
+厂商推的扫码柜报价单已收到，但与现有门禁系统的联动好像还没试过，还不确定能否本季安装。
+有志愿者愿意周末加一轮盘点，但培训新人熟记一百多件工具编号好像还要几周。
+有邻居希望保持面对面交接，也有人说扫码可能更快；社媒群里吐槽「找不到梯子」的帖子好像只有十来条，还不代表全体感受。
+<CaseCompare verbose="下月起全线换扫码柜，必须换。" conclusion="下月起必须全线换扫码自助柜" />
+title: '理由一：租客多了'
+compareNotes 结构版使用完全相同的事实与不确定性措辞
+<MicroExercise correctId="A" explanation="很好" options={[
+  { id: 'A', text: '必须换柜。理由一 理由二 因此全线换。' },
+  { id: 'B', text: '界定本文要回答的问题。' },
+]} />
+PyramidDiagram 组件
+p. 88
+`;
+  const root = path.resolve(import.meta.dirname, '..');
+  const errors = validateLesson11Content(badSnippet, root);
+  assert.ok(errors.some((e) => e.includes('How to Define') || e.includes('Pearson')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('正确答案应为 B')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('本文要回答') || e.includes('界定')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('页码') || e.includes('88')), errors.join('; '));
+  assert.ok(errors.length >= 4, `expected multiple errors, got ${errors.length}`);
+});
+
+test('validateLesson11Diagram rejects missing document question and bad supports', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pyr-11-'));
+  const diagramPath = path.join(root, 'src/data');
+  fs.mkdirSync(diagramPath, {recursive: true});
+  fs.writeFileSync(
+    path.join(diagramPath, 'pyramid-lesson-11-diagram.json'),
+    JSON.stringify({
+      caption: '示意图',
+      levels: [
+        {
+          id: 'step',
+          layer: 'top',
+          items: [{id: 's1', text: '下月起必须全线换扫码柜'}],
+        },
+        {
+          id: 'reasons',
+          layer: 'middle',
+          label: '理由',
+          items: [
+            {id: 'r1', text: '换柜'},
+            {id: 'r2', text: '换柜2'},
+          ],
+        },
+        {
+          id: 'facts',
+          layer: 'bottom',
+          items: [
+            {id: 'f1', supports: 'r1', text: '社区共享工具屋三年来靠纸质登记簿借还，街坊一般熟悉手写流程。'},
+            {id: 'f2', supports: 'r9', text: '厂商推的扫码柜报价单已收到，但与现有门禁系统的联动好像还没试过，还不确定能否本季安装。'},
+          ],
+        },
+      ],
+    }),
+  );
+  const errors = validateLesson11Diagram(root);
+  assert.ok(errors.some((e) => e.includes('本文要回答') || e.includes('界定')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('supports') || e.includes('r9')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('三条') || e.includes('正好')), errors.join('; '));
+});
+
+test('validateLesson11Content rejects mixing arose and resolve without compareNotes', () => {
+  const root = path.resolve(import.meta.dirname, '..');
+  const snippet = `
+原创虚构 好像 可能 还不确定
+归纳 演绎 伪装
+How to Define a Problem how a problem arose how to resolve
+organise your thinking before you start writing
+Define complex problems and set the objective
+教学设计 第4课 第8课 第12课
+同一批事实 绿植
+社区共享工具屋三年来靠纸质登记簿借还，街坊一般熟悉手写流程。
+今年春天新来了几十户租客，登记字迹与 abbreviation 习惯更杂，人工对账可能更费事，但还不确定这与差错率是否直接相关。
+街道上月抽检发现三把梯子编号与登记不符，可能有人未还就登记已还，也可能贴错编号，还不确定哪一种更常见。
+厂商推的扫码柜报价单已收到，但与现有门禁系统的联动好像还没试过，还不确定能否本季安装。
+有志愿者愿意周末加一轮盘点，但培训新人熟记一百多件工具编号好像还要几周。
+有邻居希望保持面对面交接，也有人说扫码可能更快；社媒群里吐槽「找不到梯子」的帖子好像只有十来条，还不代表全体感受。
+<CaseCompare verbose="必须换柜下月起全线换" conclusion="下月起必须全线换" />
+title: '成因'
+title: '换柜'
+title: '人力'
+compareNotes 两版用词一样
+<MicroExercise correctId="B" explanation="A 过强 B 界定问题" options={[
+  { id: 'B', text: '本文要回答：要不要立刻换小程序？不宜全面停用现场。' },
+  { id: 'A', text: '必须上小程序因此全面停用现场取号理由一' },
+]} />
+`;
+  const errors = validateLesson11Content(snippet, root);
+  assert.ok(errors.some((e) => e.includes('本文要回答') || e.includes('界定')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('同一批事实') || e.includes('搅')), errors.join('; '));
+});
+
+test('validateLessonFile accepts lesson 11 fixture when present', () => {
+  const root = path.resolve(import.meta.dirname, '..');
+  const lesson = path.join(
+    root,
+    'docs/learning/thinking/pyramid-principle-daily/2026-11-27-lesson-11.mdx',
   );
   if (!fs.existsSync(lesson)) {
     return;
