@@ -106,6 +106,10 @@ export function validateLessonFile(filePath, root = process.cwd()) {
     errors.push(...validateLesson09Content(text, root));
   }
 
+  if (fm?.lesson === '10') {
+    errors.push(...validateLesson10Content(text, root));
+  }
+
   return {ok: errors.length === 0, errors, rel};
 }
 
@@ -1616,6 +1620,401 @@ export function validateLesson09Diagram(root, lessonText = '') {
 
   if (lessonText && !lessonText.includes('三楼会议室多年来凭前台登记领钥匙')) {
     errors.push('会议室惯例宜在正文中交代前台登记领钥匙');
+  }
+
+  return errors;
+}
+
+/**
+ * Lesson 10 semantics: induction (parallel) vs deduction (chain); do not disguise chains as parallel reasons.
+ */
+export function validateLesson10Content(text, root = process.cwd()) {
+  const errors = [];
+
+  if (!/原创虚构/.test(text)) {
+    errors.push('第10课正文应标明案例为原创虚构（非原书/非真实事件）');
+  }
+
+  if (!/推动行动|能执行|能拍板|建议考虑一下/.test(text)) {
+    errors.push('上节回顾应概括第 9 课行动建议要点');
+  }
+
+  if (!/deduction and induction|Deduction and induction/i.test(text)) {
+    errors.push('应引用 Pearson 公开介绍或目录中 deduction and induction 表述');
+  }
+
+  if (!/explains the difference between deduction and induction/i.test(text)) {
+    errors.push('应转述 Pearson 公开介绍 explains the difference between deduction and induction');
+  }
+
+  if (!/相似的低层事实收成一组|相似低层事实|相似.*事实收成一组/.test(text)) {
+    errors.push('应点明官网概念页相似低层事实分组与归纳思路的衔接');
+  }
+
+  if (!/归纳/.test(text) || !/演绎/.test(text)) {
+    errors.push('应说明归纳与演绎两种推理方式');
+  }
+
+  if (!/教学设计/.test(text)) {
+    errors.push('展开归纳/演绎操作说明时应标明为教学设计');
+  }
+
+  if (!/第\s*5.*6\s*课|第\s*5–6\s*课/.test(text)) {
+    errors.push('应衔接第 5–6 课分组与抽见解（归纳）');
+  }
+
+  if (!/第\s*11\s*课/.test(text) || !/第\s*12\s*课/.test(text)) {
+    errors.push('应前瞻第 11–12 课主题但不展开');
+  }
+
+  if (
+    /本课已(经)?讲完.*问题想清楚|今天教完.*回头检查|本课展开讲授.*界定问题/.test(text)
+  ) {
+    errors.push('不要把第 11–12 课主题写成本课已教完或展开讲授');
+  }
+
+  if (!/课程页.*并未|未单独列出.*归纳/.test(text)) {
+    errors.push('应说明课程页未单独列出归纳与演绎条目，不宜据课程页下定义');
+  }
+
+  if (text.includes('完全等量')) {
+    errors.push('compareNotes 不应使用「完全等量」类表述');
+  }
+
+  const requiredFactSnippets = [
+    '三年来晨间短讯固定在六点半，不少住校生习惯边洗漱边听。',
+    '本学期学校把早自习铃改到七点十分；六点半时宿舍走廊可能还比较安静，但还不确定新作息下六点半收听率会不会掉。',
+    '设备组说调钟软件可能能一键改时，但与课表播报模块的联动好像还没试过。',
+    '播音员反映七点半前录音棚外人声夹杂可能更少，但录音棚上午档预约表常常约满。',
+    '有老师觉得六点半利于简短校务提醒，也有同学表示希望多睡二十分钟再听。',
+    '上周试播七点半片段时，听众反馈样本好像只有十几条，还不代表全体。',
+  ];
+  for (const snippet of requiredFactSnippets) {
+    if (!text.includes(snippet)) {
+      errors.push(`CaseCompare 应保留广播站案例事实：「${snippet.slice(0, 16)}…」`);
+    }
+  }
+
+  const hedgeTokens = ['好像', '可能', '不一定'];
+  for (const token of hedgeTokens) {
+    if (!text.includes(token)) {
+      errors.push(`正文应保留「${token}」等原样措辞`);
+    }
+  }
+
+  if (!/还不确定/.test(text)) {
+    errors.push('CaseCompare/verbose 应保留「还不确定」等原样措辞');
+  }
+
+  const caseBlock = text.includes('<CaseCompare')
+    ? text.slice(text.indexOf('<CaseCompare'), text.indexOf('/>', text.indexOf('<CaseCompare')) + 2)
+    : '';
+
+  const structuredConclusion = caseBlock.match(/conclusion="([^"]+)"/)?.[1] ?? '';
+  if (
+    structuredConclusion
+    && /(必须全线|立即改档|下月起必须)/.test(structuredConclusion)
+    && !/不宜|不要|还不能|先试播|试点/.test(structuredConclusion)
+  ) {
+    errors.push('结构版结论不得把不确定性升格为必须全线改档');
+  }
+
+  const compareNotesBlob = text.includes('compareNotes')
+    ? text.slice(text.indexOf('compareNotes'), text.indexOf('/>', text.indexOf('<CaseCompare')) + 2)
+    : '';
+
+  if (!/同一批事实|相同事实/.test(text)) {
+    errors.push('compareNotes 应点明两版使用同一批事实');
+  }
+
+  if (!/推理关系|归纳.*演绎|演绎.*归纳/.test(text) && !/推理关系/.test(compareNotesBlob)) {
+    errors.push('compareNotes 或正文应点明差别在推理关系（归纳并列 vs 演绎成链）');
+  }
+
+  if (
+  !/伪装|推演步骤/.test(compareNotesBlob)
+    && !/理由一[\s\S]{0,40}理由二/.test(caseBlock.match(/verbose="([^"]*)"/)?.[1] ?? '')
+  ) {
+    errors.push('compareNotes 应点明啰嗦版把演绎步骤伪装成并列理由');
+  }
+
+  if (
+    compareNotesBlob
+    && !/演绎链|若用演绎|改写成.*演绎/.test(compareNotesBlob)
+    && !/演绎链|若用演绎|改写成.*演绎/.test(text.replace(/<MicroExercise[\s\S]*?\/>\s*/g, ''))
+  ) {
+    errors.push('compareNotes 或正文应点明同一批事实可改写成演绎链的对照');
+  }
+
+  if (!/菜单|食堂/.test(text)) {
+    errors.push('啰嗦版宜含不参与成理由的旁支（如食堂菜单提醒）');
+  }
+  if (caseBlock && /title:\s*'[^']*菜单/.test(text)) {
+    errors.push('结构版不得把食堂菜单旁支升格为一条理由');
+  }
+
+  if (/三楼会议室|工牌自助|野餐|年会抽奖|捐步|消防演练/.test(text)) {
+    errors.push('本课案例不宜重复前几课已用场景');
+  }
+
+  const reasonTitles = [...text.matchAll(/title:\s*'([^']+)'/g)].map((m) => m[1]);
+  const inductionReasons = reasonTitles.filter((t) => /归纳·|收听|制作|意见/.test(t));
+  if (inductionReasons.length !== 3) {
+    errors.push('CaseCompare 结构版应有三条归纳式并列理由（收听、制作、意见/试点等）');
+  }
+  if (reasonTitles.some((t) => /^理由\s*[一二三123]/.test(t.trim()))) {
+    errors.push('结构版不宜用「理由一、二、三」式标题（留给啰嗦版作错例）');
+  }
+
+  if (
+    reasonTitles.some((t) =>
+      /棚外人声与上午约满是同一类|同一类制作与档期问题/.test(t),
+    )
+  ) {
+    errors.push(
+      '归纳理由二标题不得把棚档期与课表联动硬说成「同一类档期问题」；应改为诚实覆盖两点的类别（如改档的制作与技术条件）',
+    );
+  }
+
+  if (
+    structuredConclusion
+    && /可先.*试播|并排试播/.test(structuredConclusion)
+    && !/核对|排上棚|可行后再/.test(structuredConclusion)
+  ) {
+    errors.push(
+      '结构版结论应先核对限定试播能否排上棚、联动是否可行，不宜把试播期限写成可立即开工的承诺',
+    );
+  }
+  if (
+    structuredConclusion
+    && /两周/.test(structuredConclusion)
+    && !/原创教学|提议期限|实际开始后|自试播/.test(structuredConclusion)
+  ) {
+    errors.push('顶端「两周」等试播期限应标明为原创教学建议（且宜说明自试播实际开始后计）');
+  }
+
+  const factsUncertaintyPool = [
+    ...requiredFactSnippets,
+    ...(caseBlock.match(/facts:\s*\[[\s\S]*?\]/g) ?? []).join('\n'),
+  ].join('\n');
+  if (
+    compareNotesBlob.includes('不一定')
+    && !factsUncertaintyPool.includes('不一定')
+    && !caseBlock.includes('不一定')
+  ) {
+    errors.push(
+      'compareNotes 不确定性列举不得含事实未出现的「不一定」措辞',
+    );
+  }
+
+  if (compareNotesBlob && /改写成.*演绎|演绎链.*可以是|若改写成.*演绎/.test(compareNotesBlob)) {
+    const deductionFactsCited =
+      /联动.*还没试|联动未试|联动好像/.test(compareNotesBlob)
+      && /样本|十几条|不代表全体/.test(compareNotesBlob)
+      && /约满|预约/.test(compareNotesBlob)
+      && /收听率.*不确定|收听.*不确定/.test(compareNotesBlob)
+      && /核对.*试播|不宜.*全线/.test(compareNotesBlob);
+    if (!deductionFactsCited) {
+      errors.push(
+        'compareNotes 演绎对照应串入收听率不确定、联动未试、样本不足、棚约满等已有事实，再引出核对试播或不宜全线改档',
+      );
+    }
+    if (/收听场景肯定|肯定不对/.test(compareNotesBlob)) {
+      errors.push('compareNotes 演绎示范勿把收听场景不确定升格为「肯定受影响」');
+    }
+  }
+
+  errors.push(...validateLesson10Diagram(root, text));
+
+  if (!/correctId="B"/.test(text)) {
+    errors.push('MicroExercise 正确答案应为 B');
+  }
+
+  const microBlock = text.includes('<MicroExercise')
+    ? text.slice(text.indexOf('<MicroExercise'), text.indexOf('/>', text.indexOf('<MicroExercise')) + 2)
+    : '';
+
+  const bannedMicroScenes =
+    /野餐|群聊换|出租房检修|年会抽奖|捐步|消防演练|三楼会议室|工牌自助|晨间短讯|六点半/;
+  if (microBlock && bannedMicroScenes.test(microBlock)) {
+    errors.push('MicroExercise 题干不应重复本课或前几课案例场景');
+  }
+
+  if (microBlock) {
+    const optionB = microBlock.match(/id:\s*'B'[\s\S]*?text:\s*'([^']+)'/)?.[1] ?? '';
+    if (optionB && !/归纳|演绎|并列/.test(optionB)) {
+      errors.push('MicroExercise B 应辨认归纳并列或点出演绎对照');
+    }
+    const optionA = microBlock.match(/id:\s*'A'[\s\S]*?text:\s*'([^']+)'/)?.[1] ?? '';
+    if (optionA && !/理由一|理由二|因此/.test(optionA)) {
+      errors.push('MicroExercise A 宜体现假并列的演绎链');
+    }
+    const explanation = microBlock.match(/explanation="([^"]+)"/)?.[1] ?? '';
+    if (explanation && !/归纳|演绎|并列/.test(explanation)) {
+      errors.push('MicroExercise 解析应点明归纳与演绎差别');
+    }
+    if (optionB && /更吃紧|雨天坡道更/.test(optionB)) {
+      errors.push(
+        'MicroExercise B 演绎示范不得把冬季打滑记录直接升格为「雨天坡道更吃紧」',
+      );
+    }
+    if (
+      optionB
+      && /去年有打滑|冬天.*打滑/.test(optionB)
+      && /雨天坡道|雨季同样/.test(optionB)
+      && !/并不自动等于|不等于已证明|不能由去年/.test(optionB)
+    ) {
+      errors.push(
+        'MicroExercise B 应写明冬天打滑记录并不自动等于已证明雨季同样打滑',
+      );
+    }
+    if (
+      explanation.includes('没有新增题干外事实')
+      && (optionB.includes('更吃紧') || /雨天坡道/.test(optionB))
+    ) {
+      errors.push('MicroExercise 解析不宜在 B 仍含升格措辞时声称「没有新增题干外事实」');
+    }
+    if (explanation && !/A.*过强|结论.*过强|写得过强/.test(explanation)) {
+      errors.push('MicroExercise 解析应点明 A 把演绎链假装成并列且结论过强');
+    }
+  }
+
+  const prose = text.replace(/^import[^\n]+\n/gm, '');
+  if (/CaseCompare\s*组件|PyramidDiagram\s*组件|\bJSON\b|pull request/i.test(prose)) {
+    errors.push('正文不宜出现组件、JSON、PR 等开发术语');
+  }
+
+  if (/p\.\s*\d+|第\s*\d+\s*页|页码\s*\d+/.test(text)) {
+    errors.push('第10课不应编造具体引语页码');
+  }
+
+  if (!/第\s*[5-9]\s*课|不适用|不代替/.test(text)) {
+    errors.push('适用边界应提及本课不代替前几课已学步骤');
+  }
+
+  if (/第\s*64\s*页|第\s*66\s*页|第\s*67\s*页|第\s*68\s*页/.test(text)) {
+    errors.push('勿把带页码的二手笔记当作已核实书中引语');
+  }
+
+  return errors;
+}
+
+/**
+ * Lesson 10 diagram: middle = parallel induction reasons; facts align; caption notes deduction contrast.
+ */
+export function validateLesson10Diagram(root, lessonText = '') {
+  const errors = [];
+  const diagramPath = path.join(root, 'src/data/pyramid-lesson-10-diagram.json');
+  if (!fs.existsSync(diagramPath)) {
+    errors.push('缺少 pyramid-lesson-10-diagram.json');
+    return errors;
+  }
+  let diagram;
+  try {
+    diagram = JSON.parse(fs.readFileSync(diagramPath, 'utf8'));
+  } catch {
+    errors.push('pyramid-lesson-10-diagram.json 不是合法 JSON');
+    return errors;
+  }
+
+  if (!/归纳|演绎/.test(diagram.caption ?? '')) {
+    errors.push('图注应点明辨认归纳与演绎');
+  }
+  if (!/虚构/.test(diagram.caption ?? '')) {
+    errors.push('图注应标明虚构教学案例');
+  }
+
+  const top = diagram.levels?.find((l) => l.layer === 'top');
+  if (!top) {
+    errors.push('图缺少顶层');
+    return errors;
+  }
+  const topText = top.items?.[0]?.text ?? '';
+  if (!/不宜|试播|试点/.test(topText) || !/七点半|开播/.test(topText)) {
+    errors.push('图顶层应是谨慎判断（含不宜立刻全线改档与试播），不宜只有强硬断言');
+  }
+  if (
+    /(必须全线|立即改档)/.test(topText)
+    && !/不宜|不要|还不能/.test(topText)
+  ) {
+    errors.push('图顶层不宜在无兜底表述下过强要求全线改档');
+  }
+  if (
+    /可先.*试播|并排试播/.test(topText)
+    && !/核对|排上棚|可行后再/.test(topText)
+  ) {
+    errors.push('图顶层应先写核对试播能否排棚、联动是否可行，再写试播期限');
+  }
+  if (/两周/.test(topText) && !/原创教学|提议期限|实际开始后|自试播/.test(topText)) {
+    errors.push('图顶层「两周」应标明为原创教学建议期限');
+  }
+
+  const middle = diagram.levels?.find((l) => l.layer === 'middle');
+  if (!middle) {
+    errors.push('图缺少中间层');
+    return errors;
+  }
+  if (!/归纳/.test(middle.label ?? '')) {
+    errors.push('图的中层标签应点出归纳式并列理由');
+  }
+
+  const reasonItems = middle.items ?? [];
+  const reasonIds = new Set(reasonItems.map((i) => i.id));
+  if (reasonItems.length !== 3) {
+    errors.push('图的中层应正好三条例经整理的并列归纳理由');
+  }
+  if (reasonItems.some((i) => /^理由\s*[一二三123]/.test(i.text ?? ''))) {
+    errors.push('图的中层不宜用「理由一、二、三」式条目');
+  }
+  if (reasonItems.some((i) => insightTextOverStrong(i.text ?? ''))) {
+    errors.push('图中理由概括不得过强（如必须改档）');
+  }
+
+  const facts = diagram.levels?.find((l) => l.id === 'facts')?.items ?? [];
+  if (facts.length < 6) {
+    errors.push('图底层应含广播站案例六条事实');
+  }
+  for (const f of facts) {
+    if (!f.supports || !reasonIds.has(f.supports)) {
+      errors.push(`事实「${f.text?.slice(0, 12)}…」的 supports 必须指向有效理由 id`);
+    }
+  }
+
+  for (const snippet of [
+    '三年来晨间短讯固定在六点半，不少住校生习惯边洗漱边听。',
+    '本学期学校把早自习铃改到七点十分；六点半时宿舍走廊可能还比较安静，但还不确定新作息下六点半收听率会不会掉。',
+    '设备组说调钟软件可能能一键改时，但与课表播报模块的联动好像还没试过。',
+    '播音员反映七点半前录音棚外人声夹杂可能更少，但录音棚上午档预约表常常约满。',
+    '有老师觉得六点半利于简短校务提醒，也有同学表示希望多睡二十分钟再听。',
+    '上周试播七点半片段时，听众反馈样本好像只有十几条，还不代表全体。',
+  ]) {
+    if (!facts.some((f) => f.text === snippet)) {
+      errors.push(`图底层事实应与课文一致：「${snippet.slice(0, 14)}…」`);
+    }
+  }
+
+  const r1Facts = facts.filter((f) => f.supports === 'r1');
+  if (!r1Facts.some((f) => /六点半|洗漱/.test(f.text)) || !r1Facts.some((f) => /早自习|收听率/.test(f.text))) {
+    errors.push('收听作息组应含惯例与新作息类事实');
+  }
+  const r2Facts = facts.filter((f) => f.supports === 'r2');
+  if (!r2Facts.some((f) => /人声|预约/.test(f.text)) || !r2Facts.some((f) => /联动|调钟/.test(f.text))) {
+    errors.push('制作档期组应含棚内条件与联动类事实');
+  }
+  const r2Item = reasonItems.find((i) => i.id === 'r2');
+  if (
+    r2Item
+    && /棚外人声与上午预约满是一类|同一类制作与档期/.test(r2Item.text ?? '')
+  ) {
+    errors.push('图 r2 不宜把棚约满与课表联动硬说成同一类档期问题');
+  }
+  const r3Facts = facts.filter((f) => f.supports === 'r3');
+  if (!r3Facts.some((f) => /校务|多睡/.test(f.text)) || !r3Facts.some((f) => /十几条|试播/.test(f.text))) {
+    errors.push('意见试点组应含偏好与样本类事实');
+  }
+
+  if (lessonText && !lessonText.includes('三年来晨间短讯固定在六点半')) {
+    errors.push('广播惯例宜在正文中交代六点半开播习惯');
   }
 
   return errors;
