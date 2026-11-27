@@ -2168,12 +2168,57 @@ export function validateLesson11Content(text, root = process.cwd()) {
     errors.push('结构版不宜用「理由一、二、三」式标题（留给啰嗦版作错例）');
   }
 
+  if (structuredConclusion && /双人复盘/.test(structuredConclusion)) {
+    errors.push('结构版结论不得编造事实中未出现的人手或流程（如「双人复盘」）');
+  }
+
   if (
     structuredConclusion
     && /两周/.test(structuredConclusion)
-    && !/原创教学|提议期限|实际启动|自.*起计/.test(structuredConclusion)
+    && !/原创教学/.test(structuredConclusion)
   ) {
-    errors.push('顶端「两周」复盘期限应标明为原创教学建议');
+    errors.push('顶端「两周」观察窗口应标明为原创教学建议');
+  }
+
+  if (
+    structuredConclusion
+    && /两周/.test(structuredConclusion)
+    && !/限量盘点|志愿者能做的范围|现有志愿者/.test(structuredConclusion)
+  ) {
+    errors.push('总建议应先写限量盘点且落在现有志愿者能力内，勿暗示新人培训几周后才会开工');
+  }
+
+  if (
+    structuredConclusion
+    && /盘点/.test(structuredConclusion)
+    && !/不取决于新人培训|培训.*还要几周/.test(structuredConclusion + text)
+  ) {
+    errors.push('盘点安排应点明不取决于新人培训已结束（事实仍写培训还要几周）');
+  }
+
+  if (
+    structuredConclusion
+    && /两周/.test(structuredConclusion)
+    && /两周内(完成|结束).{0,8}培训|培训.{0,12}两周内/.test(structuredConclusion)
+  ) {
+    errors.push('「两周」不得与新人培训几周相冲突，勿让读者以为两周内培训已完成');
+  }
+
+  const causeReasonTitle = reasonTitles.find((t) => /成因|问题类型/.test(t)) ?? '';
+  if (causeReasonTitle && /并存/.test(causeReasonTitle) && !/可能并存|尚未分清|可能.*并存/.test(causeReasonTitle)) {
+    errors.push('成因理由标题勿把「可能」升格为「并存」；宜用「可能并存」或「尚未分清」');
+  }
+
+  if (verbose && !verbose.includes(requiredFactSnippets[0])) {
+    errors.push('啰嗦版与结构版宜使用同一字面事实句（含三年来纸质登记簿借还那句）');
+  }
+
+  if (
+    compareNotesBlob
+    && /搅成.*流水账|答非所问/.test(compareNotesBlob)
+    && !/分层|支撑层|可分层|混成一段/.test(compareNotesBlob)
+  ) {
+    errors.push('compareNotes 宜说明「如何出现」与「如何解决」可分层写，勿声称混讲必然答非所问');
   }
 
   errors.push(...validateLesson11Diagram(root, text));
@@ -2270,8 +2315,19 @@ export function validateLesson11Diagram(root, lessonText = '') {
   ) {
     errors.push('图顶层不宜在无兜底表述下过强要求全线换柜');
   }
-  if (/两周/.test(topText) && !/原创教学|提议期限|实际启动|自.*起计/.test(topText)) {
-    errors.push('图顶层「两周」应标明为原创教学建议期限');
+  if (/双人复盘/.test(topText)) {
+    errors.push('图顶层不得编造事实中未出现的人手或流程（如「双人复盘」）');
+  }
+
+  if (/两周/.test(topText) && !/原创教学/.test(topText)) {
+    errors.push('图顶层「两周」应标明为原创教学建议观察窗口');
+  }
+
+  if (
+    /两周/.test(topText)
+    && !/限量盘点|志愿者能做的范围|现有志愿者/.test(topText)
+  ) {
+    errors.push('图顶层总建议应先写限量盘点且落在现有志愿者能力内');
   }
 
   const middle = diagram.levels?.find((l) => l.layer === 'middle');
@@ -2285,6 +2341,14 @@ export function validateLesson11Diagram(root, lessonText = '') {
 
   const reasonItems = middle.items ?? [];
   const reasonIds = new Set(reasonItems.map((i) => i.id));
+  const r1Item = reasonItems.find((i) => i.id === 'r1');
+  const r1Text = r1Item?.text ?? '';
+  if (r1Text && /并存/.test(r1Text) && !/可能并存|尚未分清|可能.*并存/.test(r1Text)) {
+    errors.push('图 r1 勿把「可能」升格为确定「并存」');
+  }
+  if (r1Text && /答非所问/.test(r1Text) && !/分层|支撑层|混成一段|才易/.test(r1Text)) {
+    errors.push('图 r1 宜说明可分层写，勿写成混讲两者必然答非所问');
+  }
   if (reasonItems.length !== 3) {
     errors.push('图的中层应正好三条并列理由');
   }

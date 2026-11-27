@@ -1204,6 +1204,176 @@ compareNotes 两版用词一样
   assert.ok(errors.some((e) => e.includes('同一批事实') || e.includes('搅')), errors.join('; '));
 });
 
+test('validateLesson11Content rejects invented 双人复盘 and training-week conflict in conclusion', () => {
+  const root = path.resolve(import.meta.dirname, '..');
+  const snippet = `
+原创虚构 好像 可能 还不确定
+归纳 演绎 伪装 并列理由
+How to Define a Problem how a problem arose how to resolve
+organise your thinking before you start writing
+Define complex problems
+教学设计 第4课 第8课 第12课
+社区共享工具屋三年来靠纸质登记簿借还，街坊一般熟悉手写流程。
+今年春天新来了几十户租客，登记字迹与缩写习惯更杂，人工对账可能更费事，但还不确定这与差错率是否直接相关。
+街道上月抽检发现三把梯子编号与登记不符，可能有人未还就登记已还，也可能贴错编号，还不确定哪一种更常见。
+厂商推的扫码柜报价单已收到，但与现有门禁系统的联动好像还没试过，还不确定能否本季安装。
+有志愿者愿意周末加一轮盘点，但培训新人熟记一百多件工具编号好像还要几周。
+有邻居希望保持面对面交接，也有人说扫码可能更快；社媒群里吐槽「找不到梯子」的帖子好像只有十来条，还不代表全体感受。
+<CaseCompare verbose="社区共享工具屋三年来靠纸质登记簿借还，街坊一般熟悉手写流程。必须换柜。" conclusion="本文要回答要不要换柜？应先两周内（原创教学建议期限，自双人复盘实际启动起计）复盘登记薄弱点并排盘点，再换柜。" />
+title: '成因与问题类型：租客习惯、未还与贴错编号并存。'
+title: '换柜条件：联动未试。'
+title: '人力与感受样本：培训几周。'
+compareNotes 同一批事实 结构版 搅成流水账
+<MicroExercise correctId="B" explanation="B 界定问题 A 过强" options={[
+  { id: 'B', text: '本文要回答要不要换柜？不宜立刻换。' },
+  { id: 'A', text: '必须换柜理由一因此全线换' },
+]} />
+`;
+  const errors = validateLesson11Content(snippet, root);
+  assert.ok(errors.some((e) => e.includes('双人复盘')), errors.join('; '));
+  assert.ok(
+    errors.some(
+      (e) => e.includes('限量盘点') || e.includes('志愿者') || e.includes('新人培训'),
+    ),
+    errors.join('; '),
+  );
+});
+
+test('validateLesson11Content rejects 并存 without 可能 in cause reason title', () => {
+  const root = path.resolve(import.meta.dirname, '..');
+  const snippet = `
+原创虚构 好像 可能 还不确定
+归纳 演绎 伪装
+How to Define a Problem how a problem arose how to resolve
+organise your thinking before you start writing
+Define complex problems
+教学设计 第4课 第8课 第12课
+社区共享工具屋三年来靠纸质登记簿借还，街坊一般熟悉手写流程。
+今年春天新来了几十户租客，登记字迹与缩写习惯更杂，人工对账可能更费事，但还不确定这与差错率是否直接相关。
+街道上月抽检发现三把梯子编号与登记不符，可能有人未还就登记已还，也可能贴错编号，还不确定哪一种更常见。
+厂商推的扫码柜报价单已收到，但与现有门禁系统的联动好像还没试过，还不确定能否本季安装。
+有志愿者愿意周末加一轮盘点，但培训新人熟记一百多件工具编号好像还要几周。
+有邻居希望保持面对面交接，也有人说扫码可能更快；社媒群里吐槽「找不到梯子」的帖子好像只有十来条，还不代表全体感受。
+<CaseCompare verbose="社区共享工具屋三年来靠纸质登记簿借还，街坊一般熟悉手写流程。必须换。" conclusion="本文要回答：现在要不要立刻全线换柜？不宜现在就宣布全线换柜；先在现有志愿者能做的范围内安排限量盘点并复盘登记薄弱点（不取决于新人培训已结束）；两周为限量盘点实际开始后的原创教学建议观察窗口。" />
+title: '成因与问题类型：租客习惯、未还与贴错编号并存，先界定本文答现在要不要换柜。'
+title: '换柜条件：报价已到。'
+title: '人力与感受样本：盘点培训。'
+compareNotes 同一批事实 分层 支撑层 混成一段才易答非所问
+<MicroExercise correctId="B" explanation="B 界定问题 A 过强" options={[
+  { id: 'B', text: '本文要回答界定问题' },
+  { id: 'A', text: '必须换理由一' },
+]} />
+`;
+  const errors = validateLesson11Content(snippet, root);
+  assert.ok(errors.some((e) => e.includes('并存') || e.includes('可能')), errors.join('; '));
+});
+
+test('validateLesson11Diagram rejects r1 mixing-always 答非所问 and 双人复盘 on top', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pyr-11-bad-'));
+  const diagramPath = path.join(root, 'src/data');
+  fs.mkdirSync(diagramPath, {recursive: true});
+  fs.writeFileSync(
+    path.join(diagramPath, 'pyramid-lesson-11-diagram.json'),
+    JSON.stringify({
+      caption: '界定本文要回答的问题；虚构教学案例',
+      levels: [
+        {
+          id: 'step',
+          layer: 'top',
+          items: [
+            {
+              id: 's1',
+              text: '本文要回答要不要换柜；应先两周内自双人复盘起计复盘并排盘点。',
+            },
+          ],
+        },
+        {
+          id: 'reasons',
+          layer: 'middle',
+          label: '界定问题后的并列理由',
+          items: [
+            {
+              id: 'r1',
+              text: '成因：租客习惯、未还与贴错编号并存，混讲怎么乱了与换不换柜会答非所问。',
+            },
+            {id: 'r2', text: '换柜条件：联动未试。'},
+            {id: 'r3', text: '人力：培训还要几周。'},
+          ],
+        },
+        {
+          id: 'facts',
+          layer: 'bottom',
+          items: [
+            {
+              id: 'f1',
+              supports: 'r1',
+              text: '社区共享工具屋三年来靠纸质登记簿借还，街坊一般熟悉手写流程。',
+            },
+            {
+              id: 'f2',
+              supports: 'r1',
+              text: '今年春天新来了几十户租客，登记字迹与缩写习惯更杂，人工对账可能更费事，但还不确定这与差错率是否直接相关。',
+            },
+            {
+              id: 'f3',
+              supports: 'r1',
+              text: '街道上月抽检发现三把梯子编号与登记不符，可能有人未还就登记已还，也可能贴错编号，还不确定哪一种更常见。',
+            },
+            {
+              id: 'f4',
+              supports: 'r2',
+              text: '厂商推的扫码柜报价单已收到，但与现有门禁系统的联动好像还没试过，还不确定能否本季安装。',
+            },
+            {
+              id: 'f5',
+              supports: 'r3',
+              text: '有志愿者愿意周末加一轮盘点，但培训新人熟记一百多件工具编号好像还要几周。',
+            },
+            {
+              id: 'f6',
+              supports: 'r3',
+              text: '有邻居希望保持面对面交接，也有人说扫码可能更快；社媒群里吐槽「找不到梯子」的帖子好像只有十来条，还不代表全体感受。',
+            },
+          ],
+        },
+      ],
+    }),
+  );
+  const errors = validateLesson11Diagram(root);
+  assert.ok(errors.some((e) => e.includes('双人复盘')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('并存') || e.includes('可能')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('分层') || e.includes('答非所问')), errors.join('; '));
+});
+
+test('validateLesson11Content rejects verbose fact drift from structure opening fact', () => {
+  const root = path.resolve(import.meta.dirname, '..');
+  const snippet = `
+原创虚构 好像 可能 还不确定
+归纳 演绎 伪装
+How to Define a Problem how a problem arose how to resolve
+organise your thinking before you start writing
+Define complex problems
+教学设计 第4课 第8课 第12课
+社区共享工具屋三年来靠纸质登记簿借还，街坊一般熟悉手写流程。
+今年春天新来了几十户租客，登记字迹与缩写习惯更杂，人工对账可能更费事，但还不确定这与差错率是否直接相关。
+街道上月抽检发现三把梯子编号与登记不符，可能有人未还就登记已还，也可能贴错编号，还不确定哪一种更常见。
+厂商推的扫码柜报价单已收到，但与现有门禁系统的联动好像还没试过，还不确定能否本季安装。
+有志愿者愿意周末加一轮盘点，但培训新人熟记一百多件工具编号好像还要几周。
+有邻居希望保持面对面交接，也有人说扫码可能更快；社媒群里吐槽「找不到梯子」的帖子好像只有十来条，还不代表全体感受。
+<CaseCompare verbose="三年来纸质登记簿还行。必须换柜下月起全线换" conclusion="本文要回答：现在要不要立刻全线换柜？不宜现在就宣布全线换柜；先在现有志愿者能做的范围内安排限量盘点并复盘登记薄弱点（不取决于新人培训已结束）；两周为限量盘点实际开始后的原创教学建议观察窗口，不是已确认可立即开工的承诺。" />
+title: '成因与问题类型：租客习惯、未还与贴错编号可能并存或尚未分清。'
+title: '换柜条件：联动未试。'
+title: '人力与感受样本：培训几周。'
+compareNotes 同一批事实 分层写 混成一段才易答非所问
+<MicroExercise correctId="B" explanation="B 界定问题 A 过强" options={[
+  { id: 'B', text: '本文要回答界定' },
+  { id: 'A', text: '必须换' },
+]} />
+`;
+  const errors = validateLesson11Content(snippet, root);
+  assert.ok(errors.some((e) => e.includes('字面事实') || e.includes('纸质登记')), errors.join('; '));
+});
+
 test('validateLessonFile accepts lesson 11 fixture when present', () => {
   const root = path.resolve(import.meta.dirname, '..');
   const lesson = path.join(
