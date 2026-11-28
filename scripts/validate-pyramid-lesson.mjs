@@ -110,6 +110,14 @@ export function validateLessonFile(filePath, root = process.cwd()) {
     errors.push(...validateLesson10Content(text, root));
   }
 
+  if (fm?.lesson === '11') {
+    errors.push(...validateLesson11Content(text, root));
+  }
+
+  if (fm?.lesson === '12') {
+    errors.push(...validateLesson12Content(text, root));
+  }
+
   return {ok: errors.length === 0, errors, rel};
 }
 
@@ -2015,6 +2023,697 @@ export function validateLesson10Diagram(root, lessonText = '') {
 
   if (lessonText && !lessonText.includes('三年来晨间短讯固定在六点半')) {
     errors.push('广播惯例宜在正文中交代六点半开播习惯');
+  }
+
+  return errors;
+}
+
+/**
+ * Lesson 11 semantics: define the problem / document objective before writing; complex arose vs resolve.
+ */
+export function validateLesson11Content(text, root = process.cwd()) {
+  const errors = [];
+
+  if (!/原创虚构/.test(text)) {
+    errors.push('第11课正文应标明案例为原创虚构（非原书/非真实事件）');
+  }
+
+  if (!/归纳/.test(text) || !/演绎/.test(text) || !/伪装|并列理由/.test(text)) {
+    errors.push('上节回顾应概括第 10 课归纳与演绎辨认要点');
+  }
+
+  if (!/How to Define a Problem/i.test(text)) {
+    errors.push('应引用课程页 How to Define a Problem');
+  }
+
+  if (
+    !/how a problem arose|问题如何出现|怎样出现/.test(text)
+    || !/how to resolve|如何解决|怎样解决/.test(text)
+  ) {
+    errors.push('应转述课程页复杂情境下「问题如何出现」与「如何解决」并存的表述');
+  }
+
+  if (!/organise your thinking before you start writing/i.test(text)) {
+    errors.push('应转述 Pearson 公开介绍 organise your thinking before you start writing');
+  }
+
+  if (!/Define complex problems/i.test(text)) {
+    errors.push('应转述 Pearson Define complex problems and set the objective');
+  }
+
+  if (!/教学设计/.test(text)) {
+    errors.push('展开界定问题操作说明时应标明为教学设计');
+  }
+
+  if (!/第\s*4\s*课/.test(text) || !/第\s*8\s*课/.test(text)) {
+    errors.push('应说明与第 4 课读者问题、第 8 课 SCQ 的区分，本课不重复那两步');
+  }
+
+  if (/本课已讲完.*SCQ 步骤|今天教完.*带到问题前|逐步展开.*Situation/i.test(text)) {
+    errors.push('不要把第 8 课 SCQ 步骤写成本课展开讲授');
+  }
+
+  if (/本课已(经)?讲完.*读者心里的问题|今天再教.*How to Build a Pyramid/.test(text)) {
+    errors.push('不要把第 4 课「弄清读者问题」写成本课重讲');
+  }
+
+  if (!/第\s*12\s*课/.test(text)) {
+    errors.push('应前瞻第 12 课回头检查但不展开');
+  }
+
+  if (/本课已讲完.*回头检查|今天教完.*Questioning the problem-solving/i.test(text)) {
+    errors.push('不要把第 12 课回头检查写成本课已教完');
+  }
+
+  if (!/本文要回答|界定.*问题|把问题想清楚/.test(text)) {
+    errors.push('应强调动笔前界定「本文要回答的问题」');
+  }
+
+  if (!/方案|换.*柜|上新/.test(text) && !/误当成.*问题|不是解决方案/.test(text)) {
+    errors.push('应点明「问题」不是现成方案（如换系统、换柜）');
+  }
+
+  if (text.includes('完全等量')) {
+    errors.push('compareNotes 不应使用「完全等量」类表述');
+  }
+
+  const requiredFactSnippets = [
+    '社区共享工具屋三年来靠纸质登记簿借还，街坊一般熟悉手写流程。',
+    '今年春天新来了几十户租客，登记字迹与缩写习惯更杂，人工对账可能更费事，但还不确定这与差错率是否直接相关。',
+    '街道上月抽检发现三把梯子编号与登记不符，可能有人未还就登记已还，也可能贴错编号，还不确定哪一种更常见。',
+    '厂商推的扫码柜报价单已收到，但与现有门禁系统的联动好像还没试过，还不确定能否本季安装。',
+    '有志愿者愿意周末加一轮盘点，但培训新人熟记一百多件工具编号好像还要几周。',
+    '有邻居希望保持面对面交接，也有人说扫码可能更快；社媒群里吐槽「找不到梯子」的帖子好像只有十来条，还不代表全体感受。',
+  ];
+  for (const snippet of requiredFactSnippets) {
+    if (!text.includes(snippet)) {
+      errors.push(`CaseCompare 应保留工具屋案例事实：「${snippet.slice(0, 16)}…」`);
+    }
+  }
+
+  const hedgeTokens = ['好像', '可能', '还不确定'];
+  for (const token of hedgeTokens) {
+    if (!text.includes(token)) {
+      errors.push(`正文应保留「${token}」等原样措辞`);
+    }
+  }
+
+  const caseBlock = text.includes('<CaseCompare')
+    ? text.slice(text.indexOf('<CaseCompare'), text.indexOf('/>', text.indexOf('<CaseCompare')) + 2)
+    : '';
+
+  const structuredConclusion = caseBlock.match(/conclusion="([^"]+)"/)?.[1] ?? '';
+  if (
+    structuredConclusion
+    && /(全线换|下月起必须|立即换柜)/.test(structuredConclusion)
+    && !/不宜|不要|还不能|先.*盘点|复盘/.test(structuredConclusion)
+  ) {
+    errors.push('结构版结论不得把不确定性升格为必须全线换柜');
+  }
+
+  if (!structuredConclusion.includes('本文要回答')) {
+    errors.push('结构版结论应先写清本文要回答的问题');
+  }
+
+  const compareNotesBlob = text.includes('compareNotes')
+    ? text.slice(text.indexOf('compareNotes'), text.indexOf('/>', text.indexOf('<CaseCompare')) + 2)
+    : '';
+
+  if (!/同一批事实|相同事实/.test(text)) {
+    errors.push('compareNotes 应点明两版使用同一批事实');
+  }
+
+  if (!/界定|本文要回答|问题类型|搅/.test(compareNotesBlob)) {
+    errors.push('compareNotes 应点明啰嗦版未界定问题或搅合成因与方案');
+  }
+
+  const verbose = caseBlock.match(/verbose="([^"]*)"/)?.[1] ?? '';
+  if (verbose && !/必须换|全线换/.test(verbose)) {
+    errors.push('啰嗦版宜把方案误当成问题或过早宣布换柜');
+  }
+
+  if (!/绿植/.test(text)) {
+    errors.push('啰嗦版宜含不参与成理由的旁支（如绿植提醒）');
+  }
+  if (caseBlock && /title:\s*'[^']*绿植/.test(text)) {
+    errors.push('结构版不得把绿植旁支升格为一条理由');
+  }
+
+  if (/三楼会议室|工牌自助|野餐|年会抽奖|捐步|晨间短讯|六点半|校园广播/.test(text)) {
+    errors.push('本课案例不宜重复前几课已用场景');
+  }
+
+  const reasonTitles = [...text.matchAll(/title:\s*'([^']+)'/g)].map((m) => m[1]);
+  const defineReasons = reasonTitles.filter((t) => /成因|换柜|人力|样本|问题类型/.test(t));
+  if (defineReasons.length !== 3) {
+    errors.push('CaseCompare 结构版应有三条并列理由（成因、换柜条件、人力/样本等）');
+  }
+  if (reasonTitles.some((t) => /^理由\s*[一二三123]/.test(t.trim()))) {
+    errors.push('结构版不宜用「理由一、二、三」式标题（留给啰嗦版作错例）');
+  }
+
+  if (structuredConclusion && /双人复盘/.test(structuredConclusion)) {
+    errors.push('结构版结论不得编造事实中未出现的人手或流程（如「双人复盘」）');
+  }
+
+  if (
+    structuredConclusion
+    && /两周/.test(structuredConclusion)
+    && !/原创教学/.test(structuredConclusion)
+  ) {
+    errors.push('顶端「两周」观察窗口应标明为原创教学建议');
+  }
+
+  if (
+    structuredConclusion
+    && /两周/.test(structuredConclusion)
+    && !/限量盘点|志愿者能做的范围|现有志愿者/.test(structuredConclusion)
+  ) {
+    errors.push('总建议应先写限量盘点且落在现有志愿者能力内，勿暗示新人培训几周后才会开工');
+  }
+
+  if (
+    structuredConclusion
+    && /盘点/.test(structuredConclusion)
+    && !/不取决于新人培训|培训.*还要几周/.test(structuredConclusion + text)
+  ) {
+    errors.push('盘点安排应点明不取决于新人培训已结束（事实仍写培训还要几周）');
+  }
+
+  if (
+    structuredConclusion
+    && /两周/.test(structuredConclusion)
+    && /两周内(完成|结束).{0,8}培训|培训.{0,12}两周内/.test(structuredConclusion)
+  ) {
+    errors.push('「两周」不得与新人培训几周相冲突，勿让读者以为两周内培训已完成');
+  }
+
+  const causeReasonTitle = reasonTitles.find((t) => /成因|问题类型/.test(t)) ?? '';
+  if (causeReasonTitle && /并存/.test(causeReasonTitle) && !/可能并存|尚未分清|可能.*并存/.test(causeReasonTitle)) {
+    errors.push('成因理由标题勿把「可能」升格为「并存」；宜用「可能并存」或「尚未分清」');
+  }
+
+  if (verbose && !verbose.includes(requiredFactSnippets[0])) {
+    errors.push('啰嗦版与结构版宜使用同一字面事实句（含三年来纸质登记簿借还那句）');
+  }
+
+  if (
+    compareNotesBlob
+    && /搅成.*流水账|答非所问/.test(compareNotesBlob)
+    && !/分层|支撑层|可分层|混成一段/.test(compareNotesBlob)
+  ) {
+    errors.push('compareNotes 宜说明「如何出现」与「如何解决」可分层写，勿声称混讲必然答非所问');
+  }
+
+  errors.push(...validateLesson11Diagram(root, text));
+
+  if (!/correctId="B"/.test(text)) {
+    errors.push('MicroExercise 正确答案应为 B');
+  }
+
+  const microBlock = text.includes('<MicroExercise')
+    ? text.slice(text.indexOf('<MicroExercise'), text.indexOf('/>', text.indexOf('<MicroExercise')) + 2)
+    : '';
+
+  const bannedMicroScenes =
+    /野餐|群聊换|出租房检修|年会抽奖|捐步|消防演练|三楼会议室|工牌自助|晨间短讯|六点半|工具屋|扫码柜/;
+  if (microBlock && bannedMicroScenes.test(microBlock)) {
+    errors.push('MicroExercise 题干不应重复本课或前几课案例场景');
+  }
+
+  if (microBlock) {
+    const optionB = microBlock.match(/id:\s*'B'[\s\S]*?text:\s*'([^']+)'/)?.[1] ?? '';
+    if (optionB && !/本文要回答|界定/.test(optionB)) {
+      errors.push('MicroExercise B 应先界定本文要回答的问题');
+    }
+    const optionA = microBlock.match(/id:\s*'A'[\s\S]*?text:\s*'([^']+)'/)?.[1] ?? '';
+    if (optionA && !/必须|因此|理由一/.test(optionA)) {
+      errors.push('MicroExercise A 宜体现把方案误当成问题或过早行动');
+    }
+    const explanation = microBlock.match(/explanation="([^"]+)"/)?.[1] ?? '';
+    if (explanation && !/界定|误当成|问题/.test(explanation)) {
+      errors.push('MicroExercise 解析应点明是否先界定问题');
+    }
+    if (explanation && !/过强|A/.test(explanation)) {
+      errors.push('MicroExercise 解析应点明 A 把方案写成问题且结论过强');
+    }
+  }
+
+  const prose = text.replace(/^import[^\n]+\n/gm, '');
+  if (/CaseCompare\s*组件|PyramidDiagram\s*组件|\bJSON\b|pull request/i.test(prose)) {
+    errors.push('正文不宜出现组件、JSON、PR 等开发术语');
+  }
+
+  if (/p\.\s*\d+|第\s*\d+\s*页|页码\s*\d+/.test(text)) {
+    errors.push('第11课不应编造具体引语页码');
+  }
+
+  if (!/第\s*[5-9]\s*课|第\s*10\s*课|不适用|不代替|不抢讲|不重复/.test(text)) {
+    errors.push('适用边界应提及本课不代替前几课已学步骤');
+  }
+
+  if (/R1\/R2|Starting Point|Disturbing Event/.test(text) && !/未在官网|不当作|二手/.test(text)) {
+    errors.push('未经官方核实的 R1/R2 等框架宜仅在适用边界说明不采用');
+  }
+
+  return errors;
+}
+
+/**
+ * Lesson 11 diagram: top states document question; middle parallel reasons after defining problem.
+ */
+export function validateLesson11Diagram(root, lessonText = '') {
+  const errors = [];
+  const diagramPath = path.join(root, 'src/data/pyramid-lesson-11-diagram.json');
+  if (!fs.existsSync(diagramPath)) {
+    errors.push('缺少 pyramid-lesson-11-diagram.json');
+    return errors;
+  }
+  let diagram;
+  try {
+    diagram = JSON.parse(fs.readFileSync(diagramPath, 'utf8'));
+  } catch {
+    errors.push('pyramid-lesson-11-diagram.json 不是合法 JSON');
+    return errors;
+  }
+
+  if (!/界定|本文要回答|问题想清楚/.test(diagram.caption ?? '')) {
+    errors.push('图注应点明动笔前界定问题');
+  }
+  if (!/虚构/.test(diagram.caption ?? '')) {
+    errors.push('图注应标明虚构教学案例');
+  }
+
+  const top = diagram.levels?.find((l) => l.layer === 'top');
+  if (!top) {
+    errors.push('图缺少顶层');
+    return errors;
+  }
+  const topText = top.items?.[0]?.text ?? '';
+  if (!/本文要回答/.test(topText)) {
+    errors.push('图顶层应写明本文要回答的问题');
+  }
+  if (
+    /(必须全线|下月起必须)/.test(topText)
+    && !/不宜|不要|还不能/.test(topText)
+  ) {
+    errors.push('图顶层不宜在无兜底表述下过强要求全线换柜');
+  }
+  if (/双人复盘/.test(topText)) {
+    errors.push('图顶层不得编造事实中未出现的人手或流程（如「双人复盘」）');
+  }
+
+  if (/两周/.test(topText) && !/原创教学/.test(topText)) {
+    errors.push('图顶层「两周」应标明为原创教学建议观察窗口');
+  }
+
+  if (
+    /两周/.test(topText)
+    && !/限量盘点|志愿者能做的范围|现有志愿者/.test(topText)
+  ) {
+    errors.push('图顶层总建议应先写限量盘点且落在现有志愿者能力内');
+  }
+
+  const middle = diagram.levels?.find((l) => l.layer === 'middle');
+  if (!middle) {
+    errors.push('图缺少中间层');
+    return errors;
+  }
+  if (!/界定|问题/.test(middle.label ?? '')) {
+    errors.push('图的中层标签应点出界定问题后的理由结构');
+  }
+
+  const reasonItems = middle.items ?? [];
+  const reasonIds = new Set(reasonItems.map((i) => i.id));
+  const r1Item = reasonItems.find((i) => i.id === 'r1');
+  const r1Text = r1Item?.text ?? '';
+  if (r1Text && /并存/.test(r1Text) && !/可能并存|尚未分清|可能.*并存/.test(r1Text)) {
+    errors.push('图 r1 勿把「可能」升格为确定「并存」');
+  }
+  if (r1Text && /答非所问/.test(r1Text) && !/分层|支撑层|混成一段|才易/.test(r1Text)) {
+    errors.push('图 r1 宜说明可分层写，勿写成混讲两者必然答非所问');
+  }
+  if (reasonItems.length !== 3) {
+    errors.push('图的中层应正好三条并列理由');
+  }
+  if (reasonItems.some((i) => /^理由\s*[一二三123]/.test(i.text ?? ''))) {
+    errors.push('图的中层不宜用「理由一、二、三」式条目');
+  }
+  if (reasonItems.some((i) => insightTextOverStrong(i.text ?? ''))) {
+    errors.push('图中理由概括不得过强（如必须换柜）');
+  }
+
+  const facts = diagram.levels?.find((l) => l.id === 'facts')?.items ?? [];
+  if (facts.length < 6) {
+    errors.push('图底层应含工具屋案例六条事实');
+  }
+  for (const f of facts) {
+    if (!f.supports || !reasonIds.has(f.supports)) {
+      errors.push(`事实「${f.text?.slice(0, 12)}…」的 supports 必须指向有效理由 id`);
+    }
+  }
+
+  for (const snippet of [
+    '社区共享工具屋三年来靠纸质登记簿借还，街坊一般熟悉手写流程。',
+    '今年春天新来了几十户租客，登记字迹与缩写习惯更杂，人工对账可能更费事，但还不确定这与差错率是否直接相关。',
+    '街道上月抽检发现三把梯子编号与登记不符，可能有人未还就登记已还，也可能贴错编号，还不确定哪一种更常见。',
+    '厂商推的扫码柜报价单已收到，但与现有门禁系统的联动好像还没试过，还不确定能否本季安装。',
+    '有志愿者愿意周末加一轮盘点，但培训新人熟记一百多件工具编号好像还要几周。',
+    '有邻居希望保持面对面交接，也有人说扫码可能更快；社媒群里吐槽「找不到梯子」的帖子好像只有十来条，还不代表全体感受。',
+  ]) {
+    if (!facts.some((f) => f.text === snippet)) {
+      errors.push(`图底层事实应与课文一致：「${snippet.slice(0, 14)}…」`);
+    }
+  }
+
+  const r1Facts = facts.filter((f) => f.supports === 'r1');
+  if (!r1Facts.some((f) => /登记簿|纸质/.test(f.text)) || !r1Facts.some((f) => /租客|字迹/.test(f.text))) {
+    errors.push('成因组应含惯例登记与租客习惯类事实');
+  }
+  if (!r1Facts.some((f) => /梯子|编号/.test(f.text))) {
+    errors.push('成因组应含抽检编号不符类事实');
+  }
+  const r2Facts = facts.filter((f) => f.supports === 'r2');
+  if (!r2Facts.some((f) => /联动|门禁/.test(f.text))) {
+    errors.push('换柜条件组应含门禁联动类事实');
+  }
+  const r3Facts = facts.filter((f) => f.supports === 'r3');
+  if (!r3Facts.some((f) => /志愿者|盘点/.test(f.text)) || !r3Facts.some((f) => /十来条|社媒/.test(f.text))) {
+    errors.push('人力样本组应含盘点培训与社媒样本类事实');
+  }
+
+  if (lessonText && !lessonText.includes('社区共享工具屋三年来靠纸质登记簿借还')) {
+    errors.push('工具屋惯例宜在正文中交代纸质登记');
+  }
+
+  return errors;
+}
+
+const LESSON12_FACT_SNIPPETS = [
+  '过去一年周五多为现场自取，大约八成同事会来，但各周人数好像有起伏，还没有按周统计。',
+  '上个月做了一次「提前点单再送到工位」试做：有人说少排队更方便，也有人说等餐比现场取更久，还不确定哪一种感受更常见。',
+  '那次试做收回了三十多份反馈，部门一共大约一百二十人，样本还不代表全体。',
+  '现有供应商说工作日下午产能好像只能再多做四十份左右，还不确定周五高峰能不能全覆盖。',
+  '工位配送要占用两名行政同事大约一个半小时；这两人周五下午本来还要对接访客，是否能调班还没核对。',
+  '有同事希望保留现场聊天，也有人说点单可以少浪费；上周茶歇剩余份数好像在八到十五份之间波动，还没有连续四周的记录。',
+];
+
+/**
+ * Lesson 12 semantics: question the summary statement — vertical support for top conclusion.
+ */
+export function validateLesson12Content(text, root = process.cwd()) {
+  const errors = [];
+
+  if (!/原创虚构/.test(text)) {
+    errors.push('第12课正文应标明案例为原创虚构（非原书/非真实事件）');
+  }
+
+  if (!/本文要回答|把问题想清楚|界定/.test(text)) {
+    errors.push('上节回顾应概括第 11 课动笔前界定「本文要回答的问题」要点');
+  }
+
+  if (!/不超过事实强度|见解/.test(text)) {
+    errors.push('应衔接第 6 课见解不超过事实强度，并用于顶端结论与下层理由的纵向关系');
+  }
+
+  if (!/第\s*7\s*课/.test(text) || !/横向|并列理由.*个数|分组/.test(text)) {
+    errors.push('应说明第 7 课已做横向并列理由检查，本课不重讲个数与分组');
+  }
+
+  if (/本课重点是检查并列理由的个数|今天再教.*How to Look Critically at the Groupings/i.test(text)) {
+    errors.push('不要把第 7 课个数/分组检查写成本课核心（本课聚焦纵向撑住顶端结论）');
+  }
+
+  if (!/归纳/.test(text) || !/演绎/.test(text)) {
+    errors.push('宜简要区分本课不重讲第 10 课归纳与演绎定义');
+  }
+
+  if (!/relate vertically and horizontally/i.test(text)) {
+    errors.push('应转述课程页金字塔想法 relate vertically and horizontally，并点明本课聚焦纵向');
+  }
+
+  if (!/Check your ideas carefully/i.test(text)) {
+    errors.push('应转述 Pearson Check your ideas carefully to make sure they are effective before you present them');
+  }
+
+  if (!/Review your ideas and understand/i.test(text)) {
+    errors.push('应转述 Pearson Review your ideas and understand which ones are most important');
+  }
+
+  if (!/Questioning the summary statement/i.test(text)) {
+    errors.push('应引用 Pearson 公开目录 Questioning the summary statement 并落实为检查顶端概括');
+  }
+
+  if (!/教学设计/.test(text)) {
+    errors.push('展开回头检查操作说明时应标明为教学设计');
+  }
+
+  if (!/第\s*13\s*课/.test(text) || !/检查一组理由的排列顺序/.test(text)) {
+    errors.push('适用边界或前瞻应预告第 13 课检查一组理由的排列顺序');
+  }
+
+  if (!/纵向|撑住|顶端结论/.test(text)) {
+    errors.push('应强调回头检查纵向关系：顶端结论是否被下层理由撑住');
+  }
+
+  if (text.includes('完全等量')) {
+    errors.push('compareNotes 不应使用「完全等量」类表述');
+  }
+
+  for (const snippet of LESSON12_FACT_SNIPPETS) {
+    if (!text.includes(snippet)) {
+      errors.push(`CaseCompare 应保留下午茶案例事实：「${snippet.slice(0, 16)}…」`);
+    }
+  }
+
+  const hedgeTokens = ['好像', '可能', '还不确定'];
+  for (const token of hedgeTokens) {
+    if (!text.includes(token)) {
+      errors.push(`正文应保留「${token}」等原样措辞`);
+    }
+  }
+
+  const caseBlock = text.includes('<CaseCompare')
+    ? text.slice(text.indexOf('<CaseCompare'), text.indexOf('/>', text.indexOf('<CaseCompare')) + 2)
+    : '';
+
+  const structuredConclusion = caseBlock.match(/conclusion="([^"]+)"/)?.[1] ?? '';
+  if (
+    structuredConclusion
+    && /(下周五起全面|必须全面|肯定全面)/.test(structuredConclusion)
+    && !/不宜|不要|还不能|先.*核对/.test(structuredConclusion)
+  ) {
+    errors.push('结构版结论不得把不确定性升格为必须或下周五起全面改点单配送');
+  }
+
+  if (structuredConclusion && !/不宜|还不能|先.*核对/.test(structuredConclusion)) {
+    errors.push('结构版结论应减弱过强判断并回到核对步骤');
+  }
+
+  if (
+    structuredConclusion
+    && /两周|观察窗口|限定范围|试点/.test(structuredConclusion)
+    && !/原创教学/.test(structuredConclusion)
+  ) {
+    errors.push('限定范围或观察窗口应标明为原创教学建议');
+  }
+
+  const verbose = caseBlock.match(/verbose="([^"]*)"/)?.[1] ?? '';
+  if (verbose && !/全面|大家都说|完全跟得上|不会再浪费/.test(verbose)) {
+    errors.push('啰嗦版宜体现只有金字塔外形却纵向撑不住（如全面改、大家都说方便）');
+  }
+
+  if (verbose && !verbose.includes(LESSON12_FACT_SNIPPETS[0])) {
+    errors.push('啰嗦版与结构版宜使用同一字面事实句（含过去一年周五现场自取那句）');
+  }
+
+  const compareNotesBlob = text.includes('compareNotes')
+    ? text.slice(text.indexOf('compareNotes'), text.indexOf('/>', text.indexOf('<CaseCompare')) + 2)
+    : '';
+
+  if (!/同一批事实|相同事实/.test(text)) {
+    errors.push('compareNotes 应点明两版使用同一批事实');
+  }
+
+  if (!/纵向|撑住|外形/.test(compareNotesBlob)) {
+    errors.push('compareNotes 应点明啰嗦版只有外形、纵向并不撑住，结构版减弱结论');
+  }
+
+  if (!/垃圾桶/.test(text)) {
+    errors.push('啰嗦版宜含不参与成理由的旁支（如垃圾桶分类提醒）');
+  }
+  if (caseBlock && /title:\s*'[^']*垃圾桶/.test(text)) {
+    errors.push('结构版不得把垃圾桶旁支升格为一条理由');
+  }
+
+  if (/社区共享工具屋|扫码柜|晨间短讯|六点半|校园广播|任务看板|卫生院|小程序号源/.test(text)) {
+    errors.push('本课案例不宜重复前几课已用场景');
+  }
+
+  const reasonTitles = [...text.matchAll(/title:\s*'([^']+)'/g)].map((m) => m[1]);
+  const checkReasons = reasonTitles.filter((t) => /试做|反馈|样本|浪费|剩余|产能|配送|人手/.test(t));
+  if (checkReasons.length !== 3) {
+    errors.push('CaseCompare 结构版应有三条并列理由（试做反馈、浪费记录、产能与人手等）');
+  }
+  if (reasonTitles.some((t) => /^理由\s*[一二三123]/.test(t.trim()))) {
+    errors.push('结构版不宜用「理由一、二、三」式标题（留给啰嗦版作错例）');
+  }
+
+  for (const t of reasonTitles) {
+    if (/都已确认|完全跟得上|不会再浪费|大家都说/.test(t) && !/撑不住|还不|不宜/.test(t)) {
+      errors.push('结构版理由标题勿把「还不确定」升格为已确认或必胜判断');
+    }
+  }
+
+  errors.push(...validateLesson12Diagram(root, text));
+
+  if (!/correctId="B"/.test(text)) {
+    errors.push('MicroExercise 正确答案应为 B');
+  }
+
+  const microBlock = text.includes('<MicroExercise')
+    ? text.slice(text.indexOf('<MicroExercise'), text.indexOf('/>', text.indexOf('<MicroExercise')) + 2)
+    : '';
+
+  const bannedMicroScenes =
+    /野餐|群聊换|出租房检修|年会抽奖|捐步|消防演练|三楼会议室|工牌自助|晨间短讯|六点半|工具屋|扫码柜|下午茶|点单配送|现场自取/;
+  if (microBlock && bannedMicroScenes.test(microBlock)) {
+    errors.push('MicroExercise 题干不应重复本课或前几课案例场景');
+  }
+
+  if (microBlock) {
+    const optionB = microBlock.match(/id:\s*'B'[\s\S]*?text:\s*'([^']+)'/)?.[1] ?? '';
+    if (optionB && !/不宜|先核对|回头|撑住|还不能/.test(optionB)) {
+      errors.push('MicroExercise B 宜体现回头检查后减弱结论');
+    }
+    const optionA = microBlock.match(/id:\s*'A'[\s\S]*?text:\s*'([^']+)'/)?.[1] ?? '';
+    if (optionA && !/必须|全面|理由一|肯定/.test(optionA)) {
+      errors.push('MicroExercise A 宜体现外形像金字塔但结论过强');
+    }
+    const explanation = microBlock.match(/explanation="([^"]+)"/)?.[1] ?? '';
+    if (explanation && !/撑住|纵向|升格|过强/.test(explanation)) {
+      errors.push('MicroExercise 解析应点明纵向撑住与升格问题');
+    }
+  }
+
+  const prose = text.replace(/^import[^\n]+\n/gm, '');
+  if (/CaseCompare\s*组件|PyramidDiagram\s*组件|\bJSON\b|pull request/i.test(prose)) {
+    errors.push('正文不宜出现组件、JSON、PR 等开发术语');
+  }
+
+  if (/p\.\s*\d+|第\s*\d+\s*页|页码\s*\d+/.test(text)) {
+    errors.push('第12课不应编造具体引语页码');
+  }
+
+  if (!/第\s*[6-9]\s*课|第\s*10\s*课|不适用|不代替|不抢讲|不重讲/.test(text)) {
+    errors.push('适用边界应提及本课不代替前几课已学步骤');
+  }
+
+  return errors;
+}
+
+/**
+ * Lesson 12 diagram: top summary questioned; middle reasons vertically support top.
+ */
+export function validateLesson12Diagram(root, lessonText = '') {
+  const errors = [];
+  const diagramPath = path.join(root, 'src/data/pyramid-lesson-12-diagram.json');
+  if (!fs.existsSync(diagramPath)) {
+    errors.push('缺少 pyramid-lesson-12-diagram.json');
+    return errors;
+  }
+  let diagram;
+  try {
+    diagram = JSON.parse(fs.readFileSync(diagramPath, 'utf8'));
+  } catch {
+    errors.push('pyramid-lesson-12-diagram.json 不是合法 JSON');
+    return errors;
+  }
+
+  if (!/回头检查|纵向|撑住/.test(diagram.caption ?? '')) {
+    errors.push('图注应点明回头检查纵向关系、结论是否被理由撑住');
+  }
+  if (!/虚构/.test(diagram.caption ?? '')) {
+    errors.push('图注应标明虚构教学案例');
+  }
+
+  const top = diagram.levels?.find((l) => l.layer === 'top');
+  if (!top) {
+    errors.push('图缺少顶层');
+    return errors;
+  }
+  const topText = top.items?.[0]?.text ?? '';
+  if (
+    /(下周五起全面|必须全面改成)/.test(topText)
+    && !/不宜|不要|还不能/.test(topText)
+  ) {
+    errors.push('图顶层不宜在无兜底表述下过强要求全面改点单配送');
+  }
+  if (topText && !/不宜|先核对|还不能/.test(topText)) {
+    errors.push('图顶层应减弱结论并含核对步骤');
+  }
+  if (/两周|限定范围|观察窗口/.test(topText) && !/原创教学/.test(topText)) {
+    errors.push('图顶层期限或试点窗口应标明原创教学建议');
+  }
+
+  const middle = diagram.levels?.find((l) => l.layer === 'middle');
+  if (!middle) {
+    errors.push('图缺少中间层');
+    return errors;
+  }
+  if (!/理由|纵向|撑住/.test(middle.label ?? '')) {
+    errors.push('图的中层标签应点出纵向支撑顶端结论的理由');
+  }
+
+  const reasonItems = middle.items ?? [];
+  const reasonIds = new Set(reasonItems.map((i) => i.id));
+  if (reasonItems.length !== 3) {
+    errors.push('图的中层应正好三条并列理由');
+  }
+  if (reasonItems.some((i) => /^理由\s*[一二三123]/.test(i.text ?? ''))) {
+    errors.push('图的中层不宜用「理由一、二、三」式条目');
+  }
+  if (reasonItems.some((i) => /大家都说方便已确认|完全跟得上|不会再浪费/.test(i.text ?? '') && !/撑不住/.test(i.text ?? ''))) {
+    errors.push('图中理由概括不得把不确定性升格为已确认');
+  }
+
+  const facts = diagram.levels?.find((l) => l.id === 'facts')?.items ?? [];
+  if (facts.length < 6) {
+    errors.push('图底层应含下午茶案例六条事实');
+  }
+  for (const f of facts) {
+    if (!f.supports || !reasonIds.has(f.supports)) {
+      errors.push(`事实「${f.text?.slice(0, 12)}…」的 supports 必须指向有效理由 id`);
+    }
+  }
+
+  for (const snippet of LESSON12_FACT_SNIPPETS) {
+    if (!facts.some((f) => f.text === snippet)) {
+      errors.push(`图底层事实应与课文一致：「${snippet.slice(0, 14)}…」`);
+    }
+  }
+
+  const r1Facts = facts.filter((f) => f.supports === 'r1');
+  if (
+    !r1Facts.some((f) => /试做|点单|方便/.test(f.text))
+    || !r1Facts.some((f) => /三十多份|一百二十人|样本/.test(f.text))
+  ) {
+    errors.push('试做反馈组应含试做感受与样本类事实');
+  }
+  const r2Facts = facts.filter((f) => f.supports === 'r2');
+  if (!r2Facts.some((f) => /剩余|浪费|八到十五/.test(f.text))) {
+    errors.push('浪费记录组应含剩余份数波动类事实');
+  }
+  const r3Facts = facts.filter((f) => f.supports === 'r3');
+  if (
+    !r3Facts.some((f) => /产能|四十份/.test(f.text))
+    || !r3Facts.some((f) => /行政|访客|调班/.test(f.text))
+  ) {
+    errors.push('产能人手组应含供应商产能与配送人手类事实');
+  }
+
+  if (lessonText && !lessonText.includes('过去一年周五多为现场自取')) {
+    errors.push('下午茶惯例宜在正文中交代现场自取背景');
   }
 
   return errors;
