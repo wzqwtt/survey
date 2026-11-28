@@ -24,6 +24,8 @@ import {
   validateLesson10Diagram,
   validateLesson11Content,
   validateLesson11Diagram,
+  validateLesson12Content,
+  validateLesson12Diagram,
 } from './validate-pyramid-lesson.mjs';
 
 test('parseFrontMatter reads keys', () => {
@@ -1379,6 +1381,166 @@ test('validateLessonFile accepts lesson 11 fixture when present', () => {
   const lesson = path.join(
     root,
     'docs/learning/thinking/pyramid-principle-daily/2026-11-27-lesson-11.mdx',
+  );
+  if (!fs.existsSync(lesson)) {
+    return;
+  }
+  const r = validateLessonFile(lesson, root);
+  assert.equal(r.ok, true, r.errors?.join('; '));
+});
+
+test('validateLesson12Content rejects over-strong conclusion and missing summary-statement source', () => {
+  const badSnippet = `
+原创虚构 好像 可能 还不确定
+归纳 演绎 伪装 并列理由
+不超过事实强度 见解
+relate vertically and horizontally
+Check your ideas carefully
+教学设计
+第6课 第7课 第10课 第11课 第13课
+本课重点是检查并列理由的个数对不对
+过去一年周五多为现场自取，大约八成同事会来，但各周人数好像有起伏，还没有按周统计。
+上个月做了一次「提前点单再送到工位」试做：有人说少排队更方便，也有人说等餐比现场取更久，还不确定哪一种感受更常见。
+那次试做收回了三十多份反馈，部门一共大约一百二十人，样本还不代表全体。
+现有供应商说工作日下午产能好像只能再多做四十份左右，还不确定周五高峰能不能全覆盖。
+工位配送要占用两名行政同事大约一个半小时；这两人周五下午本来还要对接访客，是否能调班还没核对。
+有同事希望保留现场聊天，也有人说点单可以少浪费；上周茶歇剩余份数好像在八到十五份之间波动，还没有连续四周的记录。
+<CaseCompare verbose="过去一年周五多为现场自取，大约八成同事会来，但各周人数好像有起伏，还没有按周统计。下周五起全面改成点单配送，大家都说方便。" conclusion="下周五起必须全面改成提前点单并工位配送，供应商和人手完全跟得上，不会再浪费。" />
+title: '理由一：大家都方便'
+title: '理由二：不会浪费'
+title: '理由三：产能充足'
+compareNotes 两版事实一样
+<MicroExercise correctId="A" explanation="很好" options={[
+  { id: 'A', text: '下周五全面改必须点单配送理由一理由二理由三' },
+  { id: 'B', text: '回头检查后不宜现在就宣布全面改先核对产能与人手' },
+]} />
+PyramidDiagram 组件
+p. 42
+`;
+  const root = path.resolve(import.meta.dirname, '..');
+  const errors = validateLesson12Content(badSnippet, root);
+  assert.ok(errors.some((e) => e.includes('Questioning') || e.includes('summary')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('正确答案应为 B')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('不宜') || e.includes('升格') || e.includes('全面')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('个数') || e.includes('第7课') || e.includes('横向')), errors.join('; '));
+  assert.ok(errors.length >= 4, `expected multiple errors, got ${errors.length}`);
+});
+
+test('validateLesson12Diagram rejects bad supports and upgraded reason titles', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pyr-12-'));
+  const diagramPath = path.join(root, 'src/data');
+  fs.mkdirSync(diagramPath, {recursive: true});
+  fs.writeFileSync(
+    path.join(diagramPath, 'pyramid-lesson-12-diagram.json'),
+    JSON.stringify({
+      caption: '示意图',
+      levels: [
+        {
+          id: 'step',
+          layer: 'top',
+          items: [{id: 's1', text: '下周五起必须全面改成点单配送'}],
+        },
+        {
+          id: 'reasons',
+          layer: 'middle',
+          label: '理由',
+          items: [
+            {id: 'r1', text: '同事都已确认点单更方便'},
+            {id: 'r2', text: '浪费问题已解决'},
+          ],
+        },
+        {
+          id: 'facts',
+          layer: 'bottom',
+          items: [
+            {
+              id: 'f1',
+              supports: 'r1',
+              text: '过去一年周五多为现场自取，大约八成同事会来，但各周人数好像有起伏，还没有按周统计。',
+            },
+            {id: 'f2', supports: 'r9', text: '现有供应商说工作日下午产能好像只能再多做四十份左右，还不确定周五高峰能不能全覆盖。'},
+          ],
+        },
+      ],
+    }),
+  );
+  const errors = validateLesson12Diagram(root);
+  assert.ok(errors.some((e) => e.includes('回头检查') || e.includes('纵向')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('supports') || e.includes('r9')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('三条') || e.includes('正好')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('不宜') || e.includes('全面')), errors.join('; '));
+});
+
+test('validateLesson12Content rejects fact drift and reason title upgrade', () => {
+  const root = path.resolve(import.meta.dirname, '..');
+  const snippet = `
+原创虚构 好像 可能 还不确定
+relate vertically and horizontally
+Check your ideas carefully
+Review your ideas and understand
+Questioning the summary statement
+教学设计 第6课 第7课 第10课 第11课 第13课
+检查一组理由的排列顺序
+定义问题 本文要回答
+过去一年周五多为现场自取，八成同事肯定都来。
+上个月做了一次「提前点单再送到工位」试做：有人说少排队更方便，也有人说等餐比现场取更久，还不确定哪一种感受更常见。
+那次试做收回了三十多份反馈，部门一共大约一百二十人，样本还不代表全体。
+现有供应商说工作日下午产能好像只能再多做四十份左右，还不确定周五高峰能不能全覆盖。
+工位配送要占用两名行政同事大约一个半小时；这两人周五下午本来还要对接访客，是否能调班还没核对。
+有同事希望保留现场聊天，也有人说点单可以少浪费；上周茶歇剩余份数好像在八到十五份之间波动，还没有连续四周的记录。
+<CaseCompare verbose="过去一年周五多为现场自取，八成同事肯定都来。必须全面改。" conclusion="不宜现在就宣布从下周五起全面改；先核对产能与人手；「两周」为原创教学建议观察窗口。" />
+title: '试做反馈与样本：大家都说方便已确认。'
+title: '浪费与剩余：不会再浪费。'
+title: '产能与人手：供应商和人手完全跟得上。'
+compareNotes 纵向 撑住 同一批事实
+<MicroExercise correctId="B" explanation="B 撑住 A 升格 C 旁支" options={[
+  { id: 'B', text: '回头检查后不宜现在就宣布全面改；先核对产能与人手。' },
+  { id: 'A', text: '必须下月起全面改点单理由一理由二理由三' },
+  { id: 'C', text: '会议室绿植要记得浇水' },
+]} />
+`;
+  const errors = validateLesson12Content(snippet, root);
+  assert.ok(errors.some((e) => e.includes('字面') || e.includes('八成')), errors.join('; '));
+  assert.ok(errors.some((e) => e.includes('还不确定') || e.includes('升格') || e.includes('已确认')), errors.join('; '));
+});
+
+test('validateLesson12Content rejects missing vertical compareNotes', () => {
+  const root = path.resolve(import.meta.dirname, '..');
+  const snippet = `
+原创虚构 好像 可能 还不确定
+relate vertically and horizontally
+Check your ideas carefully
+Review your ideas and understand
+Questioning the summary statement
+教学设计 第6课 第7课 第10课 第11课 第13课
+检查一组理由的排列顺序
+动笔前界定 本文要回答
+过去一年周五多为现场自取，大约八成同事会来，但各周人数好像有起伏，还没有按周统计。
+上个月做了一次「提前点单再送到工位」试做：有人说少排队更方便，也有人说等餐比现场取更久，还不确定哪一种感受更常见。
+那次试做收回了三十多份反馈，部门一共大约一百二十人，样本还不代表全体。
+现有供应商说工作日下午产能好像只能再多做四十份左右，还不确定周五高峰能不能全覆盖。
+工位配送要占用两名行政同事大约一个半小时；这两人周五下午本来还要对接访客，是否能调班还没核对。
+有同事希望保留现场聊天，也有人说点单可以少浪费；上周茶歇剩余份数好像在八到十五份之间波动，还没有连续四周的记录。
+<CaseCompare verbose="过去一年周五多为现场自取，大约八成同事会来，但各周人数好像有起伏，还没有按周统计。下周五全面改大家都说方便。" conclusion="不宜现在就宣布从下周五起全面改成点单配送；先核对产能覆盖与配送人手能否与访客对接调班；再考虑一次限定范围的点单试做（「两周」为原创教学建议观察窗口，不是已确认可立即开工的承诺）。" />
+title: '试做反馈与样本：感受不一、样本小，撑不住「大家都方便」。'
+title: '浪费与剩余：剩余记录不完整，撑不住「不会再浪费」。'
+title: '产能与配送人手：产能与人手都未核对，撑不住全线立即改。'
+compareNotes 两版用词接近
+垃圾桶
+<MicroExercise correctId="B" explanation="B 纵向撑住 A 升格" options={[
+  { id: 'B', text: '不宜现在就宣布全面改；先核对再定' },
+  { id: 'A', text: '必须全面改理由一理由二理由三' },
+]} />
+`;
+  const errors = validateLesson12Content(snippet, root);
+  assert.ok(errors.some((e) => e.includes('纵向') || e.includes('撑住') || e.includes('外形')), errors.join('; '));
+});
+
+test('validateLessonFile accepts lesson 12 fixture when present', () => {
+  const root = path.resolve(import.meta.dirname, '..');
+  const lesson = path.join(
+    root,
+    'docs/learning/thinking/pyramid-principle-daily/2026-11-28-lesson-12.mdx',
   );
   if (!fs.existsSync(lesson)) {
     return;
